@@ -19,7 +19,8 @@ All notable changes to OtaClaw for OpenClaw.
 
 ### Fixed
 
-- **Tickle (laughing) state** – Hal no longer disappears on tickle. Prefer `laughingSprites` (individual PNGs) over sprite sheet when available, since `otaclock-original.png` is not shipped in the repo.
+- **Tickle (laughing) state** – Hal no longer disappears on tickle. Prefer catalog laughing (Layer-2/3/4); fallback to `laughingSprites`; final fallback uses hardcoded Layer files (never sprite sheet, which 404s).
+- **Individual sprites only** – Widget and all states now use individual PNGs from sprite catalog. No sprite sheet (`otaclock-original.png` not shipped). `setFrame` and `_setFrameDirect` use sprite catalog when `useIndividualFiles` is true.
 
 ## [1.1.0] - 2026-02-28
 

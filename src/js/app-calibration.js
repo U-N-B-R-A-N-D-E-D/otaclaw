@@ -1255,9 +1255,8 @@ function setFrame(col, row, options = {}) {
 
   if (!spriteContainer || !frameEl) return;
 
-  /* Widget uses sprite sheet; individual files 404 in widget assets */
-  const forceSheet = document.body.classList.contains("otaclaw-widget");
-  if (SPRITE_CATALOG?.useIndividualFiles && !forceSheet) {
+  /* Use individual sprites when catalog says so – no sprite sheet, we have beautiful individual PNGs */
+  if (SPRITE_CATALOG?.useIndividualFiles) {
     const spr = SPRITE_CATALOG.sprites.find(
       (s) => s.col === col && s.row === row && !s.skip,
     );

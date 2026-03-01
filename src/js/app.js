@@ -1028,13 +1028,19 @@ class OtaClawApp {
     if (sb) sb.classList.toggle("has-text", !!speech);
   }
 
-  /** Direct frame update using config-driven sprite metrics. */
+  /** Direct frame update. Prefer calibration setFrame (uses individual sprites from catalog). */
   _setFrameDirect(col, row, speech = "") {
     if (
       document.body.classList.contains("otaclaw-widget") &&
       !window.__otaclawBootComplete
     )
       return;
+    const cal = window.otaclaw;
+    if (cal?.setFrame) {
+      cal.setFrame(col, row, { speech });
+      this._lastFrame = { type: "direct", col, row, speech };
+      return;
+    }
     const root = document.documentElement;
     const sprite = document.getElementById("sprite");
     const frameEl = sprite?.querySelector(".otacon-frame");
@@ -1577,8 +1583,8 @@ class OtaClawApp {
   }
 
   /** Laughing: laugh micro sequence (tickle), ~400ms per frame, 4s total.
-   * Prefer laughingSprites (individual PNGs) when available – otaclock-original.png
-   * is gitignored and not shipped, so sheet-based laughing would 404 and Hal disappears. */
+   * Prefer catalog laughing (Layer-2/3/4) when useIndividualFiles – guaranteed to exist.
+   * Fallback: config laughingSprites. Never use sheet (otaclock-original.png is gitignored). */
   startLaughingAnimation() {
     this.stopLaughingAnimation();
     this.stopIdleAnimation();
@@ -1587,10 +1593,53 @@ class OtaClawApp {
     this.stopErrorAnimation();
     this.stopSurprisedAnimation();
     if (!document.body.classList.contains("otaclaw-widget")) return;
-    const sprites = this.config?.sprites?.laughingSprites;
     const cfg =
       typeof window !== "undefined" ? window.OTACLAW_CONFIG : this.config;
     const DURATION = cfg?.stateDurations?.laughing ?? 4000;
+    const cal = window.otaclaw;
+    const catalog = cal?.getSpriteCatalog?.();
+
+    /* 1) Catalog laughing sequence (Layer-2/3/4) – always works when useIndividualFiles */
+    if (catalog?.useIndividualFiles) {
+      const seq =
+        catalog.sequences?.find((s) => s.name === "laughing")?.indices ??
+        catalog.sprites
+          ?.filter((s) => s.tags?.includes("laughing"))
+          ?.map((s) => s.idx) ??
+        [38, 39];
+      if (seq.length) {
+        let idx = 0;
+        const schedule = () => {
+          if (!document.body.classList.contains("otaclaw-widget")) return;
+          if ((this.otaclaw?.getState?.() || "") !== "laughing") return;
+          if (cal?.setFrameByIndex) {
+            cal.setFrameByIndex(seq[idx % seq.length], {
+              speech: this._t("laughing"),
+            });
+          } else {
+            const s = catalog.sprites?.find((sp) => sp.idx === seq[idx % seq.length]);
+            if (s && cal?.setFrame)
+              cal.setFrame(s.col, s.row, { speech: this._t("laughing") });
+          }
+          const frameMs = this._getFrameMs("laughing", idx, 400);
+          idx += 1;
+          this._laughHandle = setTimeout(schedule, frameMs);
+        };
+        schedule();
+        this._laughEnd = setTimeout(() => {
+          if (this._laughHandle) clearTimeout(this._laughHandle);
+          this._laughHandle = null;
+          this._laughEnd = null;
+          if (document.body.classList.contains("widget-waiting")) return;
+          this.otaclaw.setState("idle", { speech: "" });
+          this.startIdleAnimation();
+        }, DURATION);
+        return;
+      }
+    }
+
+    /* 2) Config laughingSprites (otacon_sprite_laugh_00/01/02.png) */
+    const sprites = this.config?.sprites?.laughingSprites;
     if (Array.isArray(sprites) && sprites.length) {
       let idx = 0;
       const schedule = () => {
@@ -1615,22 +1664,22 @@ class OtaClawApp {
       }, DURATION);
       return;
     }
-    const LAUGH_SEQ = [
-      [2, 3],
-      [3, 3],
+
+    /* 3) Fallback: hardcoded Layer files – always in repo, never use sheet (404) */
+    const FALLBACK_LAUGH = [
+      "otacon_sprite.png_0037_Layer-2.png",
+      "otacon_sprite.png_0038_Layer-3.png",
+      "otacon_sprite.png_0039_Layer-4.png",
     ];
-    const defaultMs = Math.max(200, DURATION / (LAUGH_SEQ.length * 2));
+    const defaultMs = Math.max(200, DURATION / (FALLBACK_LAUGH.length * 2));
     let idx = 0;
     const schedule = () => {
       if (!document.body.classList.contains("otaclaw-widget")) return;
       if ((this.otaclaw?.getState?.() || "") !== "laughing") return;
-      const [col, row] = LAUGH_SEQ[idx % LAUGH_SEQ.length];
-      const cal = window.otaclaw;
-      if (cal?.setFrame) {
-        cal.setFrame(col, row, { speech: this._t("laughing") });
-      } else {
-        this._setFrameDirect(col, row, this._t("laughing"));
-      }
+      this._setFrameFromSprite(
+        FALLBACK_LAUGH[idx % FALLBACK_LAUGH.length],
+        this._t("laughing"),
+      );
       const frameMs = this._getFrameMs("laughing", idx, defaultMs);
       idx += 1;
       this._laughHandle = setTimeout(schedule, frameMs);
