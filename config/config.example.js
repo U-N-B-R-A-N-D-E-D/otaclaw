@@ -238,6 +238,13 @@ export const OTACLAW_CONFIG = {
     blinkIntervalMinMs: 2000,
     blinkIntervalMaxMs: 4000,
     
+    // Individual sprite files per state (used when otaclock-original.png not available)
+    laughingSprites: [
+      'otacon_sprite_laugh_00.png',
+      'otacon_sprite_laugh_01.png',
+      'otacon_sprite_laugh_02.png',
+    ],
+
     // Number of animation frames per state
     frames: {
       idle: 2,

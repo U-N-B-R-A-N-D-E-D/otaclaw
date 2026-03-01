@@ -27,7 +27,7 @@ For remote host:
 
 ## 2. Choose Your Mode
 
-The deploy script prints a **local network URL with token** (e.g. `http://192.168.1.10:18789/__openclaw__/canvas/otaclaw/widget.html?oc_token=...`). Open it from any device on your LAN.
+The deploy script prints a **local network URL with token** (e.g. `http://YOUR_IP:18789/__openclaw__/canvas/otaclaw/widget.html?oc_token=...`). Replace `YOUR_IP` with your OpenClaw host's LAN address. Open it from any device on your LAN.
 
 ### Mode A: Resizable Floating Widget
 

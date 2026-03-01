@@ -1,6 +1,6 @@
 # Contributing to OtaClaw for OpenClaw
 
-Thank you for your interest in contributing! This document provides guidelines and instructions for contributing to the project.
+Thanks for your interest! We love contributions. This document provides guidelines and instructions for contributing to the project.
 
 ## Table of Contents
 

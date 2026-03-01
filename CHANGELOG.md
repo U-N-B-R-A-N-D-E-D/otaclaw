@@ -2,11 +2,11 @@
 
 All notable changes to OtaClaw for OpenClaw.
 
-## [0.0.1-beta] - 2026-03-01
+## [0.0.1] - 2026-03-01
 
 ### Added
 
-- **Beta release** – First public baseline for OtaClaw for OpenClaw
+- **Release 0.0.1** – First public release of OtaClaw for OpenClaw
 - Wake/sleep sync between kiosk and tab via `client.interaction` broadcast
 - Cursor visibility: hidden in kiosk, visible in tab
 - Speech bubble positioning: lower in tab, visible on kiosk
@@ -16,6 +16,10 @@ All notable changes to OtaClaw for OpenClaw.
 
 - Speech bubble uses `top: 12%` in tab (non-kiosk) for better visibility
 - Kiosk detection via `?kiosk=1` or `display.kioskMode` for cursor/behavior
+
+### Fixed
+
+- **Tickle (laughing) state** – Hal no longer disappears on tickle. Prefer `laughingSprites` (individual PNGs) over sprite sheet when available, since `otaclock-original.png` is not shipped in the repo.
 
 ## [1.1.0] - 2026-02-28
 

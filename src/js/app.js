@@ -1577,7 +1577,8 @@ class OtaClawApp {
   }
 
   /** Laughing: laugh micro sequence (tickle), ~400ms per frame, 4s total.
-   * Widget uses sprite sheet – prefer LAUGH_SEQ over individual PNGs (which may 404). */
+   * Prefer laughingSprites (individual PNGs) when available – otaclock-original.png
+   * is gitignored and not shipped, so sheet-based laughing would 404 and Hal disappears. */
   startLaughingAnimation() {
     this.stopLaughingAnimation();
     this.stopIdleAnimation();
@@ -1586,14 +1587,11 @@ class OtaClawApp {
     this.stopErrorAnimation();
     this.stopSurprisedAnimation();
     if (!document.body.classList.contains("otaclaw-widget")) return;
-    const useSheet =
-      document.body.classList.contains("use-otacon-sprite") ||
-      document.body.classList.contains("otaclaw-widget");
     const sprites = this.config?.sprites?.laughingSprites;
     const cfg =
       typeof window !== "undefined" ? window.OTACLAW_CONFIG : this.config;
     const DURATION = cfg?.stateDurations?.laughing ?? 4000;
-    if (!useSheet && Array.isArray(sprites) && sprites.length) {
+    if (Array.isArray(sprites) && sprites.length) {
       let idx = 0;
       const schedule = () => {
         if (!document.body.classList.contains("otaclaw-widget")) return;

@@ -7,11 +7,12 @@ Use this checklist before publishing OtaClaw as open source.
 - [ ] Update `package.json` `repository.url`, `bugs.url`, `homepage` with final org/repo
 - [ ] Review `README.md` – all `U-N-B-R-A-N-D-E-D/otaclaw` URLs point to your repo
 - [x] Ensure no secrets in repo (`config/config.js` is gitignored)
-- [x] No hardcoded hostnames (use `localhost` or placeholders in examples)
+- [x] No hardcoded hostnames (use `localhost` or placeholders like `YOUR_HOST`, `YOUR_IP`)
+- [x] No Spanish in committed files (docs in English)
 - [x] Run `npm run lint` and fix issues
 - [x] Test `./deploy/deploy-to-openclaw.sh --local`
 - [ ] Test widget: open `widget.html` in browser
-- [x] Update `CHANGELOG.md` with release notes (0.0.1-beta)
+- [x] Update `CHANGELOG.md` with release notes (0.0.1)
 
 ## Standalone
 

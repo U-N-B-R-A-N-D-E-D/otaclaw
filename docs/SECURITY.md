@@ -1,5 +1,7 @@
 # OtaClaw Security
 
+**Repo policy:** No secrets, no hardcoded paths, no Spanish in committed files. Use placeholders (`YOUR_HOST`, `YOUR_IP`) in docs. Keep tokens in `config.js` (gitignored) or inject at runtime.
+
 ## Token Handling
 
 OtaClaw connects to the OpenClaw Gateway via WebSocket. When the gateway requires authentication (protocol v3), a token is used.

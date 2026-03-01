@@ -12,7 +12,8 @@
 
 <p align="center">
   <strong>Hal as the face of OpenClaw</strong><br>
-  Self-hosted, your data stays local. Give your AI assistant a face that reacts to every interaction.
+  Self-hosted, your data stays local. Give your AI assistant a face that reacts to every interaction.<br>
+  <em>Swipe to tickle. Tap to wake. Watch Hal come alive.</em>
 </p>
 
 <p align="center"><strong>[ U N B R A N D E D ]</strong> - 2026</p>
@@ -345,4 +346,5 @@ MIT - see [LICENSE](LICENSE). [NOTICE](NOTICE) for credits.
 
 ---
 
+<p align="center"><strong>Have fun. No secrets. Clone and run.</strong></p>
 <p align="center">[ U N B R A N D E D ] - 2026</p>
