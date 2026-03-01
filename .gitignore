@@ -1,0 +1,101 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist/
+build/
+*.tgz
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Config files with sensitive data
+config/config.js
+!config/config.example.js
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Deploy artifacts
+deploy/*.log
+deploy/.ssh/
+
+# Local development
+local/
+dev/
+
+# Sprite sheet (we use individual sprites only; sheet is fallback/reference)
+otaclock-original.png
+**/otaclock-original.png
+
+# Sprite sources (if using external tools)
+*.ase
+*.aseprite
+*.piskel
+*.psd
+*.ai
+
+# Audio source files
+*.wav
+*.aiff
+*.flac
+
+# Documentation build
+docs/_build/
+site/
+
+# Testing
+*.test.js.snap
+__snapshots__/
+
+# Misc
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# Cursor / debug
+.cursor/

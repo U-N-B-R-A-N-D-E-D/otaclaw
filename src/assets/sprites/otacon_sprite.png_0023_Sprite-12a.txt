@@ -1,0 +1,1 @@
+emotion: alert, attentive, focused. situation: player approached, ready to interact, attention raised. frame 12 of 12: release, end of cycle. pixel art sprite.
