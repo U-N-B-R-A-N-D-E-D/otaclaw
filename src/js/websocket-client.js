@@ -549,7 +549,6 @@ export class WebSocketClient {
               : "browser",
           mode: "webchat",
         },
-        /* role/scopes omitted – gateway may reject operator without device auth; webchat mode works */
         userAgent:
           typeof navigator !== "undefined" && navigator.userAgent
             ? navigator.userAgent

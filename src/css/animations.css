@@ -191,7 +191,7 @@
 }
 
 .state-processing .sprite {
-  animation: processing-shake 0.5s ease-in-out infinite;
+  /* animation: processing-shake 0.5s ease-in-out infinite; Removed to fix 'anxiety' feel */
 }
 
 .state-processing .sprite-head {

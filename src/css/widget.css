@@ -254,7 +254,8 @@ html.otaclaw-widget.otaclaw-kiosk *,
   animation: sprite-breathe-otacon 6s ease-in-out infinite !important;
 }
 
-/* Full range demo: use sprite sheet + CSS vars for background-position (overrides default center) */
+/* Full range demo: use sprite sheet + CSS vars for background-position (overrides default center)
+   NOTE: Now handled directly by JS so individual sprites can work without being overridden */
 .otaclaw-widget #sprite.state-frame .otacon-frame {
   background-image: url("../assets/sprites/otaclock-original.png") !important;
   background-size: calc(var(--otacon-sheet-w, 567) * 1px)
@@ -330,6 +331,7 @@ html.otaclaw-widget.otaclaw-kiosk *,
 .otaclaw-widget .speech-bubble {
   min-width: 120px;
   padding: 10px 16px;
+  top: -10%; /* Move bubble higher up if space allows */
 }
 /* Tab: bubble lower (top % of wrapper), not stuck to viewport top */
 .otaclaw-widget:not(.otaclaw-kiosk) .speech-bubble {

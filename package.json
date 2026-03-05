@@ -1,6 +1,6 @@
 {
   "name": "otaclaw-openclaw",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "description": "An animated Otacon avatar interface for OpenClaw - Give your AI a face that reacts to every interaction",
   "main": "src/index.html",
   "type": "module",
