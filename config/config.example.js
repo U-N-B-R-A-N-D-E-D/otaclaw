@@ -19,6 +19,13 @@ export const OTACLAW_CONFIG = {
     
     // WebSocket endpoint path
     wsPath: '/ws',
+
+    // Send screen taps (tickles) to Discord
+    tickleToDiscord: true,
+
+    // Target format: "channel:<channel_id>" or "user:<user_id>". 
+    // Leave null to let OpenClaw determine default session routing.
+    tickleDiscordChannel: null,
     
     // Reconnection interval in milliseconds (default: 5000ms = 5s)
     reconnectInterval: 5000,
@@ -66,8 +73,8 @@ export const OTACLAW_CONFIG = {
     // Time in milliseconds before returning to idle state (default: 30000ms = 30s)
     idleTimeout: 30000,
     
-    // Time in milliseconds before sleeping (0 = infinite idle)
-    sleepIdleMs: 0,
+    // Time in milliseconds before sleeping (0 = infinite idle). Recommended 180000 for kiosks to save screen.
+    sleepIdleMs: 180000,
     
     // Enable CSS animations (set to false for better performance on low-end devices)
     animations: true,

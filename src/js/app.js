@@ -728,6 +728,35 @@ class OtaClawApp {
           timestamp: Date.now(),
         });
       }
+              // Also send to the agent so it receives it and can reply in Discord.
+              if (this.wsClient?.isConnected && typeof this.wsClient.sendRequest === "function") {
+                const tickleToDiscord = this.config?.openclaw?.tickleToDiscord !== false;
+                const tickleTarget = this.config?.openclaw?.tickleDiscordChannel;
+                
+                if (tickleToDiscord) {
+                  const agentParams = {
+                    agentId: "discord",
+                    message: "[tickle]",
+                    deliver: true,
+                    replyChannel: "discord",
+                    idempotencyKey: `tickle-${Date.now()}`
+                  };
+                  
+                  if (tickleTarget) {
+                    agentParams.replyTo = tickleTarget;
+                  }
+                  
+                  // Use the agent method to trigger a background agent run
+                  this.wsClient.sendRequest("agent", agentParams);
+                } else {
+                  // Fallback for purely web UI chat
+                  this.wsClient.sendRequest("chat.send", {
+                    sessionKey: "agent:discord:main", // generic fallback
+                    message: "[tickle]",
+                    idempotencyKey: `tickle-${Date.now()}`
+                  });
+                }
+              }
       const buzzerUrl = this.config?.display?.buzzerTickleUrl;
       if (buzzerUrl) {
         fetch(buzzerUrl, { method: "GET" }).catch(() => {});
@@ -1543,7 +1572,9 @@ class OtaClawApp {
       const text =
         error && error.message
           ? String(error.message)
-          : this._t("configRequired");
+          : error
+            ? JSON.stringify(error, Object.getOwnPropertyNames(error))
+            : this._t("configRequired");
       if (msg) msg.textContent = text;
     }
   }

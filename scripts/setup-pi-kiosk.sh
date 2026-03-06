@@ -89,8 +89,8 @@ if [[ "\${WIDGET_URL_RUNTIME}" == http://127.0.0.1:18789/__openclaw__/canvas/* ]
     WIDGET_URL_RUNTIME="\${WIDGET_URL_RUNTIME}?oc_token=\${OPENCLAW_TOKEN}"
   fi
 fi
-# Cache-bust: force fresh load after each deploy/restart
-[[ "\${WIDGET_URL_RUNTIME}" == *\?* ]] && WIDGET_URL_RUNTIME="\${WIDGET_URL_RUNTIME}&v=\$(date +%s)" || WIDGET_URL_RUNTIME="\${WIDGET_URL_RUNTIME}?v=\$(date +%s)"
+# Cache-bust and enforce kiosk mode CSS
+[[ "\${WIDGET_URL_RUNTIME}" == *\?* ]] && WIDGET_URL_RUNTIME="\${WIDGET_URL_RUNTIME}&kiosk=1&v=\$(date +%s)" || WIDGET_URL_RUNTIME="\${WIDGET_URL_RUNTIME}?kiosk=1&v=\$(date +%s)"
 
 # Wait for gateway (avoids "site can't be reached" on boot). Gateway takes ~2 min to mount canvas on cold boot.
 sleep 15
@@ -101,6 +101,7 @@ done
 
 exec chromium \\
     --kiosk \\
+    --disable-web-security \\
     --enable-logging \\
     --v=1 \\
     --touch-events=enabled \\
