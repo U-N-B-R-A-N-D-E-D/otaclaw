@@ -476,6 +476,7 @@ class OtaClawApp {
             console.log(`[OtaClaw] Forcing idle due to inactivity timeout. Last activity: ${timeSinceActivity}ms ago`);
             this.otaclaw.setState("idle", { trigger: "activity.timeout", speech: "", force: true });
             this._lastActivityTime = now;
+            this._scheduleSleep();
          }
       }
     }, 5000);
@@ -493,10 +494,23 @@ class OtaClawApp {
     // Specific OpenClaw events
     this._accumulatedText = "";
 
-    this.wsClient.on("agentStart", (data) => {
-      if (data.channel === "discord" && data.target) {
-        this._lastDiscordTarget = data.target;
+    this._extractDiscordTarget = (data) => {
+      if (data.channel === "discord" && data.target) return data.target;
+      if (data.sessionKey && data.sessionKey.startsWith("agent:discord:")) {
+        const parts = data.sessionKey.split(":");
+        if (parts.length >= 5) {
+          if (parts[3] === "direct") return `user:${parts[4]}`;
+          if (parts[3] === "guild") return `channel:${parts[4]}`;
+          return `channel:${parts[4]}`;
+        }
       }
+      return null;
+    };
+
+    this.wsClient.on("agentStart", (data) => {
+      const target = this._extractDiscordTarget(data);
+      if (target) this._lastDiscordTarget = target;
+      
       this._accumulatedText = "";
       this._currentEmotionLock = null;
       this.otaclaw.setState("thinking", {
@@ -507,9 +521,9 @@ class OtaClawApp {
     });
 
     this.wsClient.on("agentDelta", (data) => {
-      if (data.channel === "discord" && data.target) {
-        this._lastDiscordTarget = data.target;
-      }
+      const target = this._extractDiscordTarget(data);
+      if (target) this._lastDiscordTarget = target;
+      
       const text = data.message || data.delta || data.content || "";
       if (text) {
         this._accumulatedText += text;
@@ -731,7 +745,8 @@ class OtaClawApp {
               // Also send to the agent so it receives it and can reply in Discord.
               if (this.wsClient?.isConnected && typeof this.wsClient.sendRequest === "function") {
                 const tickleToDiscord = this.config?.openclaw?.tickleToDiscord !== false;
-                const tickleTarget = this.config?.openclaw?.tickleDiscordChannel;
+                // Use config value, fallback to last known discord target
+                const tickleTarget = this.config?.openclaw?.tickleDiscordChannel || this._lastDiscordTarget;
                 
                 if (tickleToDiscord) {
                   const agentParams = {
@@ -744,10 +759,15 @@ class OtaClawApp {
                   
                   if (tickleTarget) {
                     agentParams.replyTo = tickleTarget;
+                  } else {
+                    console.warn("[OtaClaw] No Discord target available for tickle. Configure tickleDiscordChannel or wait for an incoming message.");
                   }
                   
                   // Use the agent method to trigger a background agent run
-                  this.wsClient.sendRequest("agent", agentParams);
+                  // Even if tickleTarget is null, we send it, gateway will reject if needed, but we don't crash
+                  if (tickleTarget) {
+                    this.wsClient.sendRequest("agent", agentParams);
+                  }
                 } else {
                   // Fallback for purely web UI chat
                   this.wsClient.sendRequest("chat.send", {
@@ -1464,9 +1484,12 @@ class OtaClawApp {
   _scheduleSleep() {
     this._cancelSleep();
     if (!document.body.classList.contains("otaclaw-widget")) return;
-    const ms = this.config?.behavior?.sleepIdleMs !== undefined 
+    
+    // Default to 180000ms (3 minutes) if behavior or sleepIdleMs is not defined
+    const ms = (this.config?.behavior?.sleepIdleMs !== undefined && this.config?.behavior?.sleepIdleMs !== null)
       ? Number(this.config.behavior.sleepIdleMs) 
       : 180000;
+      
     if (ms <= 0) return;
     this._sleepTimer = setTimeout(() => {
       this._sleepTimer = null;
@@ -1474,6 +1497,10 @@ class OtaClawApp {
       this.stopBlinkOverlay();
       if (typeof window.runSleepSequence === "function") {
         window.runSleepSequence();
+      } else {
+        // Fallback sleep state if sequence missing
+        this.otaclaw?.setState("sleeping", { speech: "zZz...", force: true });
+        document.body.classList.add("widget-asleep");
       }
     }, ms);
   }
