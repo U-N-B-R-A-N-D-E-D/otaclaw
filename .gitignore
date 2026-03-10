@@ -71,6 +71,9 @@ dev/
 otaclock-original.png
 **/otaclock-original.png
 
+# Sprite caption artifacts (AI-generated, not used at runtime)
+src/assets/sprites/*.txt
+
 # Sprite sources (if using external tools)
 *.ase
 *.aseprite

@@ -126,10 +126,11 @@ cd qwen2-vl-7b-captioner-relaxed-batch
 python batch.py
 
 # 4. Merge .txt captions into sprite-catalog (from otaclaw repo root)
-python scripts/import-captions-to-catalog.py --input /path/to/captioner/output
+# (planned — not yet included in the repo)
+# python scripts/import-captions-to-catalog.py --input /path/to/captioner/output
 ```
 
-**Alternative (API):** `scripts/tag-sprites-vision.py` with OpenAI/OpenRouter if no Linux GPU.
+**Alternative (API):** A vision-based tagging script using OpenAI/OpenRouter is planned but not yet included.
 
 ---
 
