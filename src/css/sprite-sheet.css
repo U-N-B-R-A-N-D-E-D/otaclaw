@@ -1,0 +1,539 @@
+/**
+ * Otacon Sprite Sheet
+ * Default sprite sheet (otaclock-original.png – source: sethen/otaclock, Konami OtaClock)
+ * laugh/surprised: thumbs-up poses (sethen/xythobuz) - sprite sheet alignment
+ * Alt: xythobuz - add class .use-xythobuz to body
+ */
+
+.sprite-sheet-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Wrapper: bubble + viewport together, no overflow clip on bubble */
+.sprite-viewport-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Fixed viewport: projection zone stays put; sprite scales/moves inside */
+.sprite-viewport {
+  --sprite-viewport-size: 320px;
+  width: var(--sprite-viewport-size);
+  height: var(--sprite-viewport-size);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Speech bubble - anchored to viewport top, tail points to character's head (just above) */
+.speech-bubble {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  margin-top: -4px;
+  min-width: 200px;
+  padding: 12px 20px;
+  background: #fff;
+  border: 4px solid #333;
+  border-radius: 20px;
+  box-shadow: 4px 4px 0 #333;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Bubble tail points down toward the sprite */
+.speech-bubble::after {
+  content: "";
+  position: absolute;
+  top: auto;
+  bottom: -14px;
+  left: 50%;
+  margin-left: -10px;
+  border: 10px solid transparent;
+  border-top-color: #fff;
+  border-bottom: none;
+  filter: drop-shadow(0 3px 0 #333);
+}
+
+.speech-bubble.has-text {
+  opacity: 1;
+}
+
+.speech-text {
+  font-family: "Fira Code", "Fira Mono", "Consolas", monospace;
+  font-size: 22px;
+  font-weight: bold;
+  color: #333;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+}
+
+.otacon-frame {
+  background-repeat: no-repeat;
+  background-position: center;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  transform: scale(0.5);
+  transform-origin: center;
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+
+/* ============================================
+   Default sheet - otaclock-original.png (source: sethen/otaclock, Konami OtaClock)
+   ============================================ */
+
+.otacon-frame {
+  background-image: url("../assets/sprites/otaclock-original.png");
+  background-size: auto 900px;
+}
+
+.state-idle .otacon-frame,
+.state-thinking .otacon-frame,
+.state-error .otacon-frame {
+  width: 205px;
+  height: 447px;
+  background-position: -489px 0;
+}
+
+.state-processing .otacon-frame {
+  width: 238px;
+  height: 448px;
+  background-position: -214px -391px;
+}
+
+.state-success .otacon-frame {
+  width: 238px;
+  height: 448px;
+  background-position: -452px -452px;
+}
+
+/* LAUGH / SURPRISED: sethen thumbs-up (fallback when not use-otacon-sprite) */
+.state-laughing .otacon-frame {
+  width: 204px;
+  height: 448px;
+  background-image: url("../assets/sprites/otaclock-original.png");
+  background-size: auto 900px;
+  background-position: 0 -392px;
+  transform: scale(0.5);
+}
+
+.state-surprised .otacon-frame {
+  width: 238px;
+  height: 448px;
+  background-image: url("../assets/sprites/otaclock-original.png");
+  background-size: auto 900px;
+  background-position: -452px -452px;
+  transform: scale(0.5);
+}
+
+/* OKITANONIISAN: ALL states — full emotional range */
+body.use-otacon-sprite .state-idle .otacon-frame,
+body.use-otacon-sprite .state-thinking .otacon-frame,
+body.use-otacon-sprite .state-processing .otacon-frame,
+body.use-otacon-sprite .state-success .otacon-frame,
+body.use-otacon-sprite .state-error .otacon-frame,
+body.use-otacon-sprite .state-laughing .otacon-frame,
+body.use-otacon-sprite .state-surprised .otacon-frame,
+body.use-otacon-sprite .state-frame .otacon-frame {
+  width: calc(var(--otacon-frame-w, 47) * 1px);
+  height: calc(var(--otacon-frame-h, 70) * 1px);
+  background-image: url("../assets/sprites/otaclock-original.png");
+  background-size: calc(var(--otacon-sheet-w, 567) * 1px)
+    calc(var(--otacon-sheet-h, 278) * 1px);
+}
+
+body.use-otacon-sprite .otacon-frame {
+  transform: scale(var(--otacon-scale, 4));
+}
+body.use-otacon-sprite .state-idle .otacon-frame {
+  width: calc(var(--otacon-idle-frame-w, 59) * 1px);
+  background-position: calc(var(--otacon-idle-x, 0) * 1px)
+    calc(var(--otacon-idle-y, 0) * 1px);
+}
+body.use-otacon-sprite .state-thinking .otacon-frame {
+  width: calc(var(--otacon-thinking-frame-w, 59) * 1px);
+  background-position: calc(var(--otacon-thinking-x, 0) * 1px)
+    calc(var(--otacon-thinking-y, 0) * 1px);
+}
+body.use-otacon-sprite .state-processing .otacon-frame {
+  width: calc(var(--otacon-processing-frame-w, 59) * 1px);
+  background-position: calc(var(--otacon-processing-x, 0) * 1px)
+    calc(var(--otacon-processing-y, 0) * 1px);
+}
+body.use-otacon-sprite .state-success .otacon-frame {
+  width: calc(var(--otacon-success-frame-w, 59) * 1px);
+  background-position: calc(var(--otacon-success-x, 0) * 1px)
+    calc(var(--otacon-success-y, 0) * 1px);
+}
+body.use-otacon-sprite .state-error .otacon-frame {
+  width: calc(var(--otacon-error-frame-w, 59) * 1px);
+  background-position: calc(var(--otacon-error-x, 0) * 1px)
+    calc(var(--otacon-error-y, 0) * 1px);
+}
+body.use-otacon-sprite .state-laughing .otacon-frame {
+  width: calc(var(--otacon-laughing-frame-w, 51) * 1px);
+  background-position: calc(var(--otacon-laughing-x, 0) * 1px)
+    calc(var(--otacon-laughing-y, 0) * 1px);
+}
+body.use-otacon-sprite .state-surprised .otacon-frame {
+  width: calc(var(--otacon-surprised-frame-w, 59) * 1px);
+  background-position: calc(var(--otacon-surprised-x, 0) * 1px)
+    calc(var(--otacon-surprised-y, 0) * 1px);
+}
+/* Direct frame (Clawdbot semantic selection) — position set via setFrame() */
+body.use-otacon-sprite .state-frame .otacon-frame {
+  background-position: calc(var(--otacon-frame-x, 0) * 1px)
+    calc(var(--otacon-frame-y, 0) * 1px);
+}
+
+/* Individual sprites — each frame is a separate PNG, no sheet */
+body.use-individual-sprites {
+  --otacon-scale: 1;
+}
+body.use-individual-sprites .otacon-frame {
+  background-size: contain !important;
+  -webkit-background-size: contain !important;
+  background-position: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 80px;
+  min-height: 100px;
+}
+
+.connecting .otacon-frame {
+  width: 205px;
+  height: 447px;
+  background-image: url("../assets/sprites/otaclock-original.png");
+  background-size: auto 900px;
+  background-position: -489px 0;
+  animation: none !important;
+}
+
+/* ============================================
+   XYTHOBUZ (optional) - add class .use-xythobuz to body
+   Source: xythobuz/OtaClock (Konami OtaClock port)
+   ============================================ */
+
+body.use-xythobuz:not(.use-otacon-sprite) .otacon-frame {
+  background-image: url("../assets/sprites/otaclock-xythobuz/otacon.png");
+  background-size: contain;
+  transform: scale(3.5);
+  width: 29px;
+  height: 64px;
+  background-position: center;
+}
+
+body.use-xythobuz:not(.use-otacon-sprite) .state-idle .otacon-frame,
+body.use-xythobuz:not(.use-otacon-sprite) .state-thinking .otacon-frame,
+body.use-xythobuz:not(.use-otacon-sprite) .state-error .otacon-frame {
+  background-image: url("../assets/sprites/otaclock-xythobuz/otacon.png");
+}
+
+body.use-xythobuz:not(.use-otacon-sprite) .state-processing .otacon-frame {
+  width: 34px;
+  height: 64px;
+  background-image: url("../assets/sprites/otaclock-xythobuz/otacon_2.png");
+}
+
+body.use-xythobuz:not(.use-otacon-sprite) .state-success .otacon-frame {
+  width: 34px;
+  height: 64px;
+  background-image: url("../assets/sprites/otaclock-xythobuz/otacon_3.png");
+}
+
+body.use-xythobuz:not(.use-otacon-sprite) .state-laughing .otacon-frame {
+  width: 29px;
+  height: 64px;
+  background-image: url("../assets/sprites/otaclock-xythobuz/otacon_1.png");
+}
+
+body.use-xythobuz:not(.use-otacon-sprite) .state-surprised .otacon-frame {
+  width: 34px;
+  height: 64px;
+  background-image: url("../assets/sprites/otaclock-xythobuz/otacon_3.png");
+  background-size: contain;
+  transform: scale(3.5);
+}
+
+body.use-xythobuz .connecting .otacon-frame {
+  background-image: url("../assets/sprites/otaclock-xythobuz/otacon.png");
+}
+
+/* Eyes overlay - from xythobuz Render.m: EYE_X_OFFSET 60, EYE_Y_OFFSET 45, otacon at (57,0)
+   Relative to 29x64 otacon: left 3px (10%), from top 13px (eyes 6px, y=45 in CG = 13 from top) */
+.eyes-layer {
+  display: none;
+  position: absolute;
+  top: 13px;
+  left: 3px;
+  width: 15px;
+  height: 6px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 15px 6px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.08s ease;
+}
+
+body.use-xythobuz .otacon-frame {
+  position: relative;
+}
+
+body.use-xythobuz:not(.use-otacon-sprite) .eyes-layer {
+  display: block;
+}
+
+/* Hide eyes on thumbs-up states (different face angle) */
+body.use-xythobuz .state-processing .eyes-layer,
+body.use-xythobuz .state-success .eyes-layer,
+body.use-xythobuz .state-surprised .eyes-layer,
+body.use-xythobuz .state-laughing .eyes-layer {
+  display: none;
+}
+
+/* Natural breathe – subtle, no rotation. 4s cycle. */
+@keyframes sprite-breathe {
+  0%,
+  100% {
+    transform: scale(0.5) translateY(0);
+  }
+  50% {
+    transform: scale(0.5) translateY(-2px);
+  }
+}
+
+@keyframes sprite-breathe-xythobuz {
+  0%,
+  100% {
+    transform: scale(3.5) translateY(0);
+  }
+  50% {
+    transform: scale(3.5) translateY(-2px);
+  }
+}
+
+.state-idle .otacon-frame,
+.state-thinking .otacon-frame {
+  animation: sprite-breathe 6s ease-in-out infinite;
+}
+
+/* Breathe-to-breathe: gentle fade-in. Other states: direct cut. */
+@keyframes sprite-fade-in {
+  from {
+    opacity: 0.88;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.state-transition-in .otacon-frame {
+  animation:
+    sprite-fade-in 0.4s ease-out,
+    sprite-breathe 6s ease-in-out infinite;
+}
+body.use-xythobuz .state-transition-in .otacon-frame {
+  animation:
+    sprite-fade-in 0.4s ease-out,
+    sprite-breathe-xythobuz 6s ease-in-out infinite;
+}
+body.use-otacon-sprite .state-transition-in .otacon-frame {
+  animation:
+    sprite-fade-in 0.4s ease-out,
+    sprite-breathe-otacon 6s ease-in-out infinite;
+}
+
+body.use-xythobuz .state-idle .otacon-frame,
+body.use-xythobuz .state-thinking .otacon-frame {
+  animation: sprite-breathe-xythobuz 6s ease-in-out infinite;
+}
+
+/* Processing - subtle pulse */
+@keyframes sprite-pulse {
+  0%,
+  100% {
+    transform: scale(0.5);
+  }
+  50% {
+    transform: scale(0.51);
+  }
+}
+
+@keyframes sprite-pulse-xythobuz {
+  0%,
+  100% {
+    transform: scale(3.5);
+  }
+  50% {
+    transform: scale(3.6);
+  }
+}
+
+.state-processing .otacon-frame {
+  animation: sprite-pulse 1.4s ease-in-out infinite;
+}
+
+body.use-xythobuz .state-processing .otacon-frame {
+  animation: sprite-pulse-xythobuz 1.4s ease-in-out infinite;
+}
+
+/* Success - one bounce */
+@keyframes sprite-bounce {
+  0%,
+  100% {
+    transform: scale(0.5);
+  }
+  50% {
+    transform: scale(0.55);
+  }
+}
+
+@keyframes sprite-bounce-xythobuz {
+  0%,
+  100% {
+    transform: scale(3.5);
+  }
+  50% {
+    transform: scale(3.9);
+  }
+}
+
+.state-success .otacon-frame {
+  animation: sprite-bounce 0.4s ease-out;
+}
+
+body.use-xythobuz .state-success .otacon-frame {
+  animation: sprite-bounce-xythobuz 0.4s ease-out;
+}
+
+/* Okitanoniisan: natural breathe, no rotation */
+@keyframes sprite-breathe-otacon {
+  0%,
+  100% {
+    transform: scale(var(--otacon-scale, 4)) translateY(0);
+  }
+  50% {
+    transform: scale(var(--otacon-scale, 4)) translateY(-2px);
+  }
+}
+@keyframes sprite-pulse-otacon {
+  0%,
+  100% {
+    transform: scale(var(--otacon-scale, 4));
+  }
+  50% {
+    transform: scale(calc(var(--otacon-scale, 4) * 1.02));
+  }
+}
+@keyframes sprite-bounce-otacon {
+  0%,
+  100% {
+    transform: scale(var(--otacon-scale, 4));
+  }
+  50% {
+    transform: scale(calc(var(--otacon-scale, 4) * 1.1));
+  }
+}
+body.use-otacon-sprite .state-idle .otacon-frame,
+body.use-otacon-sprite .state-thinking .otacon-frame {
+  animation: sprite-breathe-otacon 6s ease-in-out infinite;
+}
+body.use-otacon-sprite .state-processing .otacon-frame {
+  animation: sprite-pulse-otacon 1.4s ease-in-out infinite;
+}
+body.use-otacon-sprite .state-success .otacon-frame {
+  animation: sprite-bounce-otacon 0.4s ease-out;
+}
+
+/* No animation for error/laughing/surprised (or could add later) */
+.state-error .otacon-frame,
+.state-laughing .otacon-frame,
+.state-surprised .otacon-frame {
+  animation: none !important;
+}
+
+/* Glow effects */
+.sprite-sheet-container::after {
+  content: "";
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(74, 222, 128, 0.2) 0%,
+    transparent 60%
+  );
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.state-success .sprite-sheet-container::after,
+.state-laughing .sprite-sheet-container::after {
+  opacity: 1;
+}
+
+.state-error .sprite-sheet-container::after {
+  background: radial-gradient(
+    circle,
+    rgba(239, 68, 68, 0.2) 0%,
+    transparent 60%
+  );
+  opacity: 1;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .otacon-frame {
+    transform: scale(0.35);
+  }
+  body.use-xythobuz:not(.use-individual-sprites) .otacon-frame {
+    transform: scale(2.5);
+  }
+  .state-laughing .otacon-frame,
+  .state-surprised .otacon-frame {
+    transform: scale(1.3);
+  }
+  .speech-bubble {
+    min-width: 160px;
+    padding: 12px 18px;
+  }
+  .speech-text {
+    font-size: 18px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .otacon-frame {
+    transform: scale(0.6);
+  }
+  body.use-xythobuz:not(.use-individual-sprites) .otacon-frame {
+    transform: scale(4);
+  }
+  .state-laughing .otacon-frame,
+  .state-surprised .otacon-frame {
+    transform: scale(1.85);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .otacon-frame {
+    animation: none !important;
+  }
+}

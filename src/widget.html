@@ -1,0 +1,590 @@
+<!doctype html>
+<!-- [ U N B R A N D E D ] - 2026 -->
+<html lang="en" class="otaclaw-widget">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>OtaClaw Widget</title>
+    <script>
+      /* Kiosk: hide cursor (touch). Tab: cursor visible (pointer). */
+      if (/[?&]kiosk=1(?=&|$)/.test(location.search || ""))
+        document.documentElement.classList.add("otaclaw-kiosk");
+    </script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #2c2c2c !important;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      html.otaclaw-widget,
+      html.otaclaw-widget body {
+        width: 100vw;
+        height: 100vh;
+      }
+      html,
+      body,
+      .otaclaw-container,
+      .sprite-container {
+        background: #2c2c2c !important;
+      }
+      html.otaclaw-kiosk,
+      html.otaclaw-kiosk body,
+      html.otaclaw-kiosk * {
+        cursor: none !important;
+      }
+      #boot-sprite-overlay,
+      #widget-sprite-overlay {
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+      }
+      #boot-sprite-overlay img,
+      #widget-sprite-overlay img {
+        image-rendering: pixelated;
+        object-position: center;
+        margin: auto;
+        display: block;
+      }
+    </style>
+    <script>
+      window.OTACLAW_CONFIG = {
+        openclaw: {
+          host: "auto",
+          port: 18789,
+          wsPath: "/ws",
+          protocolVersion: 3,
+          authToken: (function () {
+            try {
+              return (
+                new URLSearchParams(window.location.search).get("oc_token") ||
+                ""
+              );
+            } catch (_) {
+              return "";
+            }
+          })(),
+          reconnectInterval: 5000,
+          maxReconnectAttempts: 12,
+          connectionTimeout: 10000,
+          heartbeatInterval: 45000,
+          staleThreshold: 300000,
+          maxQueuedMessages: 120,
+        },
+        personality: "hal",
+        behavior: {
+          idleTimeout: 30000,
+          agentResponseTimeoutMs: 35000,
+          sleepIdleMs: 180000,
+          animations: true,
+          lowPowerMode: true,
+          sounds: true,
+          touchEnabled: true,
+          debug: false,
+          showStatusBar: true,
+          autoHideOverlay: true,
+        },
+        states: [
+          "idle",
+          "thinking",
+          "processing",
+          "success",
+          "error",
+          "laughing",
+          "surprised",
+        ],
+        eventMap: {
+          "agent.message.start": "thinking",
+          "agent.message.delta": "processing",
+          "agent.message.complete": "success",
+          "agent.message.error": "error",
+          "agent.tool.call": "surprised",
+          "agent.tool.result": "success",
+          "agent.tool.error": "error",
+          agent: "thinking",
+          chat: "thinking",
+          "gateway.idle": "idle",
+          "gateway.ready": "idle",
+          "gateway.error": "error",
+          "user.presence": "thinking",
+          "user.typing": "thinking",
+        },
+        stateDurations: {
+          thinking: 0,
+          processing: 0,
+          success: 3000,
+          error: 5000,
+          laughing: 4000,
+          surprised: 2500,
+        },
+        sprites: {
+          useCSS: true,
+          basePath: "assets/sprites/",
+          sheetFile: "otaclock-original",
+          format: "png",
+          sheetWidth: 567,
+          sheetHeight: 278,
+          cellWidth: 47,
+          cellHeight: 70,
+          /* Splash: 1 frame before boot. OtIcon on black. */
+          splashFrame: "OtIcon.png",
+          splashDurationMs: 1500,
+          /* Boot: black -> 0,1,2,3,4 (0 rising, 4 last/full). Shutdown: 4,3,2,1,0,black */
+          startupSequence: [
+            "otacon_sprite_boot_00.png",
+            "otacon_sprite_boot_01.png",
+            "otacon_sprite_boot_02.png",
+            "otacon_sprite_boot_03.png",
+            "otacon_sprite_boot_04.png",
+          ],
+          startupFrameMs: 600,
+          /* Idle: groups by purpose. Indices into idleSprites. */
+          idleSpriteGroups: {
+            neutral: [0, 1, 2],
+            coat: [3, 4, 5, 6],
+            blink: [7, 8, 9],
+          },
+          idleSprites: [
+            "otacon_sprite.png_0004_Sprite-5.png",
+            "otacon_sprite.png_0005_Sprite-6.png",
+            "otacon_sprite.png_0006_Sprite-7.png",
+            "otacon_sprite_coat_00.png",
+            "otacon_sprite_coat_01.png",
+            "otacon_sprite_coat_02.png",
+            "otacon_sprite_coat_03.png",
+            "otacon_sprite_blink_00.png",
+            "otacon_sprite_blink_01.png",
+            "otacon_sprite_blink_02.png",
+          ],
+          /* Sequence: indices into idleSprites. Blink (7,8,9) runs fast (~50ms/frame); coat (3–6) slower. */
+          idleSequence: [
+            0, 0, 1, 7, 8, 9, 3, 0, 4, 1, 7, 8, 9, 0, 5, 0, 2, 6, 0, 1, 7, 8, 9,
+            0,
+          ],
+          idleBaseDelayMs: 5000,
+          idleJitterMs: 3000,
+          idlePhaseTiming: {
+            neutral: { baseMs: 3000, jitterMs: 2000 },
+            coat: { baseMs: 5000, jitterMs: 3000 },
+            blink: { baseMs: 50, jitterMs: 0 },
+          },
+          idleCoatIndices: [3, 4, 5, 6],
+          idleCoatMultiplier: 3,
+          idleBlinkDelayMs: 50,
+          /* Thinking: contemplative wait (message received, not yet generating). */
+          thinkingSprites: [
+            "otacon_sprite_think_00.png",
+            "otacon_sprite_think_01.png",
+            "otacon_sprite_think_02.png",
+          ],
+          thinkingSequence: [0, 1, 0, 1, 2, 1, 0],
+          /* Processing: active generation (tokens streaming). If absent, uses thinkingSprites. */
+          processingSprites: null,
+          processingSequence: [0, 1, 0, 1],
+          /* Success: thumbs-up micro sequence */
+          successSprites: [
+            "otacon_sprite_thumbs_00.png",
+            "otacon_sprite_thumbs_01.png",
+            "otacon_sprite_thumbs_02.png",
+            "otacon_sprite_thumbs_03.png",
+            "otacon_sprite_thumbs_04.png",
+            "otacon_sprite_thumbs_05.png",
+            "otacon_sprite_thumbs_06.png",
+          ],
+          /* Error: shrug / frustration */
+          errorSprites: [
+            "otacon_sprite_frustration_00.png",
+            "otacon_sprite_frustration_01.png",
+          ],
+          /* Laughing: tickle / laugh */
+          laughingSprites: [
+            "otacon_sprite_laugh_00.png",
+            "otacon_sprite_laugh_01.png",
+            "otacon_sprite_laugh_02.png",
+          ],
+          /* Surprised: blushing */
+          surprisedSprites: [
+            "otacon_sprite_blush_00.png",
+            "otacon_sprite_blush_01.png",
+            "otacon_sprite_blush_02.png",
+            "otacon_sprite_blush_03.png",
+            "otacon_sprite_blush_04.png",
+          ],
+          frames: {
+            idle: 2,
+            thinking: 2,
+            processing: 4,
+            success: 2,
+            error: 2,
+            laughing: 3,
+            surprised: 2,
+          },
+          fps: 8,
+          frameTiming: {
+            success: { frameMs: [200, 200, 200, 800, 200, 200, 200] },
+            thinking: { frameMs: 300 },
+            processing: { frameMs: 250 },
+            error: { frameMs: [400, 600] },
+            surprised: { frameMs: 350 },
+            laughing: { frameMs: 350 },
+          },
+          holdFrames: { success: { index: 3, ms: 800 } },
+          tagToSequences: {
+            laughing: [[2, 3], [3, 3], [2, 3], [3, 3]],
+            success: [[0, 1], [1, 1], [2, 1]],
+            waving: [[7, 2]],
+          },
+          tagSequenceFrameMs: 350,
+          tagToFrames: {
+            unpleasant: [
+              [9, 0],
+              [10, 0],
+              [0, 2],
+              [2, 2],
+              [3, 2],
+              [9, 3],
+              [10, 3],
+            ],
+            success: [
+              [0, 1],
+              [1, 1],
+              [2, 1],
+              [6, 3],
+              [7, 3],
+            ],
+            thinking: [
+              [1, 0],
+              [2, 0],
+              [5, 0],
+              [11, 0],
+            ],
+            sad: [
+              [2, 2],
+              [3, 2],
+            ],
+            laughing: [
+              [2, 3],
+              [3, 3],
+            ],
+            idle: [
+              [0, 0],
+              [1, 0],
+              [3, 0],
+              [4, 0],
+              [6, 0],
+              [7, 0],
+              [8, 0],
+            ],
+            worried: [
+              [0, 2],
+              [4, 2],
+            ],
+            waving: [[7, 2]],
+            scared: [[10, 3]],
+            confident: [
+              [8, 1],
+              [9, 1],
+              [10, 1],
+              [8, 3],
+            ],
+            wink: [
+              [4, 3],
+              [5, 3],
+            ],
+            surprised: [
+              [9, 0],
+              [10, 0],
+            ],
+            processing: [
+              [3, 1],
+              [4, 1],
+              [6, 1],
+              [7, 1],
+            ],
+            error: [
+              [2, 2],
+              [3, 2],
+            ],
+            puzzled: [[1, 2]],
+            curious: [[5, 2]],
+            greeting: [[7, 2]],
+            cold: [[9, 3]],
+            presenting: [
+              [6, 3],
+              [7, 3],
+            ],
+          },
+        },
+        sounds: {
+          basePath: "assets/sounds/",
+          volume: 0.5,
+          files: { laughing: "sound_111.wav" },
+        },
+        touch: {
+          tapEnabled: true,
+          swipeEnabled: true,
+          debounceTime: 300,
+          longPressDuration: 800,
+        },
+        display: {
+          fullscreen: true,
+          orientation: null,
+          preventSleep: false,
+          brightness: 100,
+          rotationDeg: 270, /* counter-clockwise for portrait kiosk */
+          /* GPIO buzzer on Pi: run scripts/pi-buzzer-tickle.py, set to "http://127.0.0.1:18790/tickle" */
+          buzzerTickleUrl: null,
+        },
+        logging: {
+          level: "info",
+          console: true,
+          remote: false,
+        },
+        personalities: {
+          hal: {
+            thinking: ["Hmmm....", "Let me think...", "One sec...", "Right, right..."],
+            processing: ["Processing...", "Working on it", "Crunchn' numbers", "Almost there"],
+            success: ["Got it!", "There we go", "Done!", "Roger that"],
+            error: ["Oops...", "That wasn't...", "Yikes", "My bad"],
+            laughing: ["Haha!", "Heh", "Good one", "Hehe"],
+            surprised: ["Woah!", "Whoa!", "Didn't see that", "Huh?!"],
+            curious: ["Hmm?", "Interesting...", "Really?", "Oh?"],
+            confused: ["Huh?", "Wait, what?", "I'm lost", "Say again?"],
+            excited: ["Wow!", "No way!", "Awesome!", "Nice!"],
+            contemplative: ["Hmmm....", "Let me see...", "Thinking..."],
+            waving: ["Hey!", "Hi there", "Yo!"],
+            worried: ["Hmm...", "Not sure...", "Hope it's ok"],
+            presenting: ["Ta-da!", "There!", "Done!"],
+          },
+        },
+        i18n: {
+          thinking: "Hmmm....",
+          processing: "Processing",
+          success: "Got it!",
+          error: "Oops...",
+          laughing: "Haha!",
+          surprised: "Woah!",
+          contemplative: "Hmmm....",
+          timeout: "Timeout",
+          listenerTimeout: "Listener timeout",
+          connectionError: "Connection error",
+          runTimeout: "Run timeout",
+          networkError: "Network error",
+          rejected: "Rejected",
+          unknownError: "Unknown error",
+          connecting: "Connecting...",
+          checkConfig: "Check config",
+          reconnecting: "Reconnecting...",
+          connected: "Connected",
+          disconnected: "Disconnected",
+          offline: "Demo Mode",
+          configRequired: "Edit js/config.js with your OpenClaw host.",
+          configError:
+            "Configuration error: Copy config.example.js to config.js",
+          runtimeError: "Runtime error: ",
+          loading: "Loading…",
+        },
+      };
+    </script>
+    <script>
+      (function () {
+        function formatReason(reason) {
+          var unknown =
+            (window.OTACLAW_CONFIG &&
+              window.OTACLAW_CONFIG.i18n &&
+              window.OTACLAW_CONFIG.i18n.unknownError) ||
+            "Unknown error";
+          if (!reason) return unknown;
+          if (typeof reason === "string") return reason;
+          if (reason.message) return reason.message;
+          try {
+            return JSON.stringify(reason);
+          } catch (_) {
+            return String(reason);
+          }
+        }
+        window.__OTACLAW_LAST_ERROR = "";
+        window.addEventListener("error", function (ev) {
+          var message = formatReason(ev.error || ev.message);
+          var source = ev.filename
+            ? " @ " + ev.filename + ":" + (ev.lineno || "?")
+            : "";
+          window.__OTACLAW_LAST_ERROR = message + source;
+        });
+        window.addEventListener("unhandledrejection", function (ev) {
+          window.__OTACLAW_LAST_ERROR =
+            "Unhandled promise rejection: " + formatReason(ev.reason);
+        });
+      })();
+    </script>
+    <link rel="stylesheet" href="css/otaclaw.css" />
+    <link rel="stylesheet" href="css/animations.css" />
+    <link rel="stylesheet" href="css/sprite-sheet.css" />
+    <link rel="stylesheet" href="css/widget.css" />
+    <link rel="icon" type="image/png" href="assets/favicon.png" />
+  </head>
+  <body class="use-otacon-sprite otaclaw-widget">
+    <script>
+      (function () {
+        var isEmotionsDemo = /[?&]emotions=1(?=&|$)/.test(location.search);
+        if (!isEmotionsDemo) {
+          document.body.classList.add("widget-waiting");
+        } else {
+          document.body.classList.add("emotions-demo");
+          window.__otaclawBootComplete = true;
+          /* Single view: hide overlays; layout: Hal large, bubble just above */
+          var s = document.createElement("style");
+          s.textContent = [
+            ".emotions-demo #boot-black-overlay,.emotions-demo #widget-sprite-overlay{display:none!important}",
+            ".emotions-demo .sprite-viewport{--sprite-viewport-size:min(480px,90vh)!important}",
+            ".emotions-demo .sprite-viewport-wrapper{display:flex!important;flex-direction:column!important;align-items:center!important;gap:0!important}",
+            ".emotions-demo .speech-bubble{position:relative!important;top:auto!important;transform:none!important;margin-top:0!important;margin-bottom:8px!important}",
+            ".emotions-demo #sprite .otacon-frame{--otacon-scale:6!important}"
+          ].join("\n");
+          document.head.appendChild(s);
+        }
+        window.__otaclawBootStartTime = Date.now();
+      })();
+    </script>
+    <script>
+      (function () {
+        window.addEventListener("pageshow", function (e) {
+          if (e.persisted) {
+            location.reload();
+          }
+        });
+      })();
+    </script>
+    <div id="otaclaw-wrapper" class="otaclaw-widget-main">
+        <div id="otaclaw" class="otaclaw-container">
+          <div class="sprite-container">
+            <div id="sprite" class="sprite-sheet-container state-idle">
+              <div class="sprite-viewport-wrapper">
+                <div id="speech-bubble" class="speech-bubble">
+                  <span id="speech-text" class="speech-text"></span>
+                </div>
+                <div id="widget-check-config-icon" class="widget-check-config-icon" aria-hidden="true"></div>
+                <div id="sprite-viewport" class="sprite-viewport">
+                  <div class="otacon-frame">
+                    <div
+                      id="eyes-layer"
+                      class="eyes-layer"
+                      aria-hidden="true"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <div
+      id="touch-overlay"
+      class="touch-overlay"
+      aria-label="Touch to interact"
+    ></div>
+    <div id="widget-connection-msg" class="widget-connection-msg hidden"></div>
+    <div id="connection-overlay" class="connection-overlay hidden">
+      <div class="connection-content">
+        <div class="sprite-sheet-container connecting">
+          <div class="otacon-frame"></div>
+        </div>
+        <p class="connection-text" data-i18n="connecting">Connecting…</p>
+      </div>
+    </div>
+    <div id="config-error" class="config-overlay hidden">
+      <div class="config-content">
+        <h2>Configuration Required</h2>
+        <p class="config-msg" data-i18n="configRequired">
+          Edit <code>js/config.js</code> with your OpenClaw host.
+        </p>
+        <p
+          id="runtime-error-hint"
+          class="config-msg"
+          style="font-size: 12px; opacity: 0.9"
+        ></p>
+      </div>
+    </div>
+    <div id="status-bar" class="status-bar status-bar-mini">
+      <span id="connection-status" class="status-indicator disconnected">
+        <span class="status-dot"></span>
+      </span>
+    </div>
+    <script>
+      (function () {
+        var hint = document.getElementById("runtime-error-hint");
+        if (!hint) return;
+        // Use a longer interval and clear on page unload to reduce overhead
+        var errorInterval = setInterval(function () {
+          if (window.__OTACLAW_LAST_ERROR) {
+            var prefix =
+              (window.OTACLAW_CONFIG &&
+                window.OTACLAW_CONFIG.i18n &&
+                window.OTACLAW_CONFIG.i18n.runtimeError) ||
+              "Runtime error: ";
+            hint.textContent = prefix + window.__OTACLAW_LAST_ERROR;
+          }
+        }, 5000);
+        window.addEventListener("beforeunload", function () {
+          clearInterval(errorInterval);
+        });
+      })();
+    </script>
+    <script>
+      (function () {
+        function applyI18n() {
+          var cfg = window.OTACLAW_CONFIG;
+          if (cfg && cfg.i18n) {
+            document.querySelectorAll("[data-i18n]").forEach(function (el) {
+              var key = el.getAttribute("data-i18n");
+              if (cfg.i18n[key]) el.textContent = cfg.i18n[key];
+            });
+          }
+        }
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", applyI18n);
+        } else {
+          applyI18n();
+        }
+      })();
+    </script>
+    <script src="js/display-tools.js"></script>
+    <script src="js/app-calibration.js"></script>
+    <script type="module" src="js/app.js"></script>
+  </body>
+  <div
+    id="boot-black-overlay"
+    class="boot-black-overlay"
+    style="
+      position: fixed;
+      inset: 0;
+      z-index: 100001;
+      opacity: 1;
+      pointer-events: none;
+    "
+  >
+    <div id="boot-splash" class="boot-splash done" aria-hidden="true"></div>
+    <div id="boot-sprite-overlay"></div>
+    <div id="boot-loading" class="boot-loading done" data-i18n="loading">
+      Loading…
+    </div>
+  </div>
+  <div
+    id="widget-sprite-overlay"
+    style="
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 100000;
+      background: #2c2c2c;
+    "
+  ></div>
+</html>

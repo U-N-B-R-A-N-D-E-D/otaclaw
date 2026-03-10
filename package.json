@@ -1,0 +1,61 @@
+{
+  "name": "otaclaw-openclaw",
+  "version": "0.0.1",
+  "description": "An animated Otacon avatar interface for OpenClaw - Give your AI a face that reacts to every interaction",
+  "main": "src/index.html",
+  "type": "module",
+  "scripts": {
+    "start": "npx serve . -p 8080",
+    "start:local": "npx serve . -p 8080 --single",
+    "dev": "npx serve . -p 8080 --single",
+    "build": "echo 'No build step required - OtaClaw is vanilla HTML/CSS/JS'",
+    "deploy": "./deploy/deploy-to-openclaw.sh",
+    "deploy:remote": "./deploy/deploy-to-openclaw.sh",
+    "lint": "npx eslint src/js/",
+    "test": "echo 'Tests not yet implemented'",
+    "format": "npx prettier --write 'src/**/*.{js,css,html}'",
+    "clean": "rm -rf node_modules"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:U-N-B-R-A-N-D-E-D/otaclaw.git"
+  },
+  "keywords": [
+    "openclaw",
+    "ai",
+    "avatar",
+    "websocket",
+    "raspberry-pi",
+    "touchscreen",
+    "kiosk",
+    "metal-gear-solid",
+    "otaclaw",
+    "otacon",
+    "visualization"
+  ],
+  "author": "[ U N B R A N D E D ]",
+  "license": "MIT",
+  "peerDependencies": {
+    "openclaw": ">=2026.2.0"
+  },
+  "bugs": {
+    "url": "https://github.com/U-N-B-R-A-N-D-E-D/otaclaw/issues"
+  },
+  "homepage": "https://github.com/U-N-B-R-A-N-D-E-D/otaclaw#readme",
+  "devDependencies": {
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.1",
+    "serve": "^14.2.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "browserslist": [
+    "last 2 Chrome versions",
+    "last 2 Firefox versions",
+    "last 2 Safari versions",
+    "last 2 Edge versions",
+    "Chrome >= 80",
+    "Firefox >= 80"
+  ]
+}

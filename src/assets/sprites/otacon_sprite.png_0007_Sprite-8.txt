@@ -1,0 +1,1 @@
+emotion: neutral, calm, idle, standby. situation: waiting for player input, default state, character at rest. frame 8 of 12: winding down. pixel art sprite.

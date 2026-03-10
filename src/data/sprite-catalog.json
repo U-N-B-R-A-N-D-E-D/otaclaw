@@ -1,0 +1,651 @@
+{
+  "source": "Individual exports from OtaClaw default sprite sheet",
+  "basePath": "assets/sprites/",
+  "useIndividualFiles": true,
+  "sequences": [
+    {
+      "name": "idle-breathe",
+      "indices": [
+        0,
+        1,
+        2
+      ],
+      "tags": [
+        "idle",
+        "micro"
+      ]
+    },
+    {
+      "name": "thinking",
+      "indices": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "tags": [
+        "thinking"
+      ]
+    },
+    {
+      "name": "laughing",
+      "indices": [
+        37,
+        38,
+        39
+      ],
+      "tags": [
+        "laughing"
+      ]
+    },
+    {
+      "name": "surprised",
+      "indices": [
+        9,
+        10
+      ],
+      "tags": [
+        "surprised"
+      ]
+    },
+    {
+      "name": "thumbs-up",
+      "indices": [
+        12,
+        13,
+        14
+      ],
+      "tags": [
+        "success"
+      ]
+    }
+  ],
+  "sprites": [
+    {
+      "idx": 0,
+      "col": 0,
+      "row": 0,
+      "file": "otacon_sprite.png_0000_Sprite-1.png",
+      "desc": "neutral, arms relaxed",
+      "tags": [
+        "neutral",
+        "idle",
+        "calm",
+        "resting",
+        "base"
+      ]
+    },
+    {
+      "idx": 1,
+      "col": 1,
+      "row": 0,
+      "file": "otacon_sprite.png_0001_Sprite-2.png",
+      "desc": "emotion: neutral, calm, idle, standby",
+      "tags": [
+        "situation: waiting for player input",
+        "default state",
+        "character at rest. frame 2 of 12: early motion. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 2,
+      "col": 2,
+      "row": 0,
+      "file": "otacon_sprite.png_0002_Sprite-3.png",
+      "desc": "head right, arm across body",
+      "tags": [
+        "neutral",
+        "thinking",
+        "micro-variant"
+      ]
+    },
+    {
+      "idx": 3,
+      "col": 3,
+      "row": 0,
+      "file": "otacon_sprite.png_0003_Sprite-4.png",
+      "desc": "emotion: neutral, calm, idle, standby",
+      "tags": [
+        "situation: waiting for player input",
+        "default state",
+        "character at rest. frame 4 of 12: mid-anticipation. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 4,
+      "col": 4,
+      "row": 0,
+      "file": "otacon_sprite.png_0004_Sprite-5.png",
+      "desc": "hand near chest variant",
+      "tags": [
+        "neutral",
+        "calm"
+      ]
+    },
+    {
+      "idx": 5,
+      "col": 5,
+      "row": 0,
+      "file": "otacon_sprite.png_0005_Sprite-6.png",
+      "desc": "confused, thoughtful",
+      "tags": [
+        "thinking",
+        "confused",
+        "contemplative"
+      ]
+    },
+    {
+      "idx": 6,
+      "col": 6,
+      "row": 0,
+      "file": "otacon_sprite.png_0006_Sprite-7.png",
+      "desc": "left arm out",
+      "tags": [
+        "neutral",
+        "explaining"
+      ]
+    },
+    {
+      "idx": 7,
+      "col": 7,
+      "row": 0,
+      "file": "otacon_sprite.png_0007_Sprite-8.png",
+      "desc": "emotion: neutral, calm, idle, standby",
+      "tags": [
+        "situation: waiting for player input",
+        "default state",
+        "character at rest. frame 8 of 12: winding down. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 8,
+      "col": 8,
+      "row": 0,
+      "file": "otacon_sprite.png_0008_Sprite-9.png",
+      "desc": "arms crossed",
+      "tags": [
+        "neutral",
+        "closed",
+        "waiting"
+      ]
+    },
+    {
+      "idx": 9,
+      "col": 9,
+      "row": 0,
+      "file": "otacon_sprite.png_0009_Sprite-10.png",
+      "desc": "emotion: neutral, calm, idle, standby",
+      "tags": [
+        "situation: waiting for player input",
+        "default state",
+        "character at rest. frame 10 of 12: settling. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 10,
+      "col": 10,
+      "row": 0,
+      "file": "otacon_sprite.png_0010_Sprite-11.png",
+      "desc": "emotion: neutral, calm, idle, standby",
+      "tags": [
+        "situation: waiting for player input",
+        "default state",
+        "character at rest. frame 11 of 12: near end. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 11,
+      "col": 11,
+      "row": 0,
+      "file": "otacon_sprite.png_0011_Sprite-12.png",
+      "desc": "contemplative, looking right",
+      "tags": [
+        "contemplative",
+        "thinking"
+      ]
+    },
+    {
+      "idx": 12,
+      "col": 0,
+      "row": 1,
+      "file": "otacon_sprite.png_0012_Sprite-1a.png",
+      "desc": "thumbs-up left",
+      "tags": [
+        "positive",
+        "success",
+        "approval",
+        "happy"
+      ]
+    },
+    {
+      "idx": 13,
+      "col": 1,
+      "row": 1,
+      "file": "otacon_sprite.png_0013_Sprite-2a.png",
+      "desc": "thumbs-up right",
+      "tags": [
+        "positive",
+        "success",
+        "approval",
+        "happy"
+      ]
+    },
+    {
+      "idx": 14,
+      "col": 2,
+      "row": 1,
+      "file": "otacon_sprite.png_0014_Sprite-3a.png",
+      "desc": "both thumbs-up",
+      "tags": [
+        "positive",
+        "success",
+        "approval",
+        "happy",
+        "excited"
+      ]
+    },
+    {
+      "idx": 15,
+      "col": 3,
+      "row": 1,
+      "file": "otacon_sprite.png_0015_Sprite-4a.png",
+      "desc": "emotion: alert, attentive, focused",
+      "tags": [
+        "situation: player approached",
+        "ready to interact",
+        "attention raised. frame 4 of 12: mid-anticipation. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 16,
+      "col": 4,
+      "row": 1,
+      "file": "otacon_sprite.png_0016_Sprite-5a.png",
+      "desc": "arms wide open",
+      "tags": [
+        "processing",
+        "explaining",
+        "big",
+        "open"
+      ],
+      "overflow": true
+    },
+    {
+      "idx": 17,
+      "col": 5,
+      "row": 1,
+      "file": "otacon_sprite.png_0017_Sprite-6a.png",
+      "desc": "hands clasped",
+      "tags": [
+        "polite",
+        "calm",
+        "waiting"
+      ]
+    },
+    {
+      "idx": 18,
+      "col": 6,
+      "row": 1,
+      "file": "otacon_sprite.png_0018_Sprite-7a.png",
+      "desc": "emotion: alert, attentive, focused",
+      "tags": [
+        "situation: player approached",
+        "ready to interact",
+        "attention raised. frame 7 of 12: release begins. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 19,
+      "col": 7,
+      "row": 1,
+      "file": "otacon_sprite.png_0019_Sprite-8a.png",
+      "desc": "left arm raised",
+      "tags": [
+        "asking",
+        "explaining",
+        "emphasis"
+      ]
+    },
+    {
+      "idx": 20,
+      "col": 8,
+      "row": 1,
+      "file": "otacon_sprite.png_0020_Sprite-9a.png",
+      "desc": "emotion: alert, attentive, focused",
+      "tags": [
+        "situation: player approached",
+        "ready to interact",
+        "attention raised. frame 9 of 12: late release. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 21,
+      "col": 9,
+      "row": 1,
+      "file": "otacon_sprite.png_0021_Sprite-10a.png",
+      "desc": "emotion: alert, attentive, focused",
+      "tags": [
+        "situation: player approached",
+        "ready to interact",
+        "attention raised. frame 10 of 12: settling. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 22,
+      "col": 10,
+      "row": 1,
+      "file": "otacon_sprite.png_0022_Sprite-11a.png",
+      "desc": "both hands on hips",
+      "tags": [
+        "confident",
+        "assertive",
+        "ready"
+      ]
+    },
+    {
+      "idx": 23,
+      "col": 11,
+      "row": 1,
+      "file": "otacon_sprite.png_0023_Sprite-12a.png",
+      "desc": "emotion: alert, attentive, focused",
+      "tags": [
+        "situation: player approached",
+        "ready to interact",
+        "attention raised. frame 12 of 12: release",
+        "end of cycle. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 24,
+      "col": 0,
+      "row": 2,
+      "file": "otacon_sprite.png_0024_Sprite-1b.png",
+      "desc": "leaning forward, worried",
+      "tags": [
+        "worried",
+        "concerned",
+        "unpleasant"
+      ]
+    },
+    {
+      "idx": 25,
+      "col": 1,
+      "row": 2,
+      "file": "otacon_sprite.png_0025_Sprite-2b.png",
+      "desc": "leaning back, puzzled",
+      "tags": [
+        "puzzled",
+        "confused",
+        "questioning"
+      ]
+    },
+    {
+      "idx": 26,
+      "col": 2,
+      "row": 2,
+      "file": "otacon_sprite.png_0026_Sprite-3b.png",
+      "desc": "sad, hands clasped",
+      "tags": [
+        "sad",
+        "error",
+        "disappointed",
+        "unpleasant"
+      ]
+    },
+    {
+      "idx": 27,
+      "col": 3,
+      "row": 2,
+      "file": "otacon_sprite.png_0027_Sprite-4b.png",
+      "desc": "sad intense",
+      "tags": [
+        "sad",
+        "error",
+        "distressed",
+        "unpleasant"
+      ]
+    },
+    {
+      "idx": 28,
+      "col": 4,
+      "row": 2,
+      "file": "otacon_sprite.png_0028_Sprite-5b.png",
+      "desc": "worried, hand near chin",
+      "tags": [
+        "worried",
+        "thinking",
+        "unpleasant"
+      ]
+    },
+    {
+      "idx": 29,
+      "col": 5,
+      "row": 2,
+      "file": "otacon_sprite.png_0029_Sprite-6b.png",
+      "desc": "emotion: tired, subdued, low energy",
+      "tags": [
+        "situation: after long activity",
+        "low stamina state",
+        "resting pose. frame 6 of 12: peak",
+        "fullest expression. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 30,
+      "col": 6,
+      "row": 2,
+      "file": "otacon_sprite.png_0030_Sprite-7b.png",
+      "desc": "emotion: tired, subdued, low energy",
+      "tags": [
+        "situation: after long activity",
+        "low stamina state",
+        "resting pose. frame 7 of 12: release begins. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 31,
+      "col": 7,
+      "row": 2,
+      "file": "otacon_sprite.png_0031_Sprite-8b.png",
+      "desc": "waving",
+      "tags": [
+        "waving",
+        "greeting"
+      ]
+    },
+    {
+      "idx": 32,
+      "col": 8,
+      "row": 2,
+      "file": "otacon_sprite.png_0032_Sprite-9b.png",
+      "desc": "emotion: tired, subdued, low energy",
+      "tags": [
+        "situation: after long activity",
+        "low stamina state",
+        "resting pose. frame 9 of 12: late release. pixel art sprite."
+      ],
+      "skip": true
+    },
+    {
+      "idx": 33,
+      "col": 9,
+      "row": 2,
+      "file": "otacon_sprite.png_0033_Sprite-10b.png",
+      "desc": "emotion: tired, subdued, low energy",
+      "tags": [
+        "situation: after long activity",
+        "low stamina state",
+        "resting pose. frame 10 of 12: settling. pixel art sprite."
+      ],
+      "skip": true
+    },
+    {
+      "idx": 34,
+      "col": 10,
+      "row": 2,
+      "file": "otacon_sprite.png_0034_Sprite-11b.png",
+      "desc": "emotion: tired, subdued, low energy",
+      "tags": [
+        "situation: after long activity",
+        "low stamina state",
+        "resting pose. frame 11 of 12: near end. pixel art sprite."
+      ],
+      "skip": true
+    },
+    {
+      "idx": 35,
+      "col": 11,
+      "row": 2,
+      "file": "otacon_sprite.png_0035_Sprite-12b.png",
+      "desc": "emotion: tired, subdued, low energy",
+      "tags": [
+        "situation: after long activity",
+        "low stamina state",
+        "resting pose. frame 12 of 12: release",
+        "end of cycle. pixel art sprite."
+      ],
+      "skip": true
+    },
+    {
+      "idx": 36,
+      "col": 0,
+      "row": 3,
+      "file": "otacon_sprite.png_0036_Layer-1.png",
+      "desc": "facing left",
+      "tags": [
+        "dynamic",
+        "movement"
+      ]
+    },
+    {
+      "idx": 37,
+      "col": 1,
+      "row": 3,
+      "file": "otacon_sprite.png_0037_Layer-2.png",
+      "desc": "emotion: variation, alternate expression",
+      "tags": [
+        "situation: alternative animation set",
+        "secondary pose cycle. frame 2 of 12: early motion. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 38,
+      "col": 2,
+      "row": 3,
+      "file": "otacon_sprite.png_0038_Layer-3.png",
+      "desc": "emotion: variation, alternate expression",
+      "tags": [
+        "situation: alternative animation set",
+        "secondary pose cycle. frame 3 of 12: building. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 39,
+      "col": 3,
+      "row": 3,
+      "file": "otacon_sprite.png_0039_Layer-4.png",
+      "desc": "laughing wide",
+      "tags": [
+        "laughing",
+        "happy",
+        "funny",
+        "excited",
+        "positive"
+      ]
+    },
+    {
+      "idx": 40,
+      "col": 4,
+      "row": 3,
+      "file": "otacon_sprite.png_0040_Layer-5.png",
+      "desc": "winking right",
+      "tags": [
+        "wink",
+        "playful",
+        "happy"
+      ]
+    },
+    {
+      "idx": 41,
+      "col": 5,
+      "row": 3,
+      "file": "otacon_sprite.png_0041_Layer-6.png",
+      "desc": "winking left",
+      "tags": [
+        "wink",
+        "playful",
+        "happy"
+      ]
+    },
+    {
+      "idx": 42,
+      "col": 6,
+      "row": 3,
+      "file": "otacon_sprite.png_0042_Layer-7.png",
+      "desc": "emotion: variation, alternate expression",
+      "tags": [
+        "situation: alternative animation set",
+        "secondary pose cycle. frame 7 of 12: release begins. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 43,
+      "col": 7,
+      "row": 3,
+      "file": "otacon_sprite.png_0043_Layer-8.png",
+      "desc": "emotion: variation, alternate expression",
+      "tags": [
+        "situation: alternative animation set",
+        "secondary pose cycle. frame 8 of 12: winding down. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 44,
+      "col": 8,
+      "row": 3,
+      "file": "otacon_sprite.png_0044_Layer-9.png",
+      "desc": "emotion: variation, alternate expression",
+      "tags": [
+        "situation: alternative animation set",
+        "secondary pose cycle. frame 9 of 12: late release. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 45,
+      "col": 9,
+      "row": 3,
+      "file": "otacon_sprite.png_0045_Layer-10.png",
+      "desc": "emotion: variation, alternate expression",
+      "tags": [
+        "situation: alternative animation set",
+        "secondary pose cycle. frame 10 of 12: settling. pixel art sprite."
+      ]
+    },
+    {
+      "idx": 46,
+      "col": 10,
+      "row": 3,
+      "file": "otacon_sprite.png_0046_Layer-11.png",
+      "desc": "scared, holding object",
+      "tags": [
+        "scared",
+        "frightened",
+        "unpleasant",
+        "alarmed"
+      ]
+    },
+    {
+      "idx": 47,
+      "col": 11,
+      "row": 3,
+      "file": "otacon_sprite.png_0047_Layer-12.png",
+      "desc": "emotion: variation, alternate expression",
+      "tags": [
+        "situation: alternative animation set",
+        "secondary pose cycle. frame 12 of 12: release",
+        "end of cycle. pixel art sprite."
+      ],
+      "skip": true
+    }
+  ]
+}

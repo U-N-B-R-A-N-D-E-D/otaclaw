@@ -1,0 +1,629 @@
+/**
+ * OtaClaw for OpenClaw - Main Styles
+ * Optimized for touchscreen displays and Raspberry Pi
+ */
+
+/* Reset and Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* OtaClaw Color Palette */
+  --otaclaw-bg: #2c2c2c;
+  --otaclaw-bg-dark: #2c2c2c;
+  --otaclaw-primary: #e94560;
+  --otaclaw-secondary: #0f3460;
+  --otaclaw-accent: #533483;
+  --otaclaw-text: #eaeaea;
+  --otaclaw-text-muted: #8b8b9a;
+
+  /* State Colors */
+  --state-idle: #4ade80;
+  --state-thinking: #fbbf24;
+  --state-processing: #60a5fa;
+  --state-success: #22c55e;
+  --state-error: #ef4444;
+  --state-laughing: #f472b6;
+  --state-surprised: #a78bfa;
+
+  /* Sizing */
+  --sprite-size: min(50vh, 50vw);
+  --status-height: 60px;
+
+  /* Touch optimization */
+  --touch-target: 48px;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--otaclaw-bg);
+  color: var(--otaclaw-text);
+  font-family:
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Prevent text selection on touch devices */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  /* Prevent zoom on double tap */
+  touch-action: manipulation;
+}
+
+/* Main Container */
+.otaclaw-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    var(--otaclaw-bg) 0%,
+    var(--otaclaw-bg-dark) 100%
+  );
+}
+
+/* Sprite Container */
+.sprite-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 20px;
+}
+
+.sprite {
+  width: var(--sprite-size);
+  height: var(--sprite-size);
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+/* Pixel Art Base Styles */
+.pixel-art {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* CSS-only fallback sprites */
+.sprite-head {
+  width: 40%;
+  height: 45%;
+  background: linear-gradient(180deg, #f5d0c5 0%, #e8b4a8 100%);
+  border-radius: 50% 50% 45% 45%;
+  position: absolute;
+  top: 5%;
+  left: 30%;
+  box-shadow:
+    inset -10px -10px 0 rgba(0, 0, 0, 0.1),
+    4px 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.sprite-head::before {
+  content: "";
+  position: absolute;
+  top: 25%;
+  left: 20%;
+  width: 20%;
+  height: 20%;
+  background: #333;
+  border-radius: 50%;
+  box-shadow: 25px 0 0 #333;
+}
+
+.sprite-head::after {
+  content: "";
+  position: absolute;
+  top: 55%;
+  left: 35%;
+  width: 30%;
+  height: 8%;
+  background: #c97b6d;
+  border-radius: 0 0 50% 50%;
+}
+
+.sprite-body {
+  width: 50%;
+  height: 50%;
+  background: linear-gradient(180deg, #4a5568 0%, #2d3748 100%);
+  position: absolute;
+  bottom: 0;
+  left: 25%;
+  border-radius: 20% 20% 10% 10%;
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.sprite-arms {
+  width: 70%;
+  height: 30%;
+  position: absolute;
+  bottom: 20%;
+  left: 15%;
+}
+
+.sprite-arms::before,
+.sprite-arms::after {
+  content: "";
+  position: absolute;
+  width: 20%;
+  height: 100%;
+  background: #f5d0c5;
+  border-radius: 40%;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.sprite-arms::before {
+  left: 0;
+  transform: rotate(-20deg);
+}
+
+.sprite-arms::after {
+  right: 0;
+  transform: rotate(20deg);
+}
+
+/* Status Bar */
+.status-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--status-height);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 100;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--otaclaw-text-muted);
+  transition: background 0.3s ease;
+}
+
+.status-indicator.connected .status-dot {
+  background: var(--state-success);
+  box-shadow: 0 0 10px var(--state-success);
+}
+
+.status-indicator.disconnected .status-dot {
+  background: var(--state-error);
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.connecting .status-dot {
+  background: var(--state-thinking);
+  animation: blink 1s infinite;
+}
+
+.state-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: var(--otaclaw-secondary);
+  color: var(--otaclaw-text);
+  transition: all 0.3s ease;
+}
+
+.state-badge[data-state="idle"] {
+  background: var(--state-idle);
+  color: #000;
+}
+
+.state-badge[data-state="thinking"] {
+  background: var(--state-thinking);
+  color: #000;
+}
+
+.state-badge[data-state="processing"] {
+  background: var(--state-processing);
+  color: #fff;
+}
+
+.state-badge[data-state="success"] {
+  background: var(--state-success);
+  color: #000;
+}
+
+.state-badge[data-state="error"] {
+  background: var(--state-error);
+  color: #fff;
+}
+
+.state-badge[data-state="laughing"] {
+  background: var(--state-laughing);
+  color: #000;
+}
+
+.state-badge[data-state="surprised"] {
+  background: var(--state-surprised);
+  color: #fff;
+}
+
+/* Status right section */
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* HAL Badge - MGS2 reference */
+.hal-badge {
+  padding: 4px 8px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
+}
+
+/* Touch Overlay */
+.touch-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: var(--status-height);
+  z-index: 50;
+  cursor: pointer;
+}
+
+/* Debug Panel */
+.debug-panel {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 300px;
+  background: rgba(0, 0, 0, 0.9);
+  border-radius: 12px;
+  padding: 16px;
+  z-index: 200;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.debug-panel.hidden {
+  display: none;
+}
+
+.debug-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 600;
+}
+
+.debug-close {
+  background: none;
+  border: none;
+  color: var(--otaclaw-text);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.debug-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.debug-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.debug-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.debug-row label {
+  color: var(--otaclaw-text-muted);
+}
+
+.debug-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.test-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: var(--otaclaw-secondary);
+  color: var(--otaclaw-text);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.test-btn:hover {
+  background: var(--otaclaw-accent);
+}
+
+/* Connection Overlay */
+.connection-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--otaclaw-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  transition:
+    opacity 0.5s ease,
+    visibility 0.5s;
+}
+
+.connection-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.connection-content {
+  text-align: center;
+  padding: 40px;
+}
+
+.pixel-art.connecting {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 24px;
+  border: 4px solid var(--otaclaw-primary);
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+.connection-text {
+  font-size: 18px;
+  color: var(--otaclaw-text-muted);
+  margin-bottom: 24px;
+}
+
+.retry-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  background: var(--otaclaw-primary);
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-weight: 500;
+}
+
+.retry-btn:hover {
+  background: #d63d56;
+}
+
+.retry-btn.hidden {
+  display: none;
+}
+
+/* Offline/Demo Mode Button */
+.offline-btn {
+  margin-top: 20px;
+  padding: 12px 24px;
+  background: var(--state-idle);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.offline-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(74, 222, 128, 0.4);
+}
+
+.offline-btn:active {
+  transform: translateY(0);
+}
+
+/* Demo Mode Badge */
+.demo-badge {
+  margin-left: 10px;
+  padding: 4px 8px;
+  background: var(--state-thinking);
+  color: #000;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Offline status indicator */
+.status-indicator.offline .status-dot {
+  background: var(--state-thinking);
+  animation: blink 1s infinite;
+}
+
+.status-indicator.offline .status-text {
+  color: var(--state-thinking);
+}
+
+/* Config Error Overlay */
+.config-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--otaclaw-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.config-overlay.hidden {
+  display: none;
+}
+
+.config-content {
+  text-align: center;
+  padding: 40px;
+  max-width: 600px;
+}
+
+.config-content h2 {
+  color: var(--otaclaw-primary);
+  margin-bottom: 16px;
+}
+
+.config-content p {
+  color: var(--otaclaw-text-muted);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.config-content pre {
+  background: var(--otaclaw-bg-dark);
+  padding: 16px;
+  border-radius: 8px;
+  font-family: "Courier New", monospace;
+  color: var(--state-idle);
+  overflow-x: auto;
+}
+
+/* Utility Classes */
+.hidden {
+  display: none !important;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 480px) {
+  :root {
+    --sprite-size: 70vw;
+    --status-height: 50px;
+  }
+
+  .status-bar {
+    padding: 0 12px;
+  }
+
+  .status-text {
+    display: none;
+  }
+
+  .debug-panel {
+    width: calc(100% - 40px);
+    left: 20px;
+    right: 20px;
+  }
+}
+
+/* High DPI / Retina Displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .pixel-art {
+    image-rendering: pixelated;
+  }
+}
+
+/* Reduced Motion Preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Dark/Light Mode Support (default dark) */
+@media (prefers-color-scheme: light) {
+  :root {
+    --otaclaw-bg: #f7fafc;
+    --otaclaw-bg-dark: #edf2f7;
+    --otaclaw-text: #1a202c;
+    --otaclaw-text-muted: #718096;
+  }
+}
