@@ -417,6 +417,44 @@ verify_deployment() {
     fi
 }
 
+# Interactive configuration for general settings
+configure_settings() {
+    if [[ "$LOCAL_INSTALL" == "true" || "$DRY_RUN" == "true" ]]; then
+        return 0
+    fi
+    
+    # Only prompt if running interactively
+    if [[ -t 0 ]]; then
+        echo
+        echo -e "${BLUE}--- OtaClaw Configuration ---${NC}"
+        read -p "Do you want to configure Discord Channel ID and Display Rotation now? [y/N]: " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo
+            echo -e "${YELLOW}Discord Tickle Channel ID${NC}"
+            echo "When you touch the screen, OtaClaw can send a message back to a specific Discord channel."
+            read -p "Enter your Discord Channel ID (leave blank to keep default/null): " discord_channel
+            if [[ -n "$discord_channel" ]]; then
+                log_info "Setting tickleDiscordChannel to $discord_channel..."
+                # Update widget.html and config.js
+                ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's/tickleDiscordChannel: null/tickleDiscordChannel: \"$discord_channel\"/' ${CANVAS_PATH%/}/otaclaw/js/config.js 2>/dev/null || true"
+                ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's/tickleDiscordChannel: null/tickleDiscordChannel: \"$discord_channel\"/' ${CANVAS_PATH%/}/otaclaw/widget.html 2>/dev/null || true"
+            fi
+            
+            echo
+            echo -e "${YELLOW}Display Rotation${NC}"
+            echo "Depending on how you mounted your screen, you may need to rotate it."
+            read -p "Enter display rotation (0, 90, 180, 270) [leave blank to skip]: " rotation
+            if [[ "$rotation" == "0" || "$rotation" == "90" || "$rotation" == "180" || "$rotation" == "270" ]]; then
+                log_info "Setting rotation to $rotation..."
+                # Update widget URL rotation parameter in the kiosk service or script
+                ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's/rotation=[0-9]*/rotation=$rotation/g' ~/.config/systemd/user/otaclaw-kiosk.service ~/.openclaw/scripts/kco-start-otaclaw-kiosk.sh 2>/dev/null || true"
+            fi
+            echo
+        fi
+    fi
+}
+
 # Restart OpenClaw gateway (optional)
 restart_openclaw() {
     if [[ "$LOCAL_INSTALL" == "true" ]]; then
@@ -534,6 +572,7 @@ main() {
     verify_deployment
     
     if [[ "$DRY_RUN" == "false" ]]; then
+        configure_settings
         restart_openclaw
         if [[ "$RESTART_KIOSK" == "true" && "$LOCAL_INSTALL" != "true" ]]; then
             log_info "Updating kiosk script (cache-bust) and restarting..."

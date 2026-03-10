@@ -52,11 +52,6 @@ export const OTACLAW_CONFIG = {
 
     // Show connection metrics in debug panel (lastEvent, reconnectAttempts, etc.)
     debugPanel: true,
-
-    // Tickle: send to Discord so agent reply appears there (default: true)
-    tickleToDiscord: true,
-    // Optional: Discord channel ID if gateway requires explicit target
-    tickleDiscordChannel: null,
   },
 
   /**
@@ -66,10 +61,13 @@ export const OTACLAW_CONFIG = {
   behavior: {
     // Profile: 'default' | 'minimal' | 'expressive'
     // minimal = fewer state changes, expressive = more reactions
-    profile: 'default',
+    profile: 'expressive',
 
     // Time in milliseconds before returning to idle state (default: 30000ms = 30s)
     idleTimeout: 30000,
+    
+    // Time in milliseconds before sleeping (0 = infinite idle)
+    sleepIdleMs: 0,
     
     // Enable CSS animations (set to false for better performance on low-end devices)
     animations: true,
@@ -110,6 +108,9 @@ export const OTACLAW_CONFIG = {
     'confused',   // Puzzled, questioning
     'excited',    // Enthusiastic, animated
     'presenting', // Ta-da, brief transition before idle
+    'worried',    // Concerned, making a mistake
+    'sad',        // Disappointed
+    'scared'      // Alarmed
   ],
 
   /**
@@ -189,7 +190,9 @@ export const OTACLAW_CONFIG = {
    * Example: success → presenting (500ms) → idle
    */
   stateChaining: {
-    success: { next: 'presenting', duration: 500 },
+    success: { next: 'presenting', duration: 1500 },
+    laughing: { next: 'excited', duration: 1000 },
+    error: { next: 'sad', duration: 2000 },
   },
 
   /**
@@ -220,9 +223,13 @@ export const OTACLAW_CONFIG = {
     displayTargetHeight: 320,
 
     // Idle sequence and pacing (for low-power natural movement)
-    idleSequence: [0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 2, 0],
-    idleBaseDelayMs: 3000,
-    idleJitterMs: 1200,
+    idleSequence: [
+      [0, 0], [0, 0], [3, 0], [0, 0], 
+      [4, 0], [0, 0], [5, 1], [0, 0], 
+      [8, 0], [0, 0], [1, 0], [0, 0]
+    ],
+    idleBaseDelayMs: 2500,
+    idleJitterMs: 2000,
 
     // Per-phase timing for more organic idle (overrides base/jitter when set)
     idlePhaseTiming: {
@@ -235,15 +242,11 @@ export const OTACLAW_CONFIG = {
     blinkOverlay: true,
     blinkFrame: 8,
     blinkDurationMs: 80,
-    blinkIntervalMinMs: 2000,
-    blinkIntervalMaxMs: 4000,
+    blinkIntervalMinMs: 1500,
+    blinkIntervalMaxMs: 5000,
     
     // Individual sprite files per state (used when otaclock-original.png not available)
-    laughingSprites: [
-      'otacon_sprite_laugh_00.png',
-      'otacon_sprite_laugh_01.png',
-      'otacon_sprite_laugh_02.png',
-    ],
+    laughingSprites: null,
 
     // Number of animation frames per state
     frames: {
@@ -314,12 +317,12 @@ export const OTACLAW_CONFIG = {
       idle: [[0, 0], [1, 0], [3, 0], [4, 0], [6, 0], [7, 0], [8, 0]],
       worried: [[0, 2], [4, 2]],
       waving: [[7, 2]],
-      scared: [[10, 3]],
+      scared: [[9, 0], [10, 0], [10, 3]],
       confident: [[8, 1], [9, 1], [10, 1], [8, 3]],
       wink: [[4, 3], [5, 3]],
       surprised: [[9, 0], [10, 0]],
       processing: [[3, 1], [4, 1], [6, 1], [7, 1]],
-      error: [[2, 2], [3, 2]],
+      error: [[4, 2], [2, 2]],
       puzzled: [[1, 2]],
       curious: [[5, 2]],
       confused: [[1, 2], [5, 0]],
@@ -392,6 +395,7 @@ export const OTACLAW_CONFIG = {
     brightness: 100,
 
     // Pi GPIO buzzer: set to "http://127.0.0.1:18790/tickle" when running pi-buzzer-tickle.py
+    // Or set to another local listener for custom actions (e.g. Discord bridges)
     buzzerTickleUrl: null,
   },
 
@@ -493,7 +497,7 @@ export const OTACLAW_CONFIG = {
   personalities: {
     hal: {
       thinking: ['Hmmm....', 'Let me think...', 'One sec...', 'Right, right...'],
-      processing: ['Processing...', 'Working on it', 'Crunchn\' numbers', 'Almost there'],
+      processing: ['Processing...', 'Working on it', "Crunchn' numbers", 'Almost there'],
       success: ['Got it!', 'There we go', 'Done!', 'Roger that'],
       error: ['Oops...', 'That wasn\'t...', 'Yikes', 'My bad'],
       laughing: ['Haha!', 'Heh', 'Good one', 'Hehe'],
