@@ -553,6 +553,7 @@ export class WebSocketClient {
           typeof navigator !== "undefined" && navigator.userAgent
             ? navigator.userAgent
             : "otaclaw",
+        scopes: ["operator.read", "operator.write"],
         ...(authToken ? { auth: { token: authToken } } : {}),
       },
     };

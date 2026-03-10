@@ -476,6 +476,7 @@ class OtaClawApp {
             console.log(`[OtaClaw] Forcing idle due to inactivity timeout. Last activity: ${timeSinceActivity}ms ago`);
             this.otaclaw.setState("idle", { trigger: "activity.timeout", speech: "", force: true });
             this._lastActivityTime = now;
+            this._scheduleSleep();
          }
       }
     }, 5000);
@@ -493,10 +494,23 @@ class OtaClawApp {
     // Specific OpenClaw events
     this._accumulatedText = "";
 
-    this.wsClient.on("agentStart", (data) => {
-      if (data.channel === "discord" && data.target) {
-        this._lastDiscordTarget = data.target;
+    this._extractDiscordTarget = (data) => {
+      if (data.channel === "discord" && data.target) return data.target;
+      if (data.sessionKey && data.sessionKey.startsWith("agent:discord:")) {
+        const parts = data.sessionKey.split(":");
+        if (parts.length >= 5) {
+          if (parts[3] === "direct") return `user:${parts[4]}`;
+          if (parts[3] === "guild") return `channel:${parts[4]}`;
+          return `channel:${parts[4]}`;
+        }
       }
+      return null;
+    };
+
+    this.wsClient.on("agentStart", (data) => {
+      const target = this._extractDiscordTarget(data);
+      if (target) this._lastDiscordTarget = target;
+      
       this._accumulatedText = "";
       this._currentEmotionLock = null;
       this.otaclaw.setState("thinking", {
@@ -507,9 +521,9 @@ class OtaClawApp {
     });
 
     this.wsClient.on("agentDelta", (data) => {
-      if (data.channel === "discord" && data.target) {
-        this._lastDiscordTarget = data.target;
-      }
+      const target = this._extractDiscordTarget(data);
+      if (target) this._lastDiscordTarget = target;
+      
       const text = data.message || data.delta || data.content || "";
       if (text) {
         this._accumulatedText += text;
@@ -525,28 +539,59 @@ class OtaClawApp {
       }
       this._lastDeltaUpdateAt = now;
       
-      // Local heuristic emotion detection
       const lower = this._accumulatedText.toLowerCase();
-      
-      // Detect simple emotions from text context (most recent matches win)
-      // We only look at the recent part of the message to allow changing emotions mid-sentence
-      const recentText = lower.slice(-80);
-      
-      if (recentText.match(/haha|hehe|😂|🤣|😆|😁|lol|lmao|rofl|funny|joke|happy|glad|love|excellent|great|awesome/i)) {
-        this._currentEmotionLock = "laughing";
-      } else if (recentText.match(/wow|amazing|incredible|!|omg|gosh|surprise|impressive|wonderful/i)) {
-        this._currentEmotionLock = "surprised";
-      } else if (recentText.match(/hmm|let me think|🤔|thinking|let's see|analyzing|interesting|maybe|perhaps/i)) {
-        this._currentEmotionLock = "thinking";
-      } else if (recentText.match(/oops|uh oh|error|sorry|😅|😥|apologies|sad|problem|unfortunately/i)) {
-        this._currentEmotionLock = "worried";
-      } else if (recentText.match(/\?|what|how|why|tell me|explain/i)) {
-        if (!this._currentEmotionLock) this._currentEmotionLock = "curious";
-      } else if (recentText.length > 50 && Math.random() < 0.05) {
-        // Occasional random emotion shift during long processing to increase variety
-        const randomEmotions = ["thinking", "curious", "presenting"];
+      const recentText = lower.slice(-120);
+
+      const emotionScores = {
+        laughing:  0,
+        surprised: 0,
+        excited:   0,
+        worried:   0,
+        curious:   0,
+        thinking:  0,
+        presenting:0,
+        sad:       0,
+        confused:  0,
+      };
+
+      const patterns = [
+        [/haha|hehe|😂|🤣|😆|lol|lmao|rofl/gi,                     "laughing",   3],
+        [/funny|joke|hilarious|comedy|humor/gi,                       "laughing",   2],
+        [/happy|glad|love|excellent|great|awesome|fantastic/gi,        "laughing",   1],
+        [/wow|amazing|incredible|omg|gosh|impressive|wonderful/gi,     "surprised",  3],
+        [/!!+/g,                                                       "surprised",  1],
+        [/🎉|🚀|💪|excited|can't wait|thrilling/gi,                    "excited",    3],
+        [/cool|neat|nice|sweet/gi,                                     "excited",    1],
+        [/oops|uh oh|sorry|😅|apologies|unfortunately|problem/gi,      "worried",    3],
+        [/careful|warning|caution|risk|danger/gi,                      "worried",    2],
+        [/sad|😢|😭|miss|lost|gone|disappointing/gi,                    "sad",        3],
+        [/\?{2,}/g,                                                    "confused",   2],
+        [/confused|unclear|don't understand|what do you mean/gi,       "confused",   3],
+        [/hmm|🤔|let me think|let's see|analyzing|considering/gi,      "thinking",   2],
+        [/interesting|perhaps|maybe|might/gi,                          "thinking",   1],
+        [/\?/g,                                                        "curious",    1],
+        [/what|how|why|tell me|explain|curious|wonder/gi,              "curious",    1],
+        [/here|look|check|presenting|result|done|built|created/gi,     "presenting", 2],
+        [/ta-da|voilà|behold/gi,                                       "presenting", 3],
+      ];
+
+      for (const [regex, emotion, weight] of patterns) {
+        const matches = recentText.match(regex);
+        if (matches) emotionScores[emotion] += matches.length * weight;
+      }
+
+      let bestEmotion = null;
+      let bestScore = 0;
+      for (const [emotion, score] of Object.entries(emotionScores)) {
+        if (score > bestScore) { bestScore = score; bestEmotion = emotion; }
+      }
+
+      if (bestScore >= 2) {
+        this._currentEmotionLock = bestEmotion;
+      } else if (recentText.length > 60 && Math.random() < 0.04) {
+        const variety = ["thinking", "curious", "presenting", "excited"];
         if (!this._currentEmotionLock) {
-            this._currentEmotionLock = randomEmotions[Math.floor(Math.random() * randomEmotions.length)];
+          this._currentEmotionLock = variety[Math.floor(Math.random() * variety.length)];
         }
       }
 
@@ -728,6 +773,29 @@ class OtaClawApp {
           timestamp: Date.now(),
         });
       }
+              // Send tickle reaction to the configured chat channel (Discord, Telegram, etc.)
+              const tickleTarget = this.config?.openclaw?.tickleDiscordChannel || this._lastDiscordTarget;
+              if (this.wsClient?.isConnected && typeof this.wsClient.sendRequest === "function" && tickleTarget) {
+                const tickleReactions = [
+                  "S-stop! I can't breathe! Snake, help me!",
+                  "Wait, wait! This is just like a scene from one of my Japanese animes! Hahaha!",
+                  "Haha! Seriously, stop! I'm gonna wet my pants again!",
+                  "Haha! Woah! You found my tickle feedback!",
+                  "Is this... haha... a new FOXHOUND interrogation technique?!",
+                  "Snake? Snake?! Snaaaaaaake!! ...Wait, I'm just being tickled, haha!",
+                  "Hahaha! My... my endorphin levels are exceeding normal parameters!",
+                  "Haha! I'm... I'm turning off the Codec! I mean it!",
+                  "Got it! Haha! Okay, I yield! You win!",
+                  "Are you an otaku too? Because only an otaku would do this! Hahaha!",
+                ];
+                const tickleMsg = tickleReactions[Math.floor(Math.random() * tickleReactions.length)];
+                this.wsClient.sendRequest("send", {
+                  channel: "discord",
+                  to: tickleTarget,
+                  message: tickleMsg,
+                  idempotencyKey: `tickle-${Date.now()}`
+                });
+              }
       const buzzerUrl = this.config?.display?.buzzerTickleUrl;
       if (buzzerUrl) {
         fetch(buzzerUrl, { method: "GET" }).catch(() => {});
@@ -837,6 +905,8 @@ class OtaClawApp {
           action: "wake",
           timestamp: Date.now(),
         });
+      } else if (this.wsClient && !this.wsClient.isConnected) {
+        this.wsClient.reconnect();
       }
       const finishWake = () => {
         document.body.classList.remove("widget-waiting");
@@ -900,12 +970,14 @@ class OtaClawApp {
       } else {
         if (this.debugMode) console.log("[OtaClaw] Tab visible");
         if (!this.isOfflineMode && this.wsClient) {
-          this.wsClient.reconnectIfStale(180000);
-          if (this.wsClient.isConnected) {
+          if (!this.wsClient.isConnected) {
+            this.wsClient.reconnect();
+          } else {
+            this.wsClient.reconnectIfStale(30000);
             this.wsClient.send({ type: "client.refresh" });
-            if (this.otaclaw?.getState?.() === "idle")
-              this.startIdleAnimation();
           }
+          if (this.wsClient.isConnected && this.otaclaw?.getState?.() === "idle")
+            this.startIdleAnimation();
         }
       }
     });
@@ -1413,13 +1485,12 @@ class OtaClawApp {
   }
 
   stopAllAnimations() {
-    ["_idleAnimationHandle", "_thinkingAnimationHandle", "_successAnimationHandle", "_errorAnimationHandle", "_laughingAnimationHandle", "_surprisedAnimationHandle", "_tagSeqHandle", "_tagPoolAnimationHandle"].forEach(k => {
+    ["_idleAnimationHandle", "_thinkingAnimationHandle", "_successAnimationHandle", "_errorAnimationHandle", "_laughingAnimationHandle", "_surprisedAnimationHandle", "_tagSeqHandle", "_tagPoolAnimationHandle", "_thinkingPhaseTimer"].forEach(k => {
         if (this[k]) {
             clearTimeout(this[k]);
             this[k] = null;
         }
     });
-    // Removed: sprite.classList.remove("state-frame"); to prevent black frames during transition
   }
 
   /** Idle: gentle cycle, organic timing – spaced out, random, not constant. */
@@ -1435,9 +1506,12 @@ class OtaClawApp {
   _scheduleSleep() {
     this._cancelSleep();
     if (!document.body.classList.contains("otaclaw-widget")) return;
-    const ms = this.config?.behavior?.sleepIdleMs !== undefined 
+    
+    // Default to 180000ms (3 minutes) if behavior or sleepIdleMs is not defined
+    const ms = (this.config?.behavior?.sleepIdleMs !== undefined && this.config?.behavior?.sleepIdleMs !== null)
       ? Number(this.config.behavior.sleepIdleMs) 
       : 180000;
+      
     if (ms <= 0) return;
     this._sleepTimer = setTimeout(() => {
       this._sleepTimer = null;
@@ -1445,6 +1519,10 @@ class OtaClawApp {
       this.stopBlinkOverlay();
       if (typeof window.runSleepSequence === "function") {
         window.runSleepSequence();
+      } else {
+        // Fallback sleep state if sequence missing
+        this.otaclaw?.setState("sleeping", { speech: "zZz...", force: true });
+        document.body.classList.add("widget-asleep");
       }
     }, ms);
   }
@@ -1467,14 +1545,52 @@ class OtaClawApp {
     this._startTagPoolAnimation(stateName, speech, handleKey || "_tagSeqHandle");
   }
 
-  /** Thinking: contemplative wait. Processing: active generation. Uses processingSprites/Sequence when state is processing, else thinkingSprites/Sequence. Falls back to frame-catalog sequences when no sprites. */
+  /**
+   * Progressive thinking: cycles through emotional phases during the long LLM wait
+   * so Hal feels alive and engaged rather than frozen on one expression.
+   */
   startThinkingAnimation() {
     this.stopAllAnimations();
-    const state = this.otaclaw?.getState?.() || "";
-    this._startTagPoolAnimation(state === "processing" ? "processing" : "thinking", null, "_thinkingAnimationHandle");
+    this._thinkingPhaseIndex = 0;
+    this._thinkingPhaseStart = Date.now();
+
+    const phases = [
+      { tag: "thinking",   speech: this._t("thinking"),   minMs: 0,     maxMs: 8000  },
+      { tag: "curious",    speech: "Hmm?",                minMs: 8000,  maxMs: 20000 },
+      { tag: "processing", speech: this._t("processing"), minMs: 20000, maxMs: 40000 },
+      { tag: "thinking",   speech: "Let me see...",       minMs: 40000, maxMs: 60000 },
+      { tag: "worried",    speech: "Almost...",           minMs: 60000, maxMs: 90000 },
+      { tag: "curious",    speech: "Interesting...",      minMs: 90000, maxMs: Infinity },
+    ];
+
+    const runPhase = () => {
+      const currentState = this.otaclaw?.getState?.();
+      if (currentState !== "thinking" && currentState !== "processing") return;
+
+      const elapsed = Date.now() - this._thinkingPhaseStart;
+      let phase = phases[0];
+      for (let i = phases.length - 1; i >= 0; i--) {
+        if (elapsed >= phases[i].minMs) { phase = phases[i]; break; }
+      }
+
+      this._startTagPoolAnimation(phase.tag, phase.speech, "_thinkingAnimationHandle");
+
+      const nextPhase = phases.find(p => p.minMs > elapsed);
+      if (nextPhase) {
+        const delay = nextPhase.minMs - elapsed + 200;
+        this._thinkingPhaseTimer = setTimeout(runPhase, delay);
+      }
+    };
+
+    runPhase();
   }
 
-  stopThinkingAnimation() {}
+  stopThinkingAnimation() {
+    if (this._thinkingPhaseTimer) {
+      clearTimeout(this._thinkingPhaseTimer);
+      this._thinkingPhaseTimer = null;
+    }
+  }
 
   startLaughingAnimation() {
     this.stopAllAnimations();
@@ -1543,7 +1659,9 @@ class OtaClawApp {
       const text =
         error && error.message
           ? String(error.message)
-          : this._t("configRequired");
+          : error
+            ? JSON.stringify(error, Object.getOwnPropertyNames(error))
+            : this._t("configRequired");
       if (msg) msg.textContent = text;
     }
   }

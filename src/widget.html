@@ -76,13 +76,17 @@
           heartbeatInterval: 20000,
           staleThreshold: 60000,
           maxQueuedMessages: 120,
+          // Set to "channel:<ID>" or "user:<ID>" to route tickle reactions to a chat channel.
+          // Get the ID from Discord: Settings > Advanced > Developer Mode, then right-click channel > Copy Channel ID.
+          // Leave null to only animate on screen (no chat delivery).
+          tickleDiscordChannel: null,
         },
         personality: "hal",
         behavior: {
           profile: "expressive",
           idleTimeout: 30000,
           agentResponseTimeoutMs: 35000,
-          sleepIdleMs: 0,
+          sleepIdleMs: 180000,
           animations: true,
           lowPowerMode: true,
           sounds: true,
@@ -557,7 +561,7 @@
     </script>
     <script src="js/display-tools.js?v=20"></script>
     <script src="js/app-calibration.js?v=20"></script>
-    <script type="module" src="js/app.js?v=45"></script>
+    <script type="module" src="js/app.js?v=46"></script>
   </body>
   <div
     id="boot-black-overlay"
