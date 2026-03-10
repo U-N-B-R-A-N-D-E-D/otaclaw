@@ -1,0 +1,195 @@
+<!doctype html>
+<!-- [ U N B R A N D E D ] - 2026 -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <title>OtaClaw for OpenClaw</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+    />
+    <!-- OtaClaw Styles -->
+    <link rel="stylesheet" href="css/otaclaw.css" />
+    <link rel="stylesheet" href="css/animations.css" />
+    <link rel="stylesheet" href="css/sprite-sheet.css" />
+    <link rel="stylesheet" href="css/sprite-calibration.css" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/favicon.png" />
+  </head>
+  <body class="use-xythobuz use-otacon-sprite">
+    <!-- Main OtaClaw Container -->
+    <div id="otaclaw" class="otaclaw-container">
+      <!-- Sprite Display Area -->
+      <div class="sprite-container">
+        <div id="sprite" class="sprite-sheet-container state-idle">
+          <div class="sprite-viewport-wrapper">
+            <div id="speech-bubble" class="speech-bubble">
+              <span id="speech-text" class="speech-text"></span>
+            </div>
+            <div id="sprite-viewport" class="sprite-viewport">
+              <div class="otacon-frame">
+                <!-- Eyes overlay (xythobuz only): base has no eyes, we layer eyes_0-4 on top -->
+                <div
+                  id="eyes-layer"
+                  class="eyes-layer"
+                  aria-hidden="true"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status Indicator -->
+      <div id="status-bar" class="status-bar">
+        <span id="connection-status" class="status-indicator disconnected">
+          <span class="status-dot"></span>
+          <span class="status-text">Disconnected</span>
+        </span>
+        <div class="status-right">
+          <span class="hal-badge">HAL</span>
+          <span id="current-state" class="state-badge">idle</span>
+        </div>
+      </div>
+
+      <!-- Calibration Studio - simple text mapping -->
+      <div id="calibration-studio" class="calibration-studio hidden">
+        <div class="studio-header">
+          <span>Sprite Mapping</span>
+          <button id="studio-close" class="studio-close">×</button>
+        </div>
+        <div class="studio-section">
+          <strong>Grid 12×4 · 567×278 · cell ~47×70 px</strong>
+          <p class="studio-hint">
+            Format: <code>emotion: c,r c,r c,r</code>. Overflow:
+            <code>@0.9</code>. See <code>docs/SPRITE-MAPPING.md</code> for cell
+            table.
+          </p>
+        </div>
+        <div class="studio-section">
+          <label
+            ><input type="checkbox" id="studio-safe-zone" /> Safe zone</label
+          >
+          <label><input type="checkbox" id="studio-grid" /> Grid</label>
+        </div>
+        <textarea
+          id="studio-mapping-text"
+          class="studio-mapping-text"
+          rows="14"
+          placeholder="idle: 0,0 1,0&#10;thinking: 2,0 3,0 4,0 5,0"
+        ></textarea>
+        <div class="studio-row">
+          <label>Scale:</label
+          ><input
+            id="studio-scale"
+            type="number"
+            step="0.1"
+            min="1"
+            max="8"
+            value="4"
+            size="4"
+          />
+          <button id="studio-apply" class="studio-btn">Apply</button>
+        </div>
+        <div id="studio-sheet-preview" class="studio-sheet-preview">
+          <div class="sheet-grid-overlay" id="sheet-grid-overlay"></div>
+        </div>
+      </div>
+      <!-- Debug Panel (hidden by default) -->
+      <div id="debug-panel" class="debug-panel hidden">
+        <div class="debug-header">
+          <span>OtaClaw Debug</span>
+          <button id="close-debug" class="debug-close">×</button>
+        </div>
+        <div class="debug-content">
+          <div class="debug-row">
+            <label>WebSocket:</label>
+            <span id="ws-status">-</span>
+          </div>
+          <div class="debug-row">
+            <label>Current State:</label>
+            <span id="debug-state">-</span>
+          </div>
+          <div class="debug-row">
+            <label>Last Event:</label>
+            <span id="debug-event">-</span>
+          </div>
+          <div class="debug-row">
+            <label>Uptime:</label>
+            <span id="debug-uptime">-</span>
+          </div>
+          <div id="debug-connection-section" class="debug-connection-section">
+            <div class="debug-row">
+              <label>Last Event Type:</label>
+              <span id="debug-last-event-type">-</span>
+            </div>
+            <div class="debug-row">
+              <label>Reconnect Attempts:</label>
+              <span id="debug-reconnect-attempts">-</span>
+            </div>
+            <div class="debug-row">
+              <label>Queued Messages:</label>
+              <span id="debug-queued-messages">-</span>
+            </div>
+            <div class="debug-row">
+              <label>Stale Since:</label>
+              <span id="debug-stale-since">-</span>
+            </div>
+          </div>
+        </div>
+        <div class="debug-actions">
+          <button id="debug-reconnect-btn" class="test-btn">Reconnect</button>
+          <button id="open-studio-btn" class="test-btn">Studio (Y)</button>
+          <button class="test-btn" data-state="idle">Idle</button>
+          <button class="test-btn" data-state="thinking">Thinking</button>
+          <button class="test-btn" data-state="processing">Processing</button>
+          <button class="test-btn" data-state="success">Success</button>
+          <button class="test-btn" data-state="error">Error</button>
+          <button class="test-btn" data-state="laughing">Laugh</button>
+          <button class="test-btn" data-state="surprised">Surprised</button>
+        </div>
+      </div>
+
+      <!-- Touch/Click Area for Interactions -->
+      <div id="touch-overlay" class="touch-overlay"></div>
+      <!-- Calibration Studio: safe zone + grid overlay -->
+      <div id="safe-zone-overlay" class="safe-zone-overlay hidden"></div>
+      <div id="grid-overlay" class="grid-overlay hidden"></div>
+    </div>
+
+    <!-- Connection Overlay -->
+    <div id="connection-overlay" class="connection-overlay">
+      <div class="connection-content">
+        <div class="sprite-sheet-container connecting">
+          <div class="otacon-frame"></div>
+        </div>
+        <p class="connection-text">Tap to start</p>
+        <button id="retry-connection" class="retry-btn hidden">
+          Retry Connection
+        </button>
+      </div>
+    </div>
+
+    <!-- Configuration Error Overlay -->
+    <div id="config-error" class="config-overlay hidden">
+      <div class="config-content">
+        <h2>Configuration Required</h2>
+        <p>Configure OpenClaw connection in <code>js/config.js</code></p>
+        <pre># If deploying: edit ~/.openclaw/canvas/otaclaw/js/config.js</pre>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Sprite + calibration (must load first) -->
+    <script src="js/app-calibration.js"></script>
+    <!-- OpenClaw WebSocket integration -->
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

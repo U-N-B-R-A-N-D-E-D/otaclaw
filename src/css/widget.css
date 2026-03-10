@@ -1,0 +1,395 @@
+/**
+ * OtaClaw Widget - Fullscreen by default for kiosk/display
+ * Fullscreen by default; resize window for mini widget
+ */
+
+/* Widget overlay: hidden after boot – main content (gray + bubble) is primary */
+#widget-sprite-overlay {
+  display: none !important;
+}
+
+/* Boot/sleep overlay: uses user's backdrop (via display-tools). Fallback #2C2C2C if not yet applied. */
+.boot-black-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--otaclaw-backdrop, #2C2C2C);
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 0.6s ease-out;
+}
+.boot-black-overlay.boot-fade-1 {
+  opacity: 0.85;
+}
+.boot-black-overlay.boot-fade-2 {
+  opacity: 0.65;
+}
+.boot-black-overlay.boot-fade-3 {
+  opacity: 0.4;
+}
+.boot-black-overlay.boot-fade-4 {
+  opacity: 0.2;
+}
+.boot-black-overlay.boot-fade-5 {
+  opacity: 0;
+}
+.boot-black-overlay.boot-sleep {
+  opacity: 1;
+}
+.boot-black-overlay.boot-done {
+  opacity: 0;
+  pointer-events: none;
+  display: none !important;
+}
+/* Boot/sleep overlay: full viewport, flex center for splash and boot frames.
+   Kiosk screens vary (small Pi, large displays) – responsive centering.
+   Respects user rotation (data-rotation on body) so sleep/wake matches main sprite. */
+#boot-sprite-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: transparent;
+}
+.otaclaw-widget[data-rotation="90"] #boot-sprite-overlay {
+  transform: rotate(90deg);
+  transform-origin: center center;
+}
+.otaclaw-widget[data-rotation="180"] #boot-sprite-overlay {
+  transform: rotate(180deg);
+  transform-origin: center center;
+}
+.otaclaw-widget[data-rotation="270"] #boot-sprite-overlay {
+  transform: rotate(270deg);
+  transform-origin: center center;
+}
+/* Splash icon (OtIcon): max 100x100, smaller on small screens, centered */
+.splash-sprite-img {
+  width: min(100px, 25vw, 25vh);
+  height: min(100px, 25vw, 25vh);
+  max-width: 100px;
+  max-height: 100px;
+  object-fit: contain;
+  object-position: center;
+  margin: auto;
+}
+/* Boot/sleep frames: fill viewport, prominent on any screen size */
+.boot-overlay-img:not(.splash-sprite-img) {
+  width: min(92vw, 92vh);
+  height: min(92vw, 92vh);
+  max-width: 92vw;
+  max-height: 92vh;
+  object-fit: contain;
+  object-position: center;
+}
+.boot-splash {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.boot-splash.done {
+  display: none;
+}
+.boot-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  font-family: system-ui, sans-serif;
+  letter-spacing: 0.05em;
+}
+.boot-loading.done {
+  display: none;
+}
+
+/* Responsive: scale to viewport, preserve aspect */
+.otaclaw-widget #otaclaw,
+.otaclaw-widget .sprite-sheet-container {
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
+/* Touch targets: min 44px for accessibility (small screens) */
+.otaclaw-widget .tool-btn,
+.otaclaw-widget .test-btn,
+.otaclaw-widget button {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+}
+
+/* Force full viewport, solid background, no gaps */
+html.otaclaw-widget {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #2c2c2c !important;
+  width: 100%;
+  height: 100%;
+}
+html.otaclaw-widget body {
+  width: 100vw !important;
+  height: 100vh !important;
+  min-width: 100vw;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: radial-gradient(
+    ellipse at center,
+    #3a3a3a 0%,
+    #2c2c2c 70%,
+    #1a1a1a 100%
+  ) !important;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hide cursor only in kiosk (touch). Tab: cursor visible. */
+html.otaclaw-widget.otaclaw-kiosk,
+html.otaclaw-widget.otaclaw-kiosk *,
+.otaclaw-widget.otaclaw-kiosk,
+.otaclaw-widget.otaclaw-kiosk * {
+  cursor: none !important;
+}
+
+.otaclaw-widget .otaclaw-widget-main {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* allow flex child to shrink */
+}
+.otaclaw-widget .otaclaw-container {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100%;
+  min-height: 100%;
+  border-radius: 0;
+  overflow: hidden;
+  background: #2c2c2c !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.otaclaw-widget .sprite-viewport {
+  --sprite-viewport-size: min(100vh, 100vw);
+  overflow: hidden;
+}
+.otaclaw-widget .sprite-viewport-wrapper {
+  overflow: visible; /* allow speech bubble above viewport */
+}
+.otaclaw-widget .sprite-container {
+  flex: 1;
+  min-height: 0;
+  overflow: visible; /* allow comic bubble above Hal */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.otaclaw-widget .otaclaw-container {
+  overflow: visible;
+}
+/* Scale sprite to fit viewport – cell 47×70, keep within safe area */
+.otaclaw-widget {
+  --otacon-scale: 4.5;
+}
+
+/* Widget: default idle frame; JS overrides via setProperty for cycling (no !important) */
+.otaclaw-widget #sprite .otacon-frame {
+  background-image: url("../assets/sprites/otacon_sprite.png_0004_Sprite-5.png");
+  background-size: contain !important;
+  background-position: center !important;
+}
+
+/* Touch overlay: fullscreen, ensure it receives touch on Pi/touchscreens */
+.otaclaw-widget .touch-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 500;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Legacy: single bubble above head (speech-bubble). Bottom msg unused. */
+.widget-connection-msg {
+  display: none !important;
+}
+
+/* Check config: show icon instead of full sprite */
+.widget-check-config-icon {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: url("../assets/sprites/OtIcon.png") no-repeat center / contain;
+  pointer-events: none;
+}
+.otaclaw-widget.widget-check-config .widget-check-config-icon {
+  display: block;
+}
+.otaclaw-widget.widget-check-config .sprite-viewport {
+  visibility: hidden;
+}
+
+/* Widget idle (connected): breathe + frame cycle by JS */
+.otaclaw-widget:not(.widget-waiting) #sprite.state-frame .otacon-frame {
+  animation: sprite-breathe-otacon 6s ease-in-out infinite !important;
+}
+
+/* Full range demo: use sprite sheet + CSS vars for background-position (overrides default center) */
+.otaclaw-widget #sprite.state-frame .otacon-frame {
+  background-image: url("../assets/sprites/otaclock-original.png") !important;
+  background-size: calc(var(--otacon-sheet-w, 567) * 1px)
+    calc(var(--otacon-sheet-h, 278) * 1px) !important;
+  background-position: calc(var(--otacon-frame-x, 0) * 1px)
+    calc(var(--otacon-frame-y, 0) * 1px) !important;
+}
+
+/* Emotions demo: ensure main content is visible and centered after overlay hides */
+.otaclaw-widget.emotions-demo #otaclaw-wrapper,
+.otaclaw-widget.emotions-demo .sprite-container {
+  display: flex !important;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+/* Widget waiting: frame cycle by JS (idle animation during connecting/reconnecting) */
+.otaclaw-widget.widget-waiting #sprite .otacon-frame {
+  width: calc(var(--otacon-frame-w, 47) * 1px) !important;
+  height: calc(var(--otacon-frame-h, 70) * 1px) !important;
+  background-size: contain !important;
+  background-position: center !important;
+  animation: sprite-breathe-otacon 6s ease-in-out infinite !important;
+}
+
+/* LED: moved to documentElement so it stays in viewport when body is rotated */
+.otaclaw-widget .status-bar-mini {
+  position: fixed;
+  bottom: 8px;
+  right: 8px;
+  left: auto;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  backdrop-filter: none;
+  justify-content: flex-end;
+  align-items: center;
+  display: flex !important;
+  z-index: 100002;
+}
+
+.otaclaw-widget .status-bar-mini .status-indicator {
+  padding: 2px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.otaclaw-widget .status-bar-mini .status-dot {
+  width: 12px;
+  height: 12px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+
+/* Low-power kiosk: disable decorative glow layer to reduce repaints. */
+.otaclaw-widget .sprite-sheet-container::after {
+  display: none !important;
+}
+
+.otaclaw-widget .status-bar-mini .status-indicator.connected .status-dot {
+  box-shadow: 0 0 4px currentColor;
+}
+
+.otaclaw-widget .status-bar-mini .status-text,
+.otaclaw-widget .status-bar-mini .status-right {
+  display: none;
+}
+
+/* Comic bubble above Hal */
+.otaclaw-widget .speech-bubble {
+  min-width: 120px;
+  padding: 10px 16px;
+}
+/* Tab: bubble lower (top % of wrapper), not stuck to viewport top */
+.otaclaw-widget:not(.otaclaw-kiosk) .speech-bubble {
+  top: 12%;
+  margin-top: 0;
+}
+
+/* Rotation: Hal + speech bubble rotate together (bubble follows head). Canvas stays fixed. */
+.otaclaw-widget[data-rotation="0"] .sprite-viewport-wrapper {
+  transform: none;
+}
+.otaclaw-widget[data-rotation="90"] .sprite-viewport-wrapper {
+  transform: rotate(90deg);
+  transform-origin: center center;
+}
+.otaclaw-widget[data-rotation="180"] .sprite-viewport-wrapper {
+  transform: rotate(180deg);
+  transform-origin: center center;
+}
+.otaclaw-widget[data-rotation="270"] .sprite-viewport-wrapper {
+  transform: rotate(270deg);
+  transform-origin: center center;
+}
+
+.otaclaw-widget .speech-text {
+  font-family: "Fira Code", "Fira Mono", "Consolas", monospace;
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  letter-spacing: 0.5px;
+}
+
+/* Connection overlay in widget: full screen, sprite fills viewport */
+.otaclaw-widget .connection-overlay .connection-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  width: 100%;
+  min-height: 100%;
+}
+.otaclaw-widget .connection-overlay .sprite-sheet-container.connecting {
+  flex: 1;
+  width: 100%;
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.otaclaw-widget .connection-overlay .connecting .otacon-frame {
+  transform: scale(1.5);
+  transform-origin: center;
+}
+
+/* Embed in corner - add .otaclaw-widget-floating to body when in iframe */
+.otaclaw-widget-floating.otaclaw-widget {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 9999;
+}

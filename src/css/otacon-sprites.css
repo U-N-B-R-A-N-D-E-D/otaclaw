@@ -1,0 +1,656 @@
+/**
+ * Otacon MGS2-Style Sprites
+ * CSS-based sprites inspired by Metal Gear Solid 2 pixel art
+ */
+
+/* ============================================
+   OTACON BASE CHARACTER
+   ============================================ */
+
+/* Base container for Otacon */
+.otacon-sprite {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  image-rendering: pixelated;
+}
+
+/* Head base - pale skin tone */
+.otacon-head {
+  width: 45%;
+  height: 50%;
+  background: linear-gradient(180deg, #f5d0c5 0%, #e8b4a8 100%);
+  border-radius: 45% 45% 40% 40%;
+  position: absolute;
+  top: 5%;
+  left: 27.5%;
+  box-shadow:
+    inset -8px -8px 0 rgba(0, 0, 0, 0.1),
+    4px 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Hair - light brown messy style */
+.otacon-head::before {
+  content: "";
+  position: absolute;
+  top: -8%;
+  left: -10%;
+  width: 120%;
+  height: 40%;
+  background: #8b7355;
+  border-radius: 40% 40% 20% 20%;
+  box-shadow:
+    inset -5px -5px 0 rgba(0, 0, 0, 0.2),
+    2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Hair bangs */
+.otacon-head::after {
+  content: "";
+  position: absolute;
+  top: 5%;
+  left: 20%;
+  width: 15%;
+  height: 15%;
+  background: #8b7355;
+  border-radius: 0 0 50% 50%;
+  transform: rotate(-20deg);
+}
+
+/* Glasses - signature Otacon look */
+.otacon-glasses {
+  position: absolute;
+  top: 30%;
+  left: 10%;
+  width: 80%;
+  height: 20%;
+}
+
+.otacon-glasses::before,
+.otacon-glasses::after {
+  content: "";
+  position: absolute;
+  width: 40%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.3);
+  border: 3px solid #333;
+  border-radius: 50%;
+  box-shadow:
+    inset 2px 2px 4px rgba(255, 255, 255, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.otacon-glasses::before {
+  left: 0;
+}
+
+.otacon-glasses::after {
+  right: 0;
+}
+
+/* Bridge of glasses */
+.otacon-glasses-bridge {
+  position: absolute;
+  top: 35%;
+  left: 40%;
+  width: 20%;
+  height: 3px;
+  background: #333;
+}
+
+/* Eyes - behind glasses */
+.otacon-eyes {
+  position: absolute;
+  top: 32%;
+  left: 18%;
+  width: 64%;
+  height: 12%;
+}
+
+.otacon-eyes::before,
+.otacon-eyes::after {
+  content: "";
+  position: absolute;
+  width: 25%;
+  height: 100%;
+  background: #222;
+  border-radius: 50%;
+  top: 0;
+}
+
+.otacon-eyes::before {
+  left: 0;
+}
+
+.otacon-eyes::after {
+  right: 0;
+}
+
+/* Mouth area - Otacon's signature snake tattoo on lip */
+.otacon-mouth {
+  position: absolute;
+  top: 62%;
+  left: 35%;
+  width: 30%;
+  height: 8%;
+  background: #c97b6d;
+  border-radius: 0 0 50% 50%;
+}
+
+/* Snake tattoo - pixel art representation */
+.otacon-mouth::before {
+  content: "";
+  position: absolute;
+  right: -8px;
+  top: -2px;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(45deg, #22c55e 0%, #16a34a 100%);
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: -2px 2px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Snake eye detail */
+.otacon-mouth::after {
+  content: "";
+  position: absolute;
+  right: -5px;
+  top: 0;
+  width: 4px;
+  height: 4px;
+  background: #fff;
+  border-radius: 50%;
+  transform: rotate(-45deg);
+}
+
+/* Lab coat - white scientist coat with Otacon's style */
+.otacon-body {
+  width: 55%;
+  height: 45%;
+  background: linear-gradient(180deg, #ffffff 0%, #f0f0f0 50%, #e8e8e8 100%);
+  position: absolute;
+  bottom: 0;
+  left: 22.5%;
+  border-radius: 15% 15% 10% 10%;
+  box-shadow:
+    4px 4px 8px rgba(0, 0, 0, 0.2),
+    inset 0 5px 10px rgba(255, 255, 255, 0.8);
+}
+
+/* Collar of lab coat */
+.otacon-body::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 25%;
+  width: 50%;
+  height: 15%;
+  background: #e0e0e0;
+  border-radius: 0 0 50% 50%;
+  border: 2px solid #ccc;
+}
+
+/* Lab coat buttons */
+.otacon-body::after {
+  content: "";
+  position: absolute;
+  top: 25%;
+  left: 48%;
+  width: 4%;
+  height: 8%;
+  background: #ddd;
+  border-radius: 50%;
+  box-shadow:
+    0 15px 0 #ddd,
+    0 30px 0 #ddd;
+}
+
+/* Arms */
+.otacon-arms {
+  width: 75%;
+  height: 35%;
+  position: absolute;
+  bottom: 10%;
+  left: 12.5%;
+}
+
+.otacon-arms::before,
+.otacon-arms::after {
+  content: "";
+  position: absolute;
+  width: 20%;
+  height: 100%;
+  background: #ffffff;
+  border-radius: 40%;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ddd;
+}
+
+.otacon-arms::before {
+  left: 0;
+  transform: rotate(-15deg);
+}
+
+.otacon-arms::after {
+  right: 0;
+  transform: rotate(15deg);
+}
+
+/* ============================================
+   IDLE ANIMATION
+   ============================================ */
+
+@keyframes otacon-idle-breathe {
+  0%,
+  100% {
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    transform: scale(1.01) translateY(-2px);
+  }
+}
+
+@keyframes otacon-idle-blink {
+  0%,
+  90%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+.state-idle .otacon-sprite {
+  animation: otacon-idle-breathe 4s ease-in-out infinite;
+}
+
+.state-idle .otacon-eyes {
+  animation: otacon-idle-blink 5s infinite;
+}
+
+/* ============================================
+   THINKING STATE - Hands on head
+   ============================================ */
+
+@keyframes otacon-thinking {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-3px) rotate(-2deg);
+  }
+  75% {
+    transform: translateY(-3px) rotate(2deg);
+  }
+}
+
+@keyframes otacon-thinking-arms {
+  0%,
+  100% {
+    transform: rotate(-15deg) translateY(0);
+  }
+  50% {
+    transform: rotate(-40deg) translateY(-25px);
+  }
+}
+
+.state-thinking .otacon-sprite {
+  animation: otacon-thinking 1s ease-in-out infinite;
+}
+
+.state-thinking .otacon-arms::before {
+  animation: otacon-thinking-arms 1s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+.state-thinking .otacon-arms::after {
+  animation: otacon-thinking-arms 1s ease-in-out infinite reverse;
+  transform-origin: bottom center;
+}
+
+/* Thinking indicator (not "?" – use ellipsis) */
+.state-thinking .otacon-sprite::before {
+  content: "...";
+  position: absolute;
+  top: -25px;
+  right: 15%;
+  font-size: 30px;
+  color: #fbbf24;
+  font-weight: bold;
+  animation: float-up 1.5s ease-in-out infinite;
+}
+
+/* ============================================
+   PROCESSING STATE - Focused/typing
+   ============================================ */
+
+@keyframes otacon-processing {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-1px);
+  }
+  75% {
+    transform: translateX(1px);
+  }
+}
+
+@keyframes otacon-processing-eyes {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(3px);
+  }
+  50% {
+    transform: translateX(0);
+  }
+  75% {
+    transform: translateX(-3px);
+  }
+}
+
+.state-processing .otacon-sprite {
+  animation: otacon-processing 0.3s linear infinite;
+}
+
+.state-processing .otacon-eyes {
+  animation: otacon-processing-eyes 0.4s linear infinite;
+}
+
+/* Typing hands gesture */
+.state-processing .otacon-arms::before,
+.state-processing .otacon-arms::after {
+  height: 70%;
+  top: 30%;
+  animation: typing 0.2s infinite alternate;
+}
+
+@keyframes typing {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-5px);
+  }
+}
+
+/* ============================================
+   SUCCESS STATE - Thumbs up, happy
+   ============================================ */
+
+@keyframes otacon-success {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-15px) scale(1.03);
+  }
+}
+
+@keyframes otacon-thumbs-up {
+  0%,
+  100% {
+    transform: rotate(15deg) translateY(0);
+  }
+  50% {
+    transform: rotate(15deg) translateY(-10px);
+  }
+}
+
+.state-success .otacon-sprite {
+  animation: otacon-success 0.6s ease-in-out;
+}
+
+.state-success .otacon-arms::after {
+  /* Thumbs up pose */
+  height: 110%;
+  top: -10%;
+  animation: otacon-thumbs-up 0.6s ease-in-out 2;
+}
+
+.state-success .otacon-mouth {
+  /* Big smile */
+  height: 15%;
+  border-radius: 0 0 50% 50%;
+  background: #fff;
+  border: 2px solid #c97b6d;
+}
+
+/* Sparkles */
+.state-success .otacon-sprite::after {
+  content: "✨";
+  position: absolute;
+  top: 5%;
+  right: 10%;
+  font-size: 20px;
+  animation: sparkle 0.5s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}
+
+/* ============================================
+   ERROR STATE - Sad, worried
+   ============================================ */
+
+@keyframes otacon-error {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+@keyframes otacon-tears {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+}
+
+.state-error .otacon-sprite {
+  animation: otacon-error 2s ease-in-out infinite;
+}
+
+/* Teary eyes */
+.state-error .otacon-eyes::before,
+.state-error .otacon-eyes::after {
+  box-shadow: 0 20px 0 -2px #60a5fa;
+}
+
+/* Frown mouth */
+.state-error .otacon-mouth {
+  border-radius: 50% 50% 0 0;
+  height: 6%;
+  background: #8b5a4a;
+}
+
+/* Tears falling */
+.state-error .otacon-sprite::before,
+.state-error .otacon-sprite::after {
+  content: "💧";
+  position: absolute;
+  font-size: 16px;
+  animation: otacon-tears 1s ease-in infinite;
+}
+
+.state-error .otacon-sprite::before {
+  top: 35%;
+  left: 25%;
+  animation-delay: 0s;
+}
+
+.state-error .otacon-sprite::after {
+  top: 35%;
+  right: 25%;
+  animation-delay: 0.5s;
+}
+
+/* ============================================
+   LAUGHING STATE - Joyful, eyes closed
+   ============================================ */
+
+@keyframes otacon-laughing {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-12px) rotate(-5deg);
+  }
+  75% {
+    transform: translateY(-8px) rotate(5deg);
+  }
+}
+
+.state-laughing .otacon-sprite {
+  animation: otacon-laughing 0.4s ease-in-out infinite;
+}
+
+/* Closed happy eyes */
+.state-laughing .otacon-eyes::before,
+.state-laughing .otacon-eyes::after {
+  border-radius: 0 0 50% 50%;
+  height: 60%;
+  background: transparent;
+  border-bottom: 3px solid #333;
+  box-shadow: none;
+}
+
+/* Big laughing mouth */
+.state-laughing .otacon-mouth {
+  width: 35%;
+  left: 32.5%;
+  height: 18%;
+  border-radius: 0 0 50% 50%;
+  background: #4a3f35;
+}
+
+/* Joy indicator */
+.state-laughing .otacon-sprite::before {
+  content: "😂";
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  animation: joy-bounce 0.6s ease-in-out infinite;
+}
+
+@keyframes joy-bounce {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-10px);
+  }
+}
+
+/* ============================================
+   SURPRISED STATE - Shocked, wide eyes
+   ============================================ */
+
+@keyframes otacon-surprised {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.state-surprised .otacon-sprite {
+  animation: otacon-surprised 0.3s ease-in-out;
+}
+
+/* Wide eyes - glasses reflect shock */
+.state-surprised .otacon-glasses::before,
+.state-surprised .otacon-glasses::after {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* Huge pupils */
+.state-surprised .otacon-eyes::before,
+.state-surprised .otacon-eyes::after {
+  width: 30%;
+  height: 130%;
+}
+
+/* Open mouth O shape */
+.state-surprised .otacon-mouth {
+  width: 18%;
+  left: 41%;
+  height: 18%;
+  border-radius: 50%;
+  background: #4a3f35;
+}
+
+/* Exclamation */
+.state-surprised .otacon-sprite::before {
+  content: "!";
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 36px;
+  color: #a78bfa;
+  font-weight: bold;
+  animation: surprise-pop 0.4s ease-out;
+}
+
+@keyframes surprise-pop {
+  0% {
+    transform: translateX(-50%) scale(0);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.3);
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+/* ============================================
+   UTILITIES
+   ============================================ */
+
+@keyframes float-up {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-15px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+}

@@ -1,0 +1,593 @@
+/**
+ * OtaClaw for OpenClaw - Animation Styles
+ * Emotional state animations for the Otacon avatar
+ */
+
+/* ============================================
+   STATE TRANSITIONS - Smooth blending between states
+   ============================================ */
+
+#otaclaw.state-transition .sprite,
+#otaclaw.state-transition .sprite-head,
+#otaclaw.state-transition .sprite-body {
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* ============================================
+   IDLE STATE - Breathing and blinking
+   ============================================ */
+
+@keyframes idle-breathe {
+  0%,
+  100% {
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    transform: scale(1.02) translateY(-2px);
+  }
+}
+
+@keyframes idle-blink {
+  0%,
+  90%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes idle-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.state-idle .sprite {
+  animation: idle-float 4s ease-in-out infinite;
+}
+
+.state-idle .sprite-head::before {
+  /* Eyes blinking */
+  animation: idle-blink 4s infinite;
+}
+
+.state-idle .sprite-body {
+  animation: idle-breathe 3s ease-in-out infinite;
+}
+
+/* ============================================
+   THINKING STATE - Hands on head, questioning
+   ============================================ */
+
+@keyframes thinking-bounce {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-3px) rotate(-2deg);
+  }
+  75% {
+    transform: translateY(-3px) rotate(2deg);
+  }
+}
+
+@keyframes thinking-hand-left {
+  0%,
+  100% {
+    transform: rotate(-20deg) translateY(0);
+  }
+  50% {
+    transform: rotate(-45deg) translateY(-20px);
+  }
+}
+
+@keyframes thinking-hand-right {
+  0%,
+  100% {
+    transform: rotate(20deg) translateY(0);
+  }
+  50% {
+    transform: rotate(45deg) translateY(-20px);
+  }
+}
+
+@keyframes thinking-question {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-20px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-40px) scale(0.8);
+  }
+}
+
+.state-thinking .sprite {
+  animation: thinking-bounce 1s ease-in-out infinite;
+}
+
+.state-thinking .sprite-arms::before {
+  animation: thinking-hand-left 1s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+.state-thinking .sprite-arms::after {
+  animation: thinking-hand-right 1s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+/* Thinking: ellipsis (not "?") */
+.state-thinking .sprite-head::after {
+  /* Mouth changes to puzzled expression */
+  border-radius: 50% 50% 0 0;
+  height: 5%;
+  background: #a67c52;
+}
+
+/* Thinking indicator (ellipsis, not "?") */
+.state-thinking .sprite::after {
+  content: "...";
+  position: absolute;
+  top: -30px;
+  right: 10%;
+  font-size: 40px;
+  color: var(--state-thinking);
+  font-weight: bold;
+  animation: thinking-question 2s ease-in-out infinite;
+}
+
+/* ============================================
+   PROCESSING STATE - Eyes scanning, active
+   ============================================ */
+
+@keyframes processing-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes processing-eyes {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(5px);
+  }
+  50% {
+    transform: translateX(0);
+  }
+  75% {
+    transform: translateX(-5px);
+  }
+}
+
+@keyframes processing-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(96, 165, 250, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(96, 165, 250, 0.8);
+  }
+}
+
+.state-processing .sprite {
+  animation: processing-shake 0.5s ease-in-out infinite;
+}
+
+.state-processing .sprite-head {
+  animation: processing-glow 1s ease-in-out infinite;
+}
+
+.state-processing .sprite-head::before {
+  /* Eyes moving rapidly */
+  animation: processing-eyes 0.3s linear infinite;
+}
+
+.state-processing .sprite-head::after {
+  /* Concentrated mouth */
+  width: 15%;
+  height: 3%;
+  left: 42.5%;
+  border-radius: 2px;
+  background: #a67c52;
+}
+
+/* Data stream indicator */
+.state-processing .sprite::before {
+  content: "";
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--state-processing),
+    transparent
+  );
+  animation: pulse 0.5s infinite;
+}
+
+/* ============================================
+   SUCCESS STATE - Thumbs up, celebration
+   ============================================ */
+
+@keyframes success-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-20px) scale(1.05);
+  }
+}
+
+@keyframes success-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes success-thumbs-up {
+  0%,
+  100% {
+    transform: rotate(20deg) translateY(0);
+  }
+  50% {
+    transform: rotate(20deg) translateY(-10px);
+  }
+}
+
+@keyframes success-smile {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(1.2);
+  }
+}
+
+.state-success .sprite {
+  animation: success-bounce 0.6s ease-in-out;
+}
+
+.state-success .sprite-arms::after {
+  /* Right arm - thumbs up */
+  animation: success-thumbs-up 0.6s ease-in-out 2;
+  height: 120%;
+  top: -20%;
+}
+
+.state-success .sprite-head::after {
+  /* Big smile */
+  animation: success-smile 0.6s ease-in-out;
+  height: 15%;
+  border-radius: 0 0 50% 50%;
+  background: #fff;
+  box-shadow: inset 0 -5px 0 #c97b6d;
+}
+
+/* Sparkle effects */
+.state-success .sprite::after {
+  content: "✨";
+  position: absolute;
+  top: 10%;
+  right: 5%;
+  font-size: 30px;
+  animation: success-spin 1s linear infinite;
+}
+
+/* ============================================
+   ERROR STATE - Crying, sad
+   ============================================ */
+
+@keyframes error-shake {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  10% {
+    transform: translateX(-5px) rotate(-5deg);
+  }
+  20% {
+    transform: translateX(5px) rotate(5deg);
+  }
+  30% {
+    transform: translateX(-3px) rotate(-3deg);
+  }
+  40% {
+    transform: translateX(3px) rotate(3deg);
+  }
+  50% {
+    transform: translateX(0) rotate(0deg);
+  }
+}
+
+@keyframes error-cry {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+}
+
+@keyframes error-sink {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(10px);
+  }
+}
+
+.state-error .sprite {
+  animation:
+    error-shake 0.5s ease-in-out,
+    error-sink 2s ease-in-out infinite;
+}
+
+.state-error .sprite-head::before {
+  /* Tear drops */
+  box-shadow:
+    25px 0 0 #333,
+    0 30px 0 -3px #60a5fa,
+    25px 30px 0 -3px #60a5fa;
+  animation: blink 3s infinite;
+}
+
+.state-error .sprite-head::after {
+  /* Frown */
+  border-radius: 50% 50% 0 0;
+  height: 8%;
+  background: #8b5a4a;
+}
+
+/* Tears */
+.state-error .sprite::before,
+.state-error .sprite::after {
+  content: "💧";
+  position: absolute;
+  font-size: 20px;
+  animation: error-cry 1s ease-in infinite;
+}
+
+.state-error .sprite::before {
+  top: 35%;
+  left: 35%;
+  animation-delay: 0s;
+}
+
+.state-error .sprite::after {
+  top: 35%;
+  right: 35%;
+  animation-delay: 0.5s;
+}
+
+/* ============================================
+   LAUGHING STATE - Joyful, eyes closed
+   ============================================ */
+
+@keyframes laughing-bounce {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-10px) rotate(-5deg);
+  }
+  75% {
+    transform: translateY(-5px) rotate(5deg);
+  }
+}
+
+@keyframes laughing-tears {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.state-laughing .sprite {
+  animation: laughing-bounce 0.4s ease-in-out infinite;
+}
+
+.state-laughing .sprite-head::before {
+  /* Eyes closed (happy arcs) */
+  border-radius: 0 0 50% 50%;
+  height: 8%;
+  background: transparent;
+  border-bottom: 4px solid #333;
+  box-shadow:
+    25px 15px 0 transparent,
+    25px 15px 0 transparent;
+}
+
+.state-laughing .sprite-head::after {
+  /* Big laughing mouth */
+  width: 40%;
+  height: 20%;
+  left: 30%;
+  border-radius: 0 0 50% 50%;
+  background: #8b4513;
+}
+
+/* Joy tears */
+.state-laughing .sprite::after {
+  content: "😂";
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 24px;
+  animation: laughing-tears 0.8s ease-in-out infinite;
+}
+
+/* ============================================
+   SURPRISED STATE - Shock, wide eyes
+   ============================================ */
+
+@keyframes surprised-shake {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes surprised-pupil {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.5);
+  }
+}
+
+.state-surprised .sprite {
+  animation: surprised-shake 0.3s ease-in-out;
+}
+
+.state-surprised .sprite-head {
+  /* Wide eyes effect */
+  animation: surprised-shake 0.5s ease-in-out;
+}
+
+.state-surprised .sprite-head::before {
+  /* Large pupils */
+  width: 25%;
+  height: 25%;
+  box-shadow: 25px 0 0 #333;
+}
+
+.state-surprised .sprite-head::after {
+  /* Open mouth O shape */
+  width: 20%;
+  height: 20%;
+  left: 40%;
+  top: 60%;
+  border-radius: 50%;
+  background: #4a3f35;
+}
+
+/* Exclamation mark */
+.state-surprised .sprite::before {
+  content: "!";
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 50px;
+  color: var(--state-surprised);
+  font-weight: bold;
+  animation: thinking-question 0.5s ease-out;
+}
+
+/* ============================================
+   TRANSITION ANIMATIONS
+   ============================================ */
+
+.state-transition {
+  transition: all 0.3s ease;
+}
+
+/* Smooth state changes */
+.sprite {
+  transition:
+    transform 0.3s ease,
+    filter 0.3s ease;
+}
+
+.sprite-head,
+.sprite-body,
+.sprite-arms::before,
+.sprite-arms::after {
+  transition: all 0.3s ease;
+}
+
+/* ============================================
+   TOUCH INTERACTIONS
+   ============================================ */
+
+.touch-active .sprite {
+  transform: scale(0.95);
+}
+
+/* ============================================
+   SPRITE IMAGE FALLBACK
+   If using image sprites instead of CSS
+   ============================================ */
+
+.sprite-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: none;
+}
+
+.use-sprites .sprite-image {
+  display: block;
+}
+
+.use-sprites .pixel-art {
+  display: none;
+}
+
+/* Sprite animation frames */
+@keyframes sprite-frame-1 {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.sprite-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+
+.sprite-frame.active {
+  opacity: 1;
+}
