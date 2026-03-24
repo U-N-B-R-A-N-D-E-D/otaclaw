@@ -191,7 +191,7 @@
 }
 
 .state-processing .sprite {
-  animation: processing-shake 0.5s ease-in-out infinite;
+  /* animation: processing-shake 0.5s ease-in-out infinite; Removed to fix 'anxiety' feel */
 }
 
 .state-processing .sprite-head {
@@ -590,4 +590,149 @@
 
 .sprite-frame.active {
   opacity: 1;
+}
+
+/* ============================================
+   CODEC MODE - Metal Gear Solid style
+   Green CRT effect with scanlines
+   ============================================ */
+
+/* Main codec mode container */
+.otaclaw-codec-mode #otaclaw {
+  position: relative;
+}
+
+/* Green tint overlay */
+.otaclaw-codec-mode #otaclaw::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 255, 65, 0.08) 0%,
+    rgba(0, 255, 65, 0.12) 50%,
+    rgba(0, 255, 65, 0.08) 100%
+  );
+  pointer-events: none;
+  z-index: 100;
+  animation: codec-flicker 4s infinite;
+}
+
+/* Scanlines effect */
+.otaclaw-codec-mode #otaclaw::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.15) 2px,
+    rgba(0, 0, 0, 0.15) 4px
+  );
+  pointer-events: none;
+  z-index: 101;
+}
+
+/* Subtle screen flicker animation */
+@keyframes codec-flicker {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.98;
+  }
+  52% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 0.99;
+  }
+}
+
+/* Green border glow */
+.otaclaw-codec-mode .otaclaw-container {
+  box-shadow:
+    0 0 20px rgba(0, 255, 65, 0.3),
+    0 0 40px rgba(0, 255, 65, 0.15),
+    inset 0 0 30px rgba(0, 255, 65, 0.05);
+  border: 1px solid rgba(0, 255, 65, 0.4);
+}
+
+/* Status bar in codec mode */
+.otaclaw-codec-mode .status-bar {
+  background: rgba(0, 40, 0, 0.8);
+  border-top: 1px solid rgba(0, 255, 65, 0.3);
+  color: #00ff41;
+}
+
+.otaclaw-codec-mode .status-indicator.connected .status-dot {
+  background: #00ff41;
+  box-shadow: 0 0 8px #00ff41;
+}
+
+/* Speech bubble in codec mode */
+.otaclaw-codec-mode .speech-bubble {
+  background: rgba(0, 30, 0, 0.9);
+  border: 1px solid rgba(0, 255, 65, 0.5);
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.2);
+}
+
+.otaclaw-codec-mode .speech-bubble::before {
+  border-top-color: rgba(0, 255, 65, 0.5);
+}
+
+.otaclaw-codec-mode .speech-text {
+  color: #00ff41;
+  text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+}
+
+/* Codec frequency indicator */
+.otaclaw-codec-indicator {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  padding: 5px 10px;
+  background: rgba(0, 40, 0, 0.9);
+  border: 1px solid rgba(0, 255, 65, 0.5);
+  color: #00ff41;
+  font-family: 'Fira Code', monospace;
+  font-size: 12px;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.otaclaw-codec-mode .otaclaw-codec-indicator {
+  opacity: 1;
+}
+
+.otaclaw-codec-indicator::before {
+  content: 'FREQ: ';
+  color: rgba(0, 255, 65, 0.7);
+}
+
+/* Transition animation for codec mode */
+.otaclaw-codec-mode-transition #otaclaw::before,
+.otaclaw-codec-mode-transition #otaclaw::after {
+  animation: codec-activate 0.5s ease-out;
+}
+
+@keyframes codec-activate {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
 }

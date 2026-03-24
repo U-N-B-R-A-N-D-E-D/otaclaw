@@ -43,16 +43,22 @@ Or with direct coordinates:
 
 **Supported OpenClaw events:** `agent.message.start`, `agent.message.delta`, `agent.message.complete`, `agent.message.error`, `agent.tool.call`, `agent.tool.result`, `agent.tool.error`, `gateway.idle`, `gateway.ready`, `gateway.error`, `session.start`, `session.end`, `channel.connected`, `channel.disconnected`, `user.presence`, `user.typing`, `client.interaction`. Unknown events fall back to `idle`.
 
-## Receiving Tickle (client.interaction)
+## Receiving Tickle (Discord & Webchat)
 
-When the user swipes over Hal (tickle), OtaClaw sends `client.interaction` with `action: "tickle"` to the gateway. To make the agent react (e.g. say something short, acknowledge playfully):
+When the user swipes over Hal (tickle), OtaClaw sends a message `[tickle]` to the gateway to trigger a response from the agent.
 
-Add to your `SOUL.md` or `AGENTS.md`:
+**For Webchat:** It works automatically. The gateway forwards `client.interaction` with `action: "tickle"`.
+
+**For Discord:** OpenClaw requires a target Channel ID to know *where* to send the tickle message. 
+1. In Discord, right-click your active channel and select **Copy Channel ID** (requires Developer Mode enabled in Discord settings).
+2. Edit your `config.js` (or `widget.html`) and set `tickleDiscordChannel: "YOUR_CHANNEL_ID_HERE"`.
+
+To make the agent react playfully, add to your `SOUL.md` or `AGENTS.md`:
 
 ```markdown
 ## OtaClaw Tickle
 
-When the user tickles Hal (swipe over the avatar), you receive `client.interaction` with `action: "tickle"`. React briefly and playfully — e.g. "Hehe, that tickles!", "Hey, easy!", or a short joke. Keep it to one short sentence. Match Hal's personality if using `personality: 'hal'`.
+When the user tickles Hal (swipe over the avatar), you receive `[tickle]` or `client.interaction` with `action: "tickle"`. React briefly and playfully — e.g. "Hehe, that tickles!", "Hey, easy!", or a short joke. Keep it to one short sentence. Match Hal's personality if using `personality: 'hal'`.
 ```
 
 The gateway must forward `client.interaction` to the agent. If tickle does not trigger a reply, check OpenClaw gateway configuration and channel setup (webchat, Discord, etc.).

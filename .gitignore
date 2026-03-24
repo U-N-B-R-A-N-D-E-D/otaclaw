@@ -22,6 +22,17 @@ build/
 config/config.js
 !config/config.example.js
 
+# Local development / testing files
+start-kiosko-pi.sh
+canvas-debug.html
+debug-mode.html
+src/js/app-refactored.js
+
+# WIP Documentation
+docs/DUAL-MODE-ARCHITECTURE.md
+docs/MIGRATION-GUIDE.md
+docs/PUBLIC_MODE_VALIDATION.md
+
 # Logs
 logs/
 *.log
@@ -71,6 +82,9 @@ dev/
 otaclock-original.png
 **/otaclock-original.png
 
+# Sprite caption artifacts (AI-generated, not used at runtime)
+src/assets/sprites/*.txt
+
 # Sprite sources (if using external tools)
 *.ase
 *.aseprite
@@ -99,3 +113,4 @@ __snapshots__/
 
 # Cursor / debug
 .cursor/
+src/js/app-refactored.js

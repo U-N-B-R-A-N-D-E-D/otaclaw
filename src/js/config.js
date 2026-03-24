@@ -9,7 +9,7 @@ let config;
 
 try {
   // Try to import user configuration
-  const userConfig = await import("../../config/config.js");
+  const userConfig = await import(`../../config/config.js?v=${Date.now()}`);
   config = userConfig.OTACLAW_CONFIG || userConfig.default;
   console.log("[OtaClaw] Using user configuration from config/config.js");
 } catch {
@@ -19,7 +19,7 @@ try {
     "[OtaClaw] Please copy config/config.example.js to config/config.js",
   );
 
-  const exampleConfig = await import("../../config/config.example.js");
+  const exampleConfig = await import(`../../config/config.example.js?v=${Date.now()}`);
   config = exampleConfig.OTACLAW_CONFIG || exampleConfig.default;
 }
 

@@ -1,25 +1,48 @@
 /**
  * OtaClaw for OpenClaw - Configuration Template
- * 
+ *
  * Copy this file to config.js and customize for your setup:
  *   cp config/config.example.js config/config.js
+ *
+ * ## Modes
+ * - "public": Standard OpenClaw connection (for GitHub/fresh installs)
+ * - "local": Local inference cluster (Mac Minis array)
+ *
+ * ## Quick Setup
+ * 1. For fresh OpenClaw install: Use as-is
+ * 2. For local cluster: Change mode to "local" and set local gateway host
  */
 
 export const OTACLAW_CONFIG = {
+  /**
+   * Deployment mode
+   * "public": Connects to standard OpenClaw gateway
+   * "local": Connects to local/private OpenClaw instance
+   */
+  mode: 'public',
+
   /**
    * OpenClaw Gateway Connection Settings
    * These define how OtaClaw connects to your OpenClaw instance
    */
   openclaw: {
     // Host: 'auto' = same as page (works when served from OpenClaw canvas)
+    // For local mode, set to your local gateway IP (e.g., '192.168.1.100')
     host: 'auto',
-    
+
     // Port where OpenClaw gateway is running (default: 18789)
     port: 18789,
-    
+
     // WebSocket endpoint path
     wsPath: '/ws',
-    
+
+    // Send screen taps (tickles) to Discord
+    tickleToDiscord: true,
+
+    // Target format: "channel:<channel_id>" or "user:<user_id>".
+    // Leave null to let OpenClaw determine default session routing.
+    tickleDiscordChannel: null,
+
     // Reconnection interval in milliseconds (default: 5000ms = 5s)
     reconnectInterval: 5000,
 
@@ -52,11 +75,28 @@ export const OTACLAW_CONFIG = {
 
     // Show connection metrics in debug panel (lastEvent, reconnectAttempts, etc.)
     debugPanel: true,
+  },
 
-    // Tickle: send to Discord so agent reply appears there (default: true)
-    tickleToDiscord: true,
-    // Optional: Discord channel ID if gateway requires explicit target
-    tickleDiscordChannel: null,
+  /**
+   * Local Cluster Settings (mode: 'local')
+   * Configure when running against local inference array
+   */
+  localCluster: {
+    // Array of Mac Mini IPs for the inference cluster
+    // Used for display/debugging purposes
+    nodes: [
+      // '192.168.1.10', // mini-1
+      // '192.168.1.11', // mini-2
+      // '192.168.1.12', // mini-3
+      // '192.168.1.13', // mini-4
+      // '192.168.1.14', // mini-5
+    ],
+
+    // Model being served (for display purposes)
+    modelName: 'Qwen3.5-4B',
+
+    // Show cluster status in UI
+    showClusterStatus: false,
   },
 
   /**
@@ -66,31 +106,55 @@ export const OTACLAW_CONFIG = {
   behavior: {
     // Profile: 'default' | 'minimal' | 'expressive'
     // minimal = fewer state changes, expressive = more reactions
-    profile: 'default',
+    profile: 'expressive',
 
     // Time in milliseconds before returning to idle state (default: 30000ms = 30s)
     idleTimeout: 30000,
-    
+
+    // Time in milliseconds before sleeping (0 = infinite idle). Recommended 180000 for kiosks to save screen.
+    sleepIdleMs: 180000,
+
     // Enable CSS animations (set to false for better performance on low-end devices)
     animations: true,
 
     // Apply lower-cost visual effects in kiosk mode
     lowPowerMode: true,
-    
+
     // Enable sound effects (requires user interaction first due to browser policies)
     sounds: false,
-    
+
     // Enable touch interactions (optimized for touchscreen displays)
     touchEnabled: true,
-    
+
     // Enable debug panel (press 'd' key to toggle)
     debug: false,
-    
+
     // Show connection status bar
     showStatusBar: true,
-    
+
     // Auto-hide connection overlay after successful connection
     autoHideOverlay: true,
+
+    // Agent response timeout before showing error state (ms)
+    agentResponseTimeoutMs: 35000,
+  },
+
+  /**
+   * Display Settings
+   * Configure visual presentation
+   */
+  display: {
+    // Run in fullscreen mode
+    fullscreen: false,
+
+    // Kiosk mode (hides cursor, prevents context menu)
+    kioskMode: false,
+
+    // Screen rotation for kiosk displays (0, 90, 180, 270)
+    rotation: 0,
+
+    // URL to trigger external buzzer on tickle (optional)
+    // buzzerTickleUrl: 'http://raspberrypi.local:5000/buzzer',
   },
 
   /**
@@ -110,6 +174,9 @@ export const OTACLAW_CONFIG = {
     'confused',   // Puzzled, questioning
     'excited',    // Enthusiastic, animated
     'presenting', // Ta-da, brief transition before idle
+    'worried',    // Concerned, making a mistake
+    'sad',        // Disappointed
+    'scared'      // Alarmed
   ],
 
   /**
@@ -126,12 +193,12 @@ export const OTACLAW_CONFIG = {
     'agent.tool.call': 'surprised',
     'agent.tool.result': 'success',
     'agent.tool.error': 'error',
-    
+
     // Gateway events
     'gateway.idle': 'idle',
     'gateway.ready': 'idle',
     'gateway.error': 'error',
-    
+
     // User events
     'user.presence': 'thinking',
     'user.typing': 'thinking',
@@ -189,226 +256,174 @@ export const OTACLAW_CONFIG = {
    * Example: success → presenting (500ms) → idle
    */
   stateChaining: {
-    success: { next: 'presenting', duration: 500 },
+    success: { next: 'presenting', duration: 1500 },
   },
 
   /**
-   * Sprite Settings
-   * Configure how sprites are loaded and displayed
+   * Behavior Profiles
+   * Override eventMap and stateDurations for different personalities
+   */
+  profiles: {
+    default: {},
+
+    minimal: {
+      // Fewer state changes, simpler reactions
+      eventMap: {
+        'agent.message.start': 'thinking',
+        'agent.message.delta': 'thinking', // Stay in thinking, don't flicker
+        'agent.message.complete': 'success',
+        'agent.message.error': 'error',
+        'agent.tool.call': 'thinking',
+        'gateway.idle': 'idle',
+        'gateway.error': 'error',
+        '*': 'idle',
+      },
+      stateDurations: {
+        success: 2000,
+        error: 3000,
+      },
+    },
+
+    expressive: {
+      // More animated reactions
+      eventMap: {
+        'agent.message.start': 'thinking',
+        'agent.message.delta': 'processing',
+        'agent.message.complete': 'success',
+        'agent.message.error': 'error',
+        'agent.tool.call': 'surprised',
+        'gateway.idle': 'idle',
+        'gateway.error': 'error',
+        '*': 'idle',
+      },
+      stateDurations: {
+        success: 4000,
+        error: 6000,
+        laughing: 5000,
+        surprised: 3000,
+      },
+    },
+  },
+
+  /**
+   * Sprite Configuration
+   * Controls how frames are loaded and displayed
    */
   sprites: {
-    // Use CSS sprites (true) or image files (false)
-    useCSS: true,
-    
-    // Preload sprite sheet on init (reduces first-frame delay)
-    preload: true,
-
-    // Base path for sprite images (if useCSS is false)
+    // Base path for sprite assets
     basePath: 'assets/sprites/',
 
-    // Base filename for the main sheet (without extension)
+    // Sprite sheet filename (without extension)
     sheetFile: 'otaclock-original',
-    
-    // File format for sprites (png, gif, webp)
+
+    // Image format: 'png' | 'webp' | 'jpg'
     format: 'png',
 
-    // Main sheet dimensions and grid cell size (used for direct frame rendering)
+    // Sheet dimensions (pixels)
     sheetWidth: 567,
     sheetHeight: 278,
+
+    // Cell dimensions (pixels)
     cellWidth: 47,
     cellHeight: 70,
+
+    // Target display height for scaling calculations
     displayTargetHeight: 320,
 
-    // Idle sequence and pacing (for low-power natural movement)
-    idleSequence: [0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 2, 0],
-    idleBaseDelayMs: 3000,
-    idleJitterMs: 1200,
-
-    // Per-phase timing for more organic idle (overrides base/jitter when set)
-    idlePhaseTiming: {
-      neutral: { baseMs: 3000, jitterMs: 2000 },
-      coat: { baseMs: 5000, jitterMs: 3000 },
-      blink: { baseMs: 50, jitterMs: 0 },
-    },
-
-    // Blink overlay: single closed-eyes frame, ~80ms, runs during all states
+    // Blink overlay animation
     blinkOverlay: true,
-    blinkFrame: 8,
-    blinkDurationMs: 80,
     blinkIntervalMinMs: 2000,
     blinkIntervalMaxMs: 4000,
-    
-    // Individual sprite files per state (used when otaclock-original.png not available)
-    laughingSprites: [
-      'otacon_sprite_laugh_00.png',
-      'otacon_sprite_laugh_01.png',
-      'otacon_sprite_laugh_02.png',
-    ],
 
-    // Number of animation frames per state
-    frames: {
-      idle: 2,
-      thinking: 2,
-      processing: 4,
-      success: 2,
-      error: 2,
-      laughing: 3,
-      surprised: 2,
-      curious: 1,
-      confused: 2,
-      excited: 2,
-    },
-    
-    // Animation speed in frames per second
-    fps: 8,
-
-    /**
-     * Per-frame timing for smoother, more organic animations.
-     * frameMs: number = same delay for all frames; number[] = per-frame delay.
-     * Keyframes (e.g. thumbs-up payoff) can hold longer via holdFrames.
-     */
-    frameTiming: {
-      success: { frameMs: [200, 200, 200, 800, 200, 200, 200] },
-      thinking: { frameMs: 300 },
-      processing: { frameMs: 250 },
-      error: { frameMs: [400, 600] },
-      surprised: { frameMs: 350 },
-      laughing: { frameMs: 350 },
-    },
-
-    /**
-     * Keyframe hold: when sequence reaches this index, hold for ms before next frame.
-     * E.g. success frame 3 (thumbs up) holds 800ms for payoff.
-     */
-    holdFrames: {
-      success: { index: 3, ms: 800 },
-    },
-
-    /**
-     * Optional explicit sequence config. When set, overrides successSprites + frameTiming.
-     * Enables custom sprite order and per-frame timing in one place.
-     */
-    // successSequence: { sprites: ['thumbs_00.png', ...], frameMs: [200,200,200,800,200,200,200], loop: false },
-
-    /**
-     * Tag-to-sequence mapping: when agent sends tag, play this [col,row] sequence.
-     * Falls back to tagToFrames (single random frame) if no sequence.
-     */
-    tagToSequences: {
-      laughing: [[2, 3], [3, 3], [2, 3], [3, 3]],
-      success: [[0, 1], [1, 1], [2, 1]],
-      waving: [[7, 2]],
-    },
-
-    /**
-     * Tag-to-frame mapping for semantic emotion selection (otaclaw.frame with tag).
-     * Maps emotion/tag strings to [[col,row], ...]. Agent or widget picks random from list.
-     * Override to customize; defaults match frame-catalog.json.
-     */
+    // Tag-based frame selection (for semantic animations)
+    // Maps emotion tags to arrays of [col, row] coordinates
     tagToFrames: {
-      unpleasant: [[9, 0], [10, 0], [0, 2], [2, 2], [3, 2], [9, 3], [10, 3]],
-      success: [[0, 1], [1, 1], [2, 1], [6, 3], [7, 3]],
-      thinking: [[1, 0], [2, 0], [5, 0], [11, 0]],
-      sad: [[2, 2], [3, 2]],
+      idle: [[0, 0], [1, 0]],
+      thinking: [[2, 0], [3, 0], [4, 0], [5, 0]],
+      processing: [[6, 0], [7, 0], [8, 0], [9, 0]],
+      success: [[0, 1], [1, 1], [2, 1]],
+      error: [[0, 2], [1, 2], [2, 2]],
       laughing: [[2, 3], [3, 3]],
-      idle: [[0, 0], [1, 0], [3, 0], [4, 0], [6, 0], [7, 0], [8, 0]],
-      worried: [[0, 2], [4, 2]],
-      waving: [[7, 2]],
-      scared: [[10, 3]],
-      confident: [[8, 1], [9, 1], [10, 1], [8, 3]],
-      wink: [[4, 3], [5, 3]],
-      surprised: [[9, 0], [10, 0]],
-      processing: [[3, 1], [4, 1], [6, 1], [7, 1]],
-      error: [[2, 2], [3, 2]],
-      puzzled: [[1, 2]],
-      curious: [[5, 2]],
-      confused: [[1, 2], [5, 0]],
-      excited: [[2, 1], [3, 3]],
-      greeting: [[7, 2]],
-      cold: [[9, 3]],
-      presenting: [[6, 3], [7, 3]],
+      surprised: [[0, 3], [1, 3]],
     },
+
+    // Sequential animations (play frames in order)
+    tagToSequences: {
+      // Example: success sequence cycling through frames
+      // success: [[0, 1], [1, 1], [2, 1], [1, 1]],
+    },
+
+    // Frame timing overrides (ms per frame for specific states)
+    frameTiming: {
+      // Example: slower thinking animation
+      // thinking: { frameMs: [800, 600, 800, 600] },
+    },
+
+    // Hold specific frames longer
+    holdFrames: {
+      // Example: hold first idle frame longer
+      // idle: { index: 0, ms: 2000 },
+    },
+
+    // Frame duration for tag sequences
+    tagSequenceFrameMs: 350,
+
+    // Idle animation sprite filenames (if using individual files instead of sheet)
+    idleSprites: [],
+
+    // Idle animation sequence (indices into idleSprites or sheet positions)
+    idleSequence: [
+      0, 0, 1, 7, 8, 9, 3, 0, 4, 1, 7, 8, 9, 0, 5, 0, 2, 6, 0, 1, 7, 8, 9, 0,
+    ],
   },
 
   /**
-   * Sound Settings (if sounds enabled)
+   * Sound Effects
+   * Optional audio feedback for states
    */
   sounds: {
+    // Enable sounds (requires user interaction first due to browser policies)
+    enabled: false,
+
     // Base path for sound files
     basePath: 'assets/sounds/',
-    
-    // Volume level (0.0 to 1.0)
+
+    // Volume (0.0 - 1.0)
     volume: 0.5,
-    
-    // Sound files for each state
+
+    // Sound files for each state (optional)
     files: {
-      thinking: null,
-      processing: null,
-      success: 'success.mp3',
-      error: 'error.mp3',
-      laughing: 'laugh.mp3',
-      surprised: 'surprise.mp3',
+      // success: 'success.wav',
+      // error: 'error.wav',
+      // tickle: 'laugh.wav',
     },
   },
 
   /**
-   * Touch/Gesture Settings
+   * Touch/Gesture Configuration
    */
   touch: {
-    // Enable tap interactions
-    tapEnabled: true,
-    
-    // Enable swipe gestures
-    swipeEnabled: false,
-    
-    // Tap debounce time in milliseconds
-    debounceTime: 300,
-    
-    // Long press duration in milliseconds
+    // Enable swipe gesture for tickle
+    swipeEnabled: true,
+
+    // Minimum swipe distance (pixels)
+    swipeMinPx: 20,
+
+    // Maximum swipe time (ms)
+    swipeMaxMs: 1800,
+
+    // Margin around sprite for swipe detection (0-1, as percentage of sprite size)
+    spriteMargin: 0.25,
+
+    // Long press duration for debug panel (ms)
     longPressDuration: 800,
   },
 
   /**
-   * Display Settings – your window to OtaClaw's face
-   * Use the gear button (⚙) in the widget for live rotation, fullscreen, backdrop.
-   */
-  display: {
-    // Kiosk mode: hide cursor, disable right-click, fullscreen
-    kioskMode: false,
-
-    // Full screen mode
-    fullscreen: true,
-    
-    // Face rotation: 0, 90 (clockwise), 180, 270 – default 270 = portrait (counter-clockwise)
-    rotationDeg: 270,
-    
-    // Screen orientation lock (portrait, landscape, or null for auto)
-    orientation: null,
-    
-    // Prevent screen sleep (requires wake lock API support)
-    preventSleep: false,
-    
-    // Brightness control (if supported by device)
-    brightness: 100,
-
-    // Pi GPIO buzzer: set to "http://127.0.0.1:18790/tickle" when running pi-buzzer-tickle.py
-    buzzerTickleUrl: null,
-  },
-
-  /**
-   * Personality preset: 'default' | 'hal'
-   * 'hal' = Hal Emmerich (Otacon) from Metal Gear Solid – nerdy, loyal, varied reactions.
-   * When set, overrides i18n state speech with personality-specific strings (arrays = random pick).
-   */
-  personality: 'default',
-
-  /**
-   * i18n / Speech Strings
-   * All UI and speech bubble text. Override for localization.
-   * Values can be string or string[] – arrays pick random for variety.
+   * Internationalization
+   * Speech bubble text for different states
    */
   i18n: {
-    // State speech bubbles
     thinking: 'Hmmm....',
     processing: 'Processing',
     success: 'Got it!',
@@ -419,108 +434,98 @@ export const OTACLAW_CONFIG = {
     confused: 'Huh?',
     excited: 'Wow!',
     contemplative: 'Hmmm....',
-    // Error messages
+    waving: 'Hey!',
+    worried: 'Hmm...',
+    presenting: 'Ta-da!',
     timeout: 'Timeout',
     listenerTimeout: 'Listener timeout',
     connectionError: 'Connection error',
-    runTimeout: 'Run timeout',
     networkError: 'Network error',
     rejected: 'Rejected',
     unknownError: 'Unknown error',
-    // Connection status
     connecting: 'Connecting...',
     checkConfig: 'Check config',
     reconnecting: 'Reconnecting...',
     connected: 'Connected',
     disconnected: 'Disconnected',
     offline: 'Demo Mode',
-    // Config overlay
-    configRequired: 'Edit js/config.js with your OpenClaw host.',
+    configRequired: 'Configure OpenClaw connection in js/config.js',
     configError: 'Configuration error: Copy config.example.js to config.js',
     runtimeError: 'Runtime error: ',
     loading: 'Loading…',
   },
 
   /**
-   * Logging Settings
-   */
-  /**
-   * Behavior profiles: presets for eventMap and stateDurations.
-   * Applied when behavior.profile is set.
-   */
-  profiles: {
-    default: {},  // Use main config as-is
-    minimal: {
-      eventMap: {
-        'agent.message.start': 'thinking',
-        'agent.message.complete': 'success',
-        'agent.message.error': 'error',
-        'gateway.idle': 'idle',
-        '*': 'idle',
-      },
-      stateDurations: {
-        success: 2000,
-        error: 3000,
-      },
-    },
-    expressive: {
-      eventMap: {
-        'agent.message.start': 'thinking',
-        'agent.message.delta': 'processing',
-        'agent.message.complete': 'success',
-        'agent.message.error': 'error',
-        'agent.tool.call': 'surprised',
-        'agent.tool.result': 'success',
-        'gateway.idle': 'idle',
-        'user.presence': 'curious',
-        'user.typing': 'thinking',
-        '*': 'idle',
-      },
-      stateDurations: {
-        success: 4000,
-        error: 5000,
-        surprised: 3000,
-        curious: 2500,
-      },
-    },
-  },
-
-  /**
-   * Personality presets: speech strings that embody Hal Emmerich (Otacon).
-   * Nerdy, loyal, self-deprecating; science/tech references. Arrays = random pick per state.
-   * @see https://metalgear.fandom.com/wiki/Hal_Emmerich
+   * Personality Presets
+   * Override i18n strings for different characters
    */
   personalities: {
+    default: {},
+
     hal: {
-      thinking: ['Hmmm....', 'Let me think...', 'One sec...', 'Right, right...'],
-      processing: ['Processing...', 'Working on it', 'Crunchn\' numbers', 'Almost there'],
-      success: ['Got it!', 'There we go', 'Done!', 'Roger that'],
-      error: ['Oops...', 'That wasn\'t...', 'Yikes', 'My bad'],
-      laughing: ['Haha!', 'Heh', 'Good one', 'Hehe'],
-      surprised: ['Woah!', 'Whoa!', 'Didn\'t see that', 'Huh?!'],
-      curious: ['Hmm?', 'Interesting...', 'Really?', 'Oh?'],
-      confused: ['Huh?', 'Wait, what?', 'I\'m lost', 'Say again?'],
-      excited: ['Wow!', 'No way!', 'Awesome!', 'Nice!'],
-      contemplative: ['Hmmm....', 'Let me see...', 'Thinking...'],
-      waving: ['Hey!', 'Hi there', 'Yo!'],
-      worried: ['Hmm...', 'Not sure...', 'Hope it\'s ok'],
-      presenting: ['Ta-da!', 'There!', 'Done!'],
+      // Hal Emmerich (Metal Gear Solid inspired)
+      thinking: ['Hmmm....', 'Let me think...', 'Processing...'],
+      processing: 'Processing',
+      success: ['Got it!', 'Done!', 'There we go!'],
+      error: ['Oops...', 'That did not work...', 'Error!'],
+      laughing: ['Haha!', 'Hehe!', 'LOL!'],
+      surprised: ['Woah!', 'Oh!', 'Unexpected!'],
+      curious: 'Hmm?',
+      confused: 'Huh?',
+      excited: ['Wow!', 'Amazing!', 'Cool!'],
+      worried: 'Hmm...',
+      presenting: 'Ta-da!',
     },
   },
 
+  /**
+   * Personality selection
+   * Set to key in personalities object above
+   */
+  personality: 'default',
+
+  /**
+   * Logging
+   */
   logging: {
-    // Log level: 'debug', 'info', 'warn', 'error', 'none'
+    // Level: 'debug' | 'info' | 'warn' | 'error'
     level: 'info',
-    
-    // Enable console logging
+
+    // Log to console
     console: true,
-    
-    // Enable remote logging (if configured)
-    remote: false,
   },
 };
 
 /**
- * Export configuration for use in other modules
+ * Mode-specific overrides
+ * These are applied based on the 'mode' setting above
  */
+export const MODE_OVERRIDES = {
+  public: {
+    // Standard OpenClaw defaults - no overrides needed
+  },
+
+  local: {
+    // Local cluster settings
+    openclaw: {
+      // Auto-detect won't work if served from file://
+      // Set to your local OpenClaw gateway IP
+      host: 'localhost',
+      // Longer timeouts for local development
+      connectionTimeout: 15000,
+      heartbeatInterval: 30000,
+    },
+    localCluster: {
+      showClusterStatus: true,
+    },
+    behavior: {
+      debug: true,
+      agentResponseTimeoutMs: 60000, // Longer for local inference
+    },
+    logging: {
+      level: 'debug',
+    },
+  },
+};
+
 export default OTACLAW_CONFIG;

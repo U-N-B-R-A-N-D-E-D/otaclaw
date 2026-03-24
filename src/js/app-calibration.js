@@ -621,6 +621,9 @@ function startWidgetFrameCycler(opts = {}) {
                 _widgetBubbleRepeatId = null;
               }
               window.__otaclawBootComplete = true;
+              if (typeof window.__otaclawOnBootComplete === "function") {
+                window.__otaclawOnBootComplete();
+              }
               /* Keep Hal in boot overlay (no fade yet) – swap boot img for idle sprite */
               const cfg =
                 typeof window !== "undefined" ? window.OTACLAW_CONFIG : {};
@@ -1256,7 +1259,7 @@ function setFrame(col, row, options = {}) {
   if (!spriteContainer || !frameEl) return;
 
   /* Use individual sprites when catalog says so – no sprite sheet, we have beautiful individual PNGs */
-  if (SPRITE_CATALOG?.useIndividualFiles) {
+  if (SPRITE_CATALOG?.useIndividualFiles && !document.body.classList.contains("otaclaw-widget")) {
     const spr = SPRITE_CATALOG.sprites.find(
       (s) => s.col === col && s.row === row && !s.skip,
     );
@@ -1267,9 +1270,9 @@ function setFrame(col, row, options = {}) {
         typeof window.otaclawAssetUrl === "function"
           ? window.otaclawAssetUrl(raw)
           : raw;
-      frameEl.style.backgroundImage = `url('${url}')`;
-      frameEl.style.backgroundSize = "contain";
-      frameEl.style.backgroundPosition = "center";
+      frameEl.style.setProperty("background-image", `url('${url}')`, "important");
+      frameEl.style.setProperty("background-size", "contain", "important");
+      frameEl.style.setProperty("background-position", "center", "important");
       frameEl.style.width = "";
       frameEl.style.height = "";
       if (!document.body.classList.contains("otaclaw-widget")) {
@@ -1292,9 +1295,9 @@ function setFrame(col, row, options = {}) {
       typeof window.otaclawAssetUrl === "function"
         ? window.otaclawAssetUrl(sheetRaw)
         : sheetRaw;
-    frameEl.style.backgroundImage = `url('${sheetUrl}')`;
-    frameEl.style.backgroundSize = `${OTACON_GRID.sheetW}px ${OTACON_GRID.sheetH}px`;
-    frameEl.style.backgroundPosition = "";
+    frameEl.style.setProperty("background-image", `url('${sheetUrl}')`, "important");
+    frameEl.style.setProperty("background-size", `${OTACON_GRID.sheetW}px ${OTACON_GRID.sheetH}px`, "important");
+    frameEl.style.setProperty("background-position", `calc(var(--otacon-frame-x, 0) * 1px) calc(var(--otacon-frame-y, 0) * 1px)`, "important");
   }
 
   Array.from(spriteContainer.classList)

@@ -4,12 +4,21 @@
   "overflow": [{"col": 4, "row": 1}],
   "skip": [{"col": 9, "row": 2}, {"col": 10, "row": 2}, {"col": 11, "row": 2}, {"col": 11, "row": 3}],
   "sequences": {
-    "thinking": [[1, 0], [2, 0], [5, 0], [1, 0]],
-    "processing": [[3, 1], [4, 1], [6, 1], [7, 1]],
+    "thinking": [[1, 0], [2, 0], [1, 0]],
+    "thinking1": [[4, 2], [11, 0], [4, 2]],
+    "thinking2": [[5, 0], [1, 2], [5, 0]],
+    "processing": [[6, 0], [7, 0], [6, 1], [7, 1]],
     "success": [[0, 1], [1, 1], [2, 1]],
     "laughing": [[2, 3], [3, 3]],
-    "error": [[2, 2], [3, 2]],
-    "surprised": [[9, 0], [10, 0]]
+    "error": [[0, 2], [2, 2], [3, 2]],
+    "surprised": [[9, 0], [10, 0]],
+    "curious": [[5, 2], [1, 2]],
+    "confused": [[1, 2], [5, 0]],
+    "excited": [[2, 1], [6, 3], [7, 3]],
+    "worried": [[0, 2], [4, 2]],
+    "sad": [[2, 2], [3, 2]],
+    "scared": [[9, 0], [10, 0], [10, 3]],
+    "presenting": [[6, 3], [7, 3]]
   },
   "frames": [
     {"id": "0,0", "col": 0, "row": 0, "desc": "neutral, arms relaxed", "tags": ["neutral", "idle", "calm", "resting"]},
