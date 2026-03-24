@@ -417,6 +417,44 @@ verify_deployment() {
     fi
 }
 
+# Interactive configuration for general settings
+configure_settings() {
+    if [[ "$LOCAL_INSTALL" == "true" || "$DRY_RUN" == "true" ]]; then
+        return 0
+    fi
+    
+    # Only prompt if running interactively
+    if [[ -t 0 ]]; then
+        echo
+        echo -e "${BLUE}--- OtaClaw Configuration ---${NC}"
+        read -p "Do you want to configure Discord Channel ID and Display Rotation now? [y/N]: " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo
+            echo -e "${YELLOW}Discord Tickle Channel ID${NC}"
+            echo "When you touch the screen, OtaClaw can send a message back to a specific Discord channel."
+            read -p "Enter your Discord Channel ID (leave blank to keep default/null): " discord_channel
+            if [[ -n "$discord_channel" ]]; then
+                log_info "Setting tickleDiscordChannel to $discord_channel..."
+                # Update widget.html and config.js
+                ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's/tickleDiscordChannel: null/tickleDiscordChannel: \"$discord_channel\"/' ${CANVAS_PATH%/}/otaclaw/js/config.js 2>/dev/null || true"
+                ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's/tickleDiscordChannel: null/tickleDiscordChannel: \"$discord_channel\"/' ${CANVAS_PATH%/}/otaclaw/widget.html 2>/dev/null || true"
+            fi
+            
+            echo
+            echo -e "${YELLOW}Display Rotation${NC}"
+            echo "Depending on how you mounted your screen, you may need to rotate it."
+            read -p "Enter display rotation (0, 90, 180, 270) [leave blank to skip]: " rotation
+            if [[ "$rotation" == "0" || "$rotation" == "90" || "$rotation" == "180" || "$rotation" == "270" ]]; then
+                log_info "Setting rotation to $rotation..."
+                # Update widget URL rotation parameter in the kiosk service or script
+                ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's/rotation=[0-9]*/rotation=$rotation/g' ~/.config/systemd/user/otaclaw-kiosk.service ~/.openclaw/scripts/kco-start-otaclaw-kiosk.sh 2>/dev/null || true"
+            fi
+            echo
+        fi
+    fi
+}
+
 # Restart OpenClaw gateway (optional)
 restart_openclaw() {
     if [[ "$LOCAL_INSTALL" == "true" ]]; then
@@ -517,23 +555,169 @@ print_access_info() {
     echo
 }
 
+# Pre-flight checks before deployment
+run_preflight_checks() {
+    log_info "Running pre-flight checks..."
+    local checks_passed=0
+    local checks_total=0
+
+    # Check 1: Source files exist
+    ((checks_total++))
+    if [[ -f "${REPO_ROOT}/src/index.html" && -d "${REPO_ROOT}/src/assets/sprites" ]]; then
+        ((checks_passed++))
+        log_success "Source files and sprites present"
+    else
+        log_error "Missing source files or sprites"
+        return 1
+    fi
+
+    # Check 2: Config exists (copy example if needed)
+    ((checks_total++))
+    if [[ -f "${REPO_ROOT}/config/config.js" ]]; then
+        ((checks_passed++))
+        log_success "Configuration file exists"
+    elif [[ -f "${REPO_ROOT}/config/config.example.js" ]]; then
+        log_warn "No config.js found, will use config.example.js"
+        ((checks_passed++))
+    else
+        log_error "No configuration file found"
+        return 1
+    fi
+
+    # Check 3: SSH connectivity (remote deploy only)
+    if [[ "$LOCAL_INSTALL" != "true" ]]; then
+        ((checks_total++))
+        if command -v ssh &>/dev/null; then
+            ((checks_passed++))
+            log_success "SSH client available"
+        else
+            log_error "SSH not installed"
+            return 1
+        fi
+
+        # Check SSH connectivity if host provided
+        if [[ -n "$HOST" ]]; then
+            ((checks_total++))
+            if ssh -o ConnectTimeout=5 -o BatchMode=yes "${USER}@${HOST}" "echo ok" &>/dev/null; then
+                ((checks_passed++))
+                log_success "SSH connectivity to ${HOST} OK"
+            else
+                log_error "Cannot connect to ${HOST} via SSH"
+                log_info "Check: ssh ${USER}@${HOST}"
+                return 1
+            fi
+        fi
+    fi
+
+    # Check 4: OpenClaw gateway health (if not --quick mode)
+    if [[ -n "$HOST" && "$LOCAL_INSTALL" != "true" ]]; then
+        ((checks_total++))
+        local health_url="http://${HOST}:18789/health"
+        if curl -s --max-time 5 "$health_url" &>/dev/null; then
+            ((checks_passed++))
+            log_success "OpenClaw gateway responding"
+        else
+            log_warn "OpenClaw gateway not responding at ${health_url}"
+            log_info "OtaClaw will still deploy but may not connect until OpenClaw starts"
+            ((checks_passed++)) # Not a hard failure
+        fi
+    fi
+
+    # Check 5: Local mode cluster health (if applicable)
+    if [[ -f "${REPO_ROOT}/config/config.js" ]]; then
+        local mode=$(grep -o "mode: *['\"]local['\"]" "${REPO_ROOT}/config/config.js" 2>/dev/null || echo "")
+        if [[ -n "$mode" && -n "$HOST" ]]; then
+            log_info "Local mode detected, checking cluster..."
+            # Try to ping one inference node
+            local cluster_nodes=$(grep -oE "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" "${REPO_ROOT}/config/config.js" 2>/dev/null | head -1)
+            if [[ -n "$cluster_nodes" ]]; then
+                ((checks_total++))
+                if curl -s --max-time 3 "http://${cluster_nodes}:8082/health" &>/dev/null; then
+                    ((checks_passed++))
+                    log_success "Inference node ${cluster_nodes} responding"
+                else
+                    log_warn "Inference node ${cluster_nodes} not responding"
+                    ((checks_passed++)) # Not a hard failure
+                fi
+            fi
+        fi
+    fi
+
+    # Summary
+    log_info "Pre-flight checks: ${checks_passed}/${checks_total} passed"
+    if [[ $checks_passed -lt $((checks_total - 1)) ]]; then
+        log_error "Too many pre-flight checks failed"
+        read -p "Continue anyway? [y/N]: " confirm
+        [[ "$confirm" =~ ^[Yy]$ ]] || return 1
+    fi
+
+    return 0
+}
+
+# Post-deploy health verification
+verify_deployment() {
+    log_info "Verifying deployment..."
+    local verify_host="${HOST:-localhost}"
+    local verify_user="${USER:-$USER}"
+
+    # Check 1: Files deployed
+    if [[ "$LOCAL_INSTALL" != "true" ]]; then
+        if ssh -o ConnectTimeout=5 "${verify_user}@${verify_host}" "test -f ${CANVAS_PATH%/}/otaclaw/index.html" &>/dev/null; then
+            log_success "Files deployed successfully"
+        else
+            log_error "Deployment verification failed - files not found"
+            return 1
+        fi
+    fi
+
+    # Check 2: Restart services if remote
+    if [[ "$LOCAL_INSTALL" != "true" && "$SKIP_RESTART" != "true" ]]; then
+        log_info "Restarting OpenClaw services..."
+        ssh -o ConnectTimeout=10 "${verify_user}@${verify_host}" "
+            systemctl --user restart openclaw-gateway 2>/dev/null || true
+            sleep 2
+            systemctl --user is-active openclaw-gateway &>/dev/null && echo 'OK' || echo 'FAIL'
+        " 2>/dev/null | grep -q "OK" && log_success "OpenClaw gateway restarted" || log_warn "Could not restart OpenClaw"
+    fi
+
+    # Check 3: Service accessibility
+    local service_url="http://${verify_host}:18789/__openclaw__/canvas/otaclaw/"
+    log_info "OtaClaw should be available at:"
+    log_info "  ${service_url}"
+
+    # Check 4: Browser test suggestion
+    log_info ""
+    log_info "Health check: Open ${service_url} in a browser"
+    log_info "Expected: OtaClaw loads and connects to OpenClaw"
+
+    return 0
+}
+
 # Main deployment flow
 main() {
     echo -e "${BLUE}========================================${NC}"
     echo -e "${BLUE}  OtaClaw for OpenClaw - Deploy Script${NC}"
     echo -e "${BLUE}========================================${NC}"
     echo
-    
+
     parse_args "$@"
     detect_host
     detect_user
     check_prerequisites
+
+    # Run pre-flight checks
+    if ! run_preflight_checks; then
+        log_error "Pre-flight checks failed. Aborting."
+        exit 1
+    fi
+
     fresh_install
     verify_openclaw
     deploy_files
     verify_deployment
     
     if [[ "$DRY_RUN" == "false" ]]; then
+        configure_settings
         restart_openclaw
         if [[ "$RESTART_KIOSK" == "true" && "$LOCAL_INSTALL" != "true" ]]; then
             log_info "Updating kiosk script (cache-bust) and restarting..."

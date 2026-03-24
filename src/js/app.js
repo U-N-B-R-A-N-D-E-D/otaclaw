@@ -4,8 +4,8 @@
  * Config: inline in HTML (window.OTACLAW_CONFIG) or config.js when MIME types correct
  */
 
-import { WebSocketClient } from "./websocket-client.js";
-import { OtaClawEngine } from "./otaclaw.js";
+import { WebSocketClient } from "./websocket-client.js?v=46";
+import { OtaClawEngine } from "./otaclaw.js?v=46";
 
 class OtaClawApp {
   constructor() {
@@ -19,6 +19,12 @@ class OtaClawApp {
     this._blinkOverlayHandle = null;
     this._blinkRestoreTimer = null;
 
+    // Streaming speech bubble state (like Discord message editing)
+    this._currentMessageId = null;
+    this._accumulatedText = "";
+    this._lastDeltaUpdateAt = 0;
+    this._streamingSpeechActive = false;
+
     // Bind methods
     this.init = this.init.bind(this);
     this.start = this.start.bind(this);
@@ -28,6 +34,7 @@ class OtaClawApp {
     this.enableOfflineMode = this.enableOfflineMode.bind(this);
     this.getSpriteSheetUrl = this.getSpriteSheetUrl.bind(this);
     this.getSpriteSheetMetrics = this.getSpriteSheetMetrics.bind(this);
+    this._updateStreamingSpeech = this._updateStreamingSpeech.bind(this);
   }
 
   /**
@@ -114,6 +121,18 @@ class OtaClawApp {
       // Setup event listeners
       this.setupEventListeners();
 
+      // Preload frame catalog for animations
+      const assetUrl =
+        typeof window.otaclawAssetUrl === "function"
+          ? (p) => window.otaclawAssetUrl(p)
+          : (p) => p;
+      fetch(assetUrl("data/frame-catalog.json?v=14" + Date.now()))
+        .then((r) => r.json())
+        .then((catalog) => {
+          this._frameCatalog = catalog;
+        })
+        .catch(() => {});
+
       // Initialize OtaClaw engine
       this.otaclaw.init();
 
@@ -135,10 +154,16 @@ class OtaClawApp {
       // Setup UI interactions
       this.setupUIInteractions();
 
-      if (this.config?.sprites?.preload) {
-        const img = new Image();
-        img.src = this.getSpriteSheetUrl();
-      }
+      // Preload critical images to prevent them from disappearing or flashing
+      const sheetUrl = this.getSpriteSheetUrl();
+      const basePath = (this.config?.sprites?.basePath || "assets/sprites/").replace(/\/$/, "");
+      const blinkUrl = `${basePath}/otacon_sprite_blink_00.png`;
+      
+      const preloadUrls = [sheetUrl, blinkUrl];
+      preloadUrls.forEach(url => {
+          const img = new Image();
+          img.src = typeof window.otaclawAssetUrl === "function" ? window.otaclawAssetUrl(url) : url;
+      });
 
       if (document.body.classList.contains("otaclaw-widget")) {
         this.hideConnectionOverlay();
@@ -206,7 +231,7 @@ class OtaClawApp {
       return;
     }
     try {
-      const configModule = await import("./config.js");
+      const configModule = await import("./config.js?v=20");
       this.config = configModule.OTACLAW_CONFIG || configModule.default;
 
       if (!this.config) {
@@ -372,19 +397,26 @@ class OtaClawApp {
     this.wsClient.on("error", () => {});
 
     this.wsClient.on("stateChange", (data) => {
+      this._lastActivityTime = Date.now();
       const eventPriority = this.config?.eventPriority || {};
       const newPriority = data.priority ?? 0;
       const currentPriority =
         this._currentStatePriority ?? eventPriority[data.trigger] ?? 0;
       if (
         newPriority < currentPriority &&
-        !["agent.tool.call"].includes(data.trigger)
+        !["agent.tool.call", "agent.message.delta"].includes(data.trigger)
       ) {
         return;
       }
       this._currentStatePriority = newPriority;
 
       const opts = { trigger: data.trigger, data: data.data };
+      
+      // Keep heuristic text analysis priority! Let Delta set the correct emotion instead of overriding it via event mapping.
+      if (data.trigger === "agent.message.delta" && this.otaclaw.getState() !== "thinking" && this.otaclaw.getState() !== "processing" && this.otaclaw.getState() !== "error" && this.otaclaw.getState() !== "idle") {
+         // Do not allow default generic "processing" to override our specific heuristical states (laughing, curious, etc.)
+         return;
+      }
       if (data.state === "error")
         opts.speech = this._briefErrorReason(data.data ?? data);
       else if (data.state === "thinking") opts.speech = this._t("thinking");
@@ -401,7 +433,7 @@ class OtaClawApp {
       }
       const applyState = () => {
         const prevState = this.otaclaw?.getState?.();
-        this.otaclaw.setState(data.state, opts);
+        this.otaclaw.setState(data.state, { ...opts, force: data.state === "error" });
         if (
           data.trigger === "agent.tool.call" &&
           (prevState === "thinking" || prevState === "processing")
@@ -409,11 +441,11 @@ class OtaClawApp {
           const dur =
             this.config?.stateDurations?.surprised ?? 2500;
           setTimeout(() => {
-            if (this.otaclaw?.getState?.() === "surprised")
-              this.otaclaw.setState("thinking", {
-                trigger: "toolInterruptReturn",
-                speech: this._t("thinking"),
-              });
+        if (this.otaclaw.getState() === "surprised")
+          this.otaclaw.setState("thinking", {
+            trigger: "toolInterruptReturn",
+            speech: this._t("thinking"),
+          });
           }, dur);
         }
       };
@@ -438,26 +470,87 @@ class OtaClawApp {
       applyState();
     });
 
+    // Monitor to auto-return to idle if we get stuck in processing/thinking due to dropped connections or Gateway TTLs
+    setInterval(() => {
+      const state = this.otaclaw?.getState?.();
+      if (state !== "idle" && state !== "sleeping") {
+         const now = Date.now();
+         const lastActivity = Math.max(this._lastActivityTime || 0, this._lastDeltaUpdateAt || 0);
+         const timeSinceActivity = now - lastActivity;
+         
+         // If stuck for 45 seconds without ANY activity (deltas, state changes), force idle
+         if (timeSinceActivity > 45000) {
+            console.log(`[OtaClaw] Forcing idle due to inactivity timeout. Last activity: ${timeSinceActivity}ms ago`);
+            this.otaclaw.setState("idle", { trigger: "activity.timeout", speech: "", force: true });
+            this._lastActivityTime = now;
+            this._scheduleSleep();
+         }
+      }
+    }, 5000);
+
     this.wsClient.on("gatewayError", (data) => {
       const brief = this._briefErrorReason(data);
       this.otaclaw.setState("error", {
         trigger: "gateway.error",
         data,
         speech: brief,
+        force: true
       });
     });
 
     // Specific OpenClaw events
+    this._accumulatedText = "";
+
+    this._extractDiscordTarget = (data) => {
+      if (data.channel === "discord" && data.target) return data.target;
+      if (data.sessionKey && data.sessionKey.startsWith("agent:discord:")) {
+        const parts = data.sessionKey.split(":");
+        if (parts.length >= 5) {
+          if (parts[3] === "direct") return `user:${parts[4]}`;
+          if (parts[3] === "guild") return `channel:${parts[4]}`;
+          return `channel:${parts[4]}`;
+        }
+      }
+      return null;
+    };
+
     this.wsClient.on("agentStart", (data) => {
+      const target = this._extractDiscordTarget(data);
+      if (target) this._lastDiscordTarget = target;
+
+      // Reset streaming state for new message
+      this._currentMessageId = data.messageId || data.id || `msg-${Date.now()}`;
+      this._accumulatedText = "";
+      this._streamingSpeechActive = false;
+      this._currentEmotionLock = null;
+
+      // Go to thinking state, but keep empty speech so bubble doesn't show generic text
+      // The actual content will come from deltas
       this.otaclaw.setState("thinking", {
         trigger: "agent.start",
         data,
-        speech: this._t("thinking"),
+        speech: "",  // Empty initially, will be filled by deltas
       });
     });
 
     this.wsClient.on("agentDelta", (data) => {
-      const throttleMs = 100;
+      const target = this._extractDiscordTarget(data);
+      if (target) this._lastDiscordTarget = target;
+
+      // Handle message ID for tracking new vs continuing messages
+      const messageId = data.messageId || data.id || "default";
+      if (messageId !== this._currentMessageId) {
+        // New message started - reset buffer
+        this._currentMessageId = messageId;
+        this._accumulatedText = "";
+      }
+
+      const text = data.message || data.delta || data.content || "";
+      if (text) {
+        this._accumulatedText += text;
+      }
+
+      const throttleMs = 150;
       const now = Date.now();
       if (
         this._lastDeltaUpdateAt &&
@@ -466,29 +559,105 @@ class OtaClawApp {
         return;
       }
       this._lastDeltaUpdateAt = now;
-      if (this.otaclaw.getState() === "thinking") {
-        this.otaclaw.setState("processing", {
-          trigger: "agent.delta",
-          data,
-          speech: this._t("processing"),
-        });
+
+      // Update speech bubble with accumulated text (truncated for display)
+      this._updateStreamingSpeech(this._accumulatedText);
+      
+      const lower = this._accumulatedText.toLowerCase();
+      const recentText = lower.slice(-120);
+
+      const emotionScores = {
+        laughing:  0,
+        surprised: 0,
+        excited:   0,
+        worried:   0,
+        curious:   0,
+        thinking:  0,
+        presenting:0,
+        sad:       0,
+        confused:  0,
+      };
+
+      const patterns = [
+        [/haha|hehe|😂|🤣|😆|lol|lmao|rofl/gi,                     "laughing",   3],
+        [/funny|joke|hilarious|comedy|humor/gi,                       "laughing",   2],
+        [/happy|glad|love|excellent|great|awesome|fantastic/gi,        "laughing",   1],
+        [/wow|amazing|incredible|omg|gosh|impressive|wonderful/gi,     "surprised",  3],
+        [/!!+/g,                                                       "surprised",  1],
+        [/🎉|🚀|💪|excited|can't wait|thrilling/gi,                    "excited",    3],
+        [/cool|neat|nice|sweet/gi,                                     "excited",    1],
+        [/oops|uh oh|sorry|😅|apologies|unfortunately|problem/gi,      "worried",    3],
+        [/careful|warning|caution|risk|danger/gi,                      "worried",    2],
+        [/sad|😢|😭|miss|lost|gone|disappointing/gi,                    "sad",        3],
+        [/\?{2,}/g,                                                    "confused",   2],
+        [/confused|unclear|don't understand|what do you mean/gi,       "confused",   3],
+        [/hmm|🤔|let me think|let's see|analyzing|considering/gi,      "thinking",   2],
+        [/interesting|perhaps|maybe|might/gi,                          "thinking",   1],
+        [/\?/g,                                                        "curious",    1],
+        [/what|how|why|tell me|explain|curious|wonder/gi,              "curious",    1],
+        [/here|look|check|presenting|result|done|built|created/gi,     "presenting", 2],
+        [/ta-da|voilà|behold/gi,                                       "presenting", 3],
+      ];
+
+      for (const [regex, emotion, weight] of patterns) {
+        const matches = recentText.match(regex);
+        if (matches) emotionScores[emotion] += matches.length * weight;
       }
+
+      let bestEmotion = null;
+      let bestScore = 0;
+      for (const [emotion, score] of Object.entries(emotionScores)) {
+        if (score > bestScore) { bestScore = score; bestEmotion = emotion; }
+      }
+
+      if (bestScore >= 2) {
+        this._currentEmotionLock = bestEmotion;
+      } else if (recentText.length > 60 && Math.random() < 0.04) {
+        const variety = ["thinking", "curious", "presenting", "excited"];
+        if (!this._currentEmotionLock) {
+          this._currentEmotionLock = variety[Math.floor(Math.random() * variety.length)];
+        }
+      }
+
+      const currentState = this.otaclaw.getState();
+      const targetEmotion = this._currentEmotionLock || "processing";
+      
+      // Only change emotion state if NOT streaming (to avoid interrupting the text flow)
+      if (targetEmotion !== "processing" && !this._streamingSpeechActive) {
+          if (currentState !== targetEmotion) {
+              this.otaclaw.setState(targetEmotion, {
+                  trigger: "agent.delta.heuristic",
+                  data,
+                  speech: this._t(targetEmotion)
+              });
+              if (targetEmotion === "laughing") this.startLaughingAnimation();
+              else if (targetEmotion === "surprised") this.startSurprisedAnimation();
+          }
+      }
+      // Note: During streaming, we rely on _updateStreamingSpeech to update the bubble text
+      // We don't call setState repeatedly to avoid freezing the animations
     });
 
     this.wsClient.on("agentComplete", (data) => {
+      // Show final accumulated text briefly before success state
+      const finalText = this._accumulatedText?.slice(0, 100);
+      this._clearStreamingState();
+      // Use accumulated text for speech bubble if we have it
       this.otaclaw.setState("success", {
         trigger: "agent.complete",
         data,
-        speech: this._t("success"),
+        speech: finalText || this._t("success"),
       });
     });
 
     this.wsClient.on("agentError", (data) => {
       const brief = this._briefErrorReason(data);
+      this._clearStreamingState();
       this.otaclaw.setState("error", {
         trigger: "agent.error",
         data,
         speech: brief,
+        force: true
       });
     });
 
@@ -537,6 +706,7 @@ class OtaClawApp {
     });
 
     this.otaclaw.on("stateChange", (data) => {
+      this._lastActivityTime = Date.now();
       this.updateStateBadge(data.state);
       if (document.body.classList.contains("otaclaw-widget")) {
         if (data.state === "idle") {
@@ -575,15 +745,19 @@ class OtaClawApp {
           } else if (
             data.state === "curious" ||
             data.state === "confused" ||
-            data.state === "excited"
+            data.state === "excited" ||
+            data.state === "worried" ||
+            data.state === "sad" ||
+            data.state === "scared" ||
+            data.state === "presenting"
           ) {
             this.stopIdleAnimation();
             this.stopThinkingAnimation();
-            this._setFrameFromTag(data.state);
-          } else if (data.state === "presenting") {
-            this.stopIdleAnimation();
-            this.stopThinkingAnimation();
-            this._setFrameFromTag("presenting");
+            this.stopSuccessAnimation();
+            this.stopErrorAnimation();
+            this.stopLaughingAnimation();
+            this.stopSurprisedAnimation();
+            this._runSheetSequence(data.state, data.speech || "", "_tagSeqHandle");
           } else {
             this.stopIdleAnimation();
             this.stopThinkingAnimation();
@@ -591,6 +765,10 @@ class OtaClawApp {
             this.stopErrorAnimation();
             this.stopLaughingAnimation();
             this.stopSurprisedAnimation();
+            
+            if (data.state !== "processing") {
+              this._setFrameFromTag(data.state);
+            }
           }
         }
       }
@@ -616,20 +794,29 @@ class OtaClawApp {
           timestamp: Date.now(),
         });
       }
-      // Also chat.send so the agent receives it and can reply in Discord.
-      if (this.wsClient?.isConnected && typeof this.wsClient.sendRequest === "function") {
-        const params = {
-          message: "[tickle]",
-          idempotencyKey: `tickle-${Date.now()}`,
-        };
-        const tickleToDiscord = this.config?.openclaw?.tickleToDiscord !== false;
-        const tickleTarget = this.config?.openclaw?.tickleDiscordChannel;
-        if (tickleToDiscord) {
-          params.channel = "discord";
-          if (tickleTarget) params.target = tickleTarget;
-        }
-        this.wsClient.sendRequest("chat.send", params);
-      }
+              // Send tickle reaction to the configured chat channel (Discord, Telegram, etc.)
+              const tickleTarget = this.config?.openclaw?.tickleDiscordChannel || this._lastDiscordTarget;
+              if (this.wsClient?.isConnected && typeof this.wsClient.sendRequest === "function" && tickleTarget) {
+                const tickleReactions = [
+                  "S-stop! I can't breathe! Snake, help me!",
+                  "Wait, wait! This is just like a scene from one of my Japanese animes! Hahaha!",
+                  "Haha! Seriously, stop! I'm gonna wet my pants again!",
+                  "Haha! Woah! You found my tickle feedback!",
+                  "Is this... haha... a new FOXHOUND interrogation technique?!",
+                  "Snake? Snake?! Snaaaaaaake!! ...Wait, I'm just being tickled, haha!",
+                  "Hahaha! My... my endorphin levels are exceeding normal parameters!",
+                  "Haha! I'm... I'm turning off the Codec! I mean it!",
+                  "Got it! Haha! Okay, I yield! You win!",
+                  "Are you an otaku too? Because only an otaku would do this! Hahaha!",
+                ];
+                const tickleMsg = tickleReactions[Math.floor(Math.random() * tickleReactions.length)];
+                this.wsClient.sendRequest("send", {
+                  channel: "discord",
+                  to: tickleTarget,
+                  message: tickleMsg,
+                  idempotencyKey: `tickle-${Date.now()}`
+                });
+              }
       const buzzerUrl = this.config?.display?.buzzerTickleUrl;
       if (buzzerUrl) {
         fetch(buzzerUrl, { method: "GET" }).catch(() => {});
@@ -653,18 +840,20 @@ class OtaClawApp {
       if (action === "wake" && document.body.classList.contains("widget-asleep")) {
         const finishWake = () => {
           document.body.classList.remove("widget-waiting");
+          document.body.classList.remove("widget-asleep");
           const bootOv = document.getElementById("boot-black-overlay");
           const widgetOv = document.getElementById("widget-sprite-overlay");
           if (bootOv) bootOv.style.display = "none";
           if (widgetOv) widgetOv.style.display = "none";
           this.stopWaitingAnimation();
+          this.stopAllAnimations();
           this.updateConnectionUI(
             this.wsClient?.isConnected ? "connected" : "disconnected",
           );
           if (document.body.classList.contains("otaclaw-widget")) {
             if (typeof window.showWidgetConnectionMsg === "function")
               window.showWidgetConnectionMsg("");
-            this.otaclaw.setState("idle", { speech: "" });
+            this.otaclaw.setState("idle", { speech: "", force: true });
             this.startIdleAnimation();
             this._scheduleSleep();
           }
@@ -739,21 +928,27 @@ class OtaClawApp {
           action: "wake",
           timestamp: Date.now(),
         });
+      } else if (this.wsClient && !this.wsClient.isConnected) {
+        this.wsClient.reconnect();
       }
       const finishWake = () => {
+        // CRITICAL: Remove both waiting and asleep classes
         document.body.classList.remove("widget-waiting");
+        document.body.classList.remove("widget-asleep");
         const bootOv = document.getElementById("boot-black-overlay");
         const widgetOv = document.getElementById("widget-sprite-overlay");
         if (bootOv) bootOv.style.display = "none";
         if (widgetOv) widgetOv.style.display = "none";
         this.stopWaitingAnimation();
+        this.stopAllAnimations(); // Clear any stuck animations
         this.updateConnectionUI(
           this.wsClient?.isConnected ? "connected" : "disconnected",
         );
         if (document.body.classList.contains("otaclaw-widget")) {
           if (typeof window.showWidgetConnectionMsg === "function")
             window.showWidgetConnectionMsg("");
-          this.otaclaw.setState("idle", { speech: "" });
+          // Force fresh idle state and animation
+          this.otaclaw.setState("idle", { speech: "", force: true });
           this.startIdleAnimation();
           this._scheduleSleep();
         }
@@ -802,12 +997,14 @@ class OtaClawApp {
       } else {
         if (this.debugMode) console.log("[OtaClaw] Tab visible");
         if (!this.isOfflineMode && this.wsClient) {
-          this.wsClient.reconnectIfStale(180000);
-          if (this.wsClient.isConnected) {
+          if (!this.wsClient.isConnected) {
+            this.wsClient.reconnect();
+          } else {
+            this.wsClient.reconnectIfStale(30000);
             this.wsClient.send({ type: "client.refresh" });
-            if (this.otaclaw?.getState?.() === "idle")
-              this.startIdleAnimation();
           }
+          if (this.wsClient.isConnected && this.otaclaw?.getState?.() === "idle")
+            this.startIdleAnimation();
         }
       }
     });
@@ -923,10 +1120,14 @@ class OtaClawApp {
   _setFrameFromTag(tag) {
     const map = this.config?.sprites?.tagToFrames;
     const frames = map?.[tag?.toLowerCase?.()];
-    if (Array.isArray(frames) && frames.length && window.otaclaw?.setFrame) {
+    if (Array.isArray(frames) && frames.length) {
       const [col, row] = frames[Math.floor(Math.random() * frames.length)];
       const speech = this._t(tag) || "";
-      window.otaclaw.setFrame(col, row, { speech });
+      if (window.otaclaw?.setFrame) {
+        window.otaclaw.setFrame(col, row, { speech });
+      } else {
+        this._setFrameDirect(col, row, speech);
+      }
     }
   }
 
@@ -953,17 +1154,23 @@ class OtaClawApp {
       const [c, r] = seq[idx];
       const cal = window.otaclaw;
       if (cal?.setFrame) {
-        cal.setFrame(c, r, { speech: idx === 0 ? speech : "" });
+        cal.setFrame(c, r, { speech: speech });
       } else {
-        this._setFrameDirect(c, r, idx === 0 ? speech : "");
+        this._setFrameDirect(c, r, speech);
       }
       idx += 1;
       if (idx < seq.length) {
         this._tagSeqHandle = setTimeout(schedule, frameMs);
       } else {
         this._tagSeqHandle = null;
-        this.otaclaw.setState("idle", { speech: "" });
-        this.startIdleAnimation();
+        if (speech) {
+          setTimeout(() => {
+            this.otaclaw.setState("idle", { speech: "" });
+            // Do not call startIdleAnimation here as it will loop back infinitely or duplicate loops
+          }, 4000);
+        } else {
+          this.otaclaw.setState("idle", { speech: "" });
+        }
       }
     };
     schedule();
@@ -1055,12 +1262,12 @@ class OtaClawApp {
       this.config?.sprites?.displayTargetHeight || 320,
     );
     const scale = targetHeight / fh;
-    root.style.setProperty("--otacon-frame-x", String(-col * fw));
-    root.style.setProperty("--otacon-frame-y", String(-row * fh));
-    root.style.setProperty("--otacon-frame-w", String(fw));
-    root.style.setProperty("--otacon-frame-h", String(fh));
-    root.style.setProperty("--otacon-sheet-w", String(sheetW));
-    root.style.setProperty("--otacon-sheet-h", String(sheetH));
+    root.style.setProperty("--otacon-frame-x", String(-col * fw) + "px");
+    root.style.setProperty("--otacon-frame-y", String(-row * fh) + "px");
+    root.style.setProperty("--otacon-frame-w", String(fw) + "px");
+    root.style.setProperty("--otacon-frame-h", String(fh) + "px");
+    root.style.setProperty("--otacon-sheet-w", String(sheetW) + "px");
+    root.style.setProperty("--otacon-sheet-h", String(sheetH) + "px");
     root.style.setProperty("--otacon-scale", String(scale));
     const sheetRaw = this.getSpriteSheetUrl();
     const sheetUrl =
@@ -1068,8 +1275,8 @@ class OtaClawApp {
         ? window.otaclawAssetUrl(sheetRaw)
         : sheetRaw;
     root.style.setProperty("--otacon-sheet-url", `url('${sheetUrl}')`);
-    frameEl.style.backgroundImage = `url('${sheetUrl}')`;
-    frameEl.style.backgroundSize = `${sheetW}px ${sheetH}px`;
+    frameEl.style.setProperty("background-image", `url('${sheetUrl}')`, "important");
+    frameEl.style.setProperty("background-size", `${sheetW}px ${sheetH}px`, "important");
     frameEl.style.setProperty(
       "background-position",
       `${-col * fw}px ${-row * fh}px`,
@@ -1087,77 +1294,57 @@ class OtaClawApp {
     if (sb) sb.classList.toggle("has-text", !!speech);
   }
 
-  /** Blink overlay: single closed-eyes frame, ~80ms, runs during all states. */
-  _doBlink() {
-    if (
-      !document.body.classList.contains("otaclaw-widget") ||
-      !window.__otaclawBootComplete ||
-      document.body.classList.contains("widget-asleep")
-    )
-      return;
-    const sprite = document.getElementById("sprite");
-    const frameEl = sprite?.querySelector(".otacon-frame");
-    if (!frameEl) return;
-    const blinkFrameIdx = Number(this.config?.sprites?.blinkFrame ?? 8);
-    const blinkMs = Number(this.config?.sprites?.blinkDurationMs ?? 80);
-    const idleSprites = this.config?.sprites?.idleSprites;
-    const blinkFile =
-      Array.isArray(idleSprites) && idleSprites[blinkFrameIdx]
-        ? idleSprites[blinkFrameIdx]
-        : null;
-    const saved = {
-      image: frameEl.style.backgroundImage,
-      position: frameEl.style.backgroundPosition,
-      size: frameEl.style.backgroundSize,
-    };
-    if (blinkFile) {
-      const basePath = (
-        this.config?.sprites?.basePath || "assets/sprites/"
-      ).replace(/\/$/, "");
-      const url =
-        typeof window.otaclawAssetUrl === "function"
-          ? window.otaclawAssetUrl(`${basePath}/${blinkFile}`)
-          : `${basePath}/${blinkFile}`;
-      frameEl.style.setProperty("background-image", `url('${url}')`, "important");
-      frameEl.style.setProperty("background-size", "contain", "important");
-      frameEl.style.setProperty("background-position", "center", "important");
-    } else {
-      const { frameW: fw, sheetW, sheetH } = this.getSpriteSheetMetrics();
-      const sheetUrl =
-        typeof window.otaclawAssetUrl === "function"
-          ? window.otaclawAssetUrl(this.getSpriteSheetUrl())
-          : this.getSpriteSheetUrl();
-      frameEl.style.backgroundImage = `url('${sheetUrl}')`;
-      frameEl.style.backgroundSize = `${sheetW}px ${sheetH}px`;
-      frameEl.style.setProperty(
-        "background-position",
-        `${-blinkFrameIdx * fw}px 0px`,
-        "important",
-      );
+  /**
+   * Update speech bubble with streaming text (like Discord message editing)
+   * Shows accumulated text in real-time as it arrives from deltas
+   */
+  _updateStreamingSpeech(text) {
+    if (!text || typeof text !== "string") return;
+
+    // Mark streaming as active (local and global for otaclaw.js)
+    this._streamingSpeechActive = true;
+    if (typeof window !== "undefined") {
+      window.__otaclawStreamingActive = true;
     }
-    this._blinkRestoreTimer = setTimeout(() => {
-      this._blinkRestoreTimer = null;
-      if (this._lastFrame) {
-        if (this._lastFrame.type === "sprite") {
-          this._setFrameFromSprite(this._lastFrame.file, this._lastFrame.speech);
-        } else {
-          this._setFrameDirect(
-            this._lastFrame.col,
-            this._lastFrame.row,
-            this._lastFrame.speech,
-          );
-        }
-      } else if (saved.image || saved.position || saved.size) {
-        if (saved.image) frameEl.style.backgroundImage = saved.image;
-        if (saved.position) frameEl.style.backgroundPosition = saved.position;
-        if (saved.size) frameEl.style.backgroundSize = saved.size;
-      }
-    }, blinkMs);
+
+    // Truncate for display (keep it readable in the bubble)
+    const maxLength = 100;
+    const displayText = text.length > maxLength
+      ? text.slice(0, maxLength - 3) + "..."
+      : text;
+
+    // Update speech bubble DOM directly
+    const st = document.getElementById("speech-text");
+    const sb = document.getElementById("speech-bubble");
+    if (st && sb) {
+      st.textContent = displayText;
+      sb.classList.add("has-text");
+      sb.style.display = "block";
+    }
+  }
+
+  /**
+   * Clear streaming state when message completes
+   */
+  _clearStreamingState() {
+    this._streamingSpeechActive = false;
+    this._accumulatedText = "";
+    this._currentMessageId = null;
+    if (typeof window !== "undefined") {
+      window.__otaclawStreamingActive = false;
+    }
+  }
+
+  /** Blink overlay: disabled. We rely on organic sprite variety instead. */
+  _doBlink() {
+    return;
   }
 
   startBlinkOverlay() {
     this.stopBlinkOverlay();
     if (!document.body.classList.contains("otaclaw-widget")) return;
+    if (this.config?.sprites?.blinkOverlay === false) return; // Skip blink overlay if disabled
+    // Update blink timer with correct bounds
     const minMs = Number(this.config?.sprites?.blinkIntervalMinMs ?? 2000);
     const maxMs = Number(this.config?.sprites?.blinkIntervalMaxMs ?? 4000);
     const schedule = () => {
@@ -1168,7 +1355,13 @@ class OtaClawApp {
         this._blinkOverlayHandle = null;
         return;
       }
-      this._doBlink();
+      
+      const currentState = this.otaclaw?.getState?.();
+      // Solo hacer el blink extra si no estamos ya haciendo cosas donde los ojos estén cerrados
+      if (currentState !== "sleeping" && currentState !== "error") {
+        this._doBlink();
+      }
+      
       const delay = minMs + Math.random() * (maxMs - minMs);
       this._blinkOverlayHandle = setTimeout(schedule, Math.round(delay));
     };
@@ -1214,15 +1407,7 @@ class OtaClawApp {
             0, 0, 1, 7, 8, 9, 3, 0, 4, 1, 7, 8, 9, 0, 5, 0, 2, 6, 0, 1, 7, 8, 9,
             0,
           ];
-    const groups = sprites.idleSpriteGroups || {};
-    const blinkIndices = Array.isArray(sprites.idleBlinkIndices)
-      ? sprites.idleBlinkIndices
-      : groups.blink || [7, 8, 9];
-    const useBlinkOverlay = sprites.blinkOverlay !== false;
-    const seq = useBlinkOverlay
-      ? IDLE_SEQ.filter((i) => !blinkIndices.includes(i))
-      : IDLE_SEQ;
-    const blinkDelay = Number(sprites.idleBlinkDelayMs || 50);
+    const seq = IDLE_SEQ;
     const baseMs = 450;
     const jitterMs = 150;
     let idx = 0;
@@ -1234,15 +1419,16 @@ class OtaClawApp {
         this._waitingAnimationHandle = null;
         return;
       }
-      const frameIdx = seq[idx % seq.length];
-      if (IDLE_SPRITES && IDLE_SPRITES[frameIdx]) {
-        this._setFrameFromSprite(IDLE_SPRITES[frameIdx], "");
+      const frameObj = seq[idx % seq.length];
+      if (Array.isArray(frameObj)) {
+        this._setFrameDirect(frameObj[0], frameObj[1] !== undefined ? frameObj[1] : 0, "");
+      } else if (IDLE_SPRITES && IDLE_SPRITES[frameObj]) {
+        this._setFrameFromSprite(IDLE_SPRITES[frameObj], "");
       } else {
-        this._setFrameDirect(frameIdx, 0, "");
+        this._setFrameDirect(frameObj, 0, "");
       }
       idx += 1;
-      const isBlink = !useBlinkOverlay && blinkIndices.includes(frameIdx);
-      const delay = isBlink ? blinkDelay : baseMs + Math.random() * jitterMs;
+      const delay = baseMs + Math.random() * jitterMs;
       this._waitingAnimationHandle = setTimeout(schedule, delay);
     };
     schedule();
@@ -1260,101 +1446,130 @@ class OtaClawApp {
     document.body.classList.remove("widget-check-config");
   }
 
+
+  _startTagPoolAnimation(stateName, speechText = null, timerKey = "_tagPoolAnimationHandle") {
+    if (!document.body.classList.contains("otaclaw-widget")) return;
+
+    // During streaming, use much slower animation to prevent freezing
+    const isStreaming = this._streamingSpeechActive && this._accumulatedText?.length > 0;
+
+    // Cache the resolved text once when the animation starts
+    let currentSpeech = speechText !== null ? speechText : (stateName === "idle" ? "" : (this._t(stateName) || ""));
+
+    // Generate a unique token for this animation run
+    const runToken = {};
+    this[`${timerKey}_token`] = runToken;
+
+    const schedule = () => {
+      // Abort if a new animation of this type has been started
+      if (this[`${timerKey}_token`] !== runToken) return;
+      if (!document.body.classList.contains("otaclaw-widget")) return;
+      
+      let currentState = this.otaclaw?.getState?.() || "";
+      // Strictly abort if the state has changed
+      if (stateName !== "idle" && currentState !== stateName && currentState !== "processing" && currentState !== "thinking") return;
+      if (stateName === "idle" && currentState !== "idle") return;
+
+      // Sprite pool for animation variety
+      let pool = [];
+      if (stateName === "thinking" || stateName === "processing") {
+        pool = [{col:1, row:0}, {col:2, row:0}, {col:3, row:0}, {col:5, row:0}];
+      } else if (stateName === "error") {
+        pool = [{col:0, row:2}, {col:1, row:2}, {col:2, row:2}];
+      } else if (stateName === "success") {
+        pool = [{col:0, row:1}, {col:1, row:1}, {col:2, row:1}];
+      } else if (stateName === "laughing") {
+        pool = [{col:2, row:3}, {col:3, row:3}, {col:4, row:3}];
+      } else if (stateName === "idle") {
+        // Idle: more variety including blinking states
+        pool = [
+          {col:0, row:0},  // base
+          {col:1, row:0},  // slight variation
+          {col:0, row:0},  // base (duplicate for weight)
+          {col:2, row:0},  // another variation
+          {col:0, row:0},  // base (duplicate for weight)
+        ];
+      } else {
+        pool = [{ col: 0, row: 0 }];
+      }
+
+      // Pick a frame
+      const frame = pool[Math.floor(Math.random() * pool.length)];
+
+      // During streaming, preserve the accumulated text in speech bubble
+      if (isStreaming && this._accumulatedText) {
+        currentSpeech = this._accumulatedText.slice(0, 100);
+      }
+      
+      this._setFrameDirect(frame.col, frame.row, currentSpeech);
+
+      // 4. Set delay for organic feel - balanced for smoothness without freezing
+      let delay = 1500; // Base timing
+      if (stateName === "idle") {
+        delay = 2500 + Math.random() * 2000; // 2.5-4.5 seconds for idle (organic, slow)
+      } else if (stateName === "laughing") {
+        delay = 350 + Math.random() * 250; // Fast for laughing
+      } else if (stateName === "processing" || stateName === "thinking") {
+        delay = 1200 + Math.random() * 800; // 1.2-2 seconds for thinking/processing
+      } else if (stateName === "success" || stateName === "error") {
+        delay = 2000; // Hold for reactions
+      }
+
+      this[timerKey] = setTimeout(schedule, delay);
+    };
+    
+    // Clear any existing timer for this key
+    if (this[timerKey]) {
+        clearTimeout(this[timerKey]);
+    }
+    
+    // Fetch catalog if missing, then start
+    if (!this._frameCatalog) {
+        const assetUrl = typeof window.otaclawAssetUrl === "function" ? (p) => window.otaclawAssetUrl(p) : (p) => p;
+        fetch(assetUrl("data/frame-catalog.json?v=15" + Date.now()))
+          .then((r) => r.json())
+          .then((catalog) => {
+            // Only proceed if this is still the active token
+            if (this[`${timerKey}_token`] === runToken) {
+                this._frameCatalog = catalog;
+                schedule();
+            }
+          }).catch(() => {
+            if (this[`${timerKey}_token`] === runToken) schedule();
+          });
+    } else {
+        schedule();
+    }
+  }
+
+  stopAllAnimations() {
+    ["_idleAnimationHandle", "_thinkingAnimationHandle", "_successAnimationHandle", "_errorAnimationHandle", "_laughingAnimationHandle", "_surprisedAnimationHandle", "_tagSeqHandle", "_tagPoolAnimationHandle", "_thinkingPhaseTimer"].forEach(k => {
+        if (this[k]) {
+            clearTimeout(this[k]);
+            this[k] = null;
+        }
+    });
+  }
+
   /** Idle: gentle cycle, organic timing – spaced out, random, not constant. */
   startIdleAnimation() {
-    if (typeof window !== "undefined")
-      window.__otaclawFallbackIdleActive = false;
-    this.stopIdleAnimation();
-    if (!document.body.classList.contains("otaclaw-widget")) return;
-    if (this.config?.behavior?.animations === false) {
-      const idleSprites = this.config?.sprites?.idleSprites;
-      if (Array.isArray(idleSprites) && idleSprites.length) {
-        this._setFrameFromSprite(idleSprites[0], "");
-      } else {
-        this._setFrameDirect(0, 0, "");
-      }
-      return;
-    }
-    const sprites = this.config?.sprites || {};
-    const IDLE_SPRITES =
-      Array.isArray(sprites.idleSprites) && sprites.idleSprites.length
-        ? sprites.idleSprites
-        : null;
-    const IDLE_SEQ =
-      Array.isArray(sprites.idleSequence) && sprites.idleSequence.length
-        ? sprites.idleSequence
-        : IDLE_SPRITES && IDLE_SPRITES.length >= 10
-          ? [
-              0, 0, 1, 7, 8, 9, 3, 0, 4, 1, 7, 8, 9, 0, 5, 0, 2, 6, 0, 1, 7, 8,
-              9, 0,
-            ]
-          : [0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 2, 0];
-    const base = Number(sprites.idleBaseDelayMs || 6500);
-    const jitter = Number(sprites.idleJitterMs || 4000);
-    const groups = sprites.idleSpriteGroups || {};
-    const phaseTiming = sprites.idlePhaseTiming || {};
-    const coatIndices = Array.isArray(sprites.idleCoatIndices)
-      ? sprites.idleCoatIndices
-      : groups.coat || [3, 4, 5, 6];
-    const coatMult = Number(sprites.idleCoatMultiplier || 1);
-    const blinkDelay = Number(sprites.idleBlinkDelayMs || 50);
-    const blinkIndices = Array.isArray(sprites.idleBlinkIndices)
-      ? sprites.idleBlinkIndices
-      : groups.blink || [7, 8, 9];
-    const useBlinkOverlay = sprites.blinkOverlay !== false;
-    const seq = useBlinkOverlay
-      ? IDLE_SEQ.filter((i) => !blinkIndices.includes(i))
-      : IDLE_SEQ;
-    let idx = 0;
-    const schedule = () => {
-      if (!document.body.classList.contains("otaclaw-widget")) return;
-      const frameIdx = seq[idx % seq.length];
-      if (IDLE_SPRITES && IDLE_SPRITES[frameIdx]) {
-        this._setFrameFromSprite(IDLE_SPRITES[frameIdx], "");
-      } else {
-        this._setFrameDirect(frameIdx, 0, "");
-      }
-      idx += 1;
-      const isBlink = !useBlinkOverlay && blinkIndices.includes(frameIdx);
-      const isCoat = coatIndices.includes(frameIdx);
-      let delay;
-      if (isBlink && phaseTiming.blink) {
-        delay =
-          Number(phaseTiming.blink.baseMs || 50) +
-          Math.random() * Number(phaseTiming.blink.jitterMs || 0);
-      } else if (isCoat && phaseTiming.coat) {
-        delay =
-          Number(phaseTiming.coat.baseMs || base) +
-          Math.random() * Number(phaseTiming.coat.jitterMs || jitter);
-      } else if (!isBlink && phaseTiming.neutral) {
-        delay =
-          Number(phaseTiming.neutral.baseMs || base) +
-          Math.random() * Number(phaseTiming.neutral.jitterMs || jitter);
-      } else {
-        delay = isBlink ? blinkDelay : base + Math.random() * jitter;
-        if (isCoat) delay *= coatMult;
-      }
-      if (!isBlink && !phaseTiming.neutral && !phaseTiming.coat)
-        delay *= 0.7 + Math.random() * 0.6;
-      this._idleAnimationHandle = setTimeout(schedule, Math.round(delay));
-    };
-    schedule();
+    this.stopAllAnimations();
+    this._startTagPoolAnimation("idle", null, "_idleAnimationHandle");
   }
 
   stopIdleAnimation() {
-    if (this._idleAnimationHandle) {
-      clearTimeout(this._idleAnimationHandle);
-      this._idleAnimationHandle = null;
-    }
-    // Remove state-frame so container's state (thinking/processing/etc) applies to sprite
-    const sprite = document.getElementById("sprite");
-    if (sprite) sprite.classList.remove("state-frame");
+    this.stopAllAnimations();
   }
 
   _scheduleSleep() {
     this._cancelSleep();
     if (!document.body.classList.contains("otaclaw-widget")) return;
-    const ms = Number(this.config?.behavior?.sleepIdleMs || 180000);
+    
+    // Default to 5 minutes (300000ms) - longer sleep to avoid constant wake/sleep cycles
+    const ms = (this.config?.behavior?.sleepIdleMs !== undefined && this.config?.behavior?.sleepIdleMs !== null)
+      ? Number(this.config.behavior.sleepIdleMs) 
+      : 300000;
+      
     if (ms <= 0) return;
     this._sleepTimer = setTimeout(() => {
       this._sleepTimer = null;
@@ -1362,6 +1577,10 @@ class OtaClawApp {
       this.stopBlinkOverlay();
       if (typeof window.runSleepSequence === "function") {
         window.runSleepSequence();
+      } else {
+        // Fallback sleep state if sequence missing
+        this.otaclaw?.setState("sleeping", { speech: "zZz...", force: true });
+        document.body.classList.add("widget-asleep");
       }
     }, ms);
   }
@@ -1380,320 +1599,105 @@ class OtaClawApp {
    * @param {string} handleKey - e.g. _thinkingAnimationHandle
    */
   _runSheetSequence(stateName, speech, handleKey) {
-    const assetUrl =
-      typeof window.otaclawAssetUrl === "function"
-        ? (p) => window.otaclawAssetUrl(p)
-        : (p) => p;
-    fetch(assetUrl("data/frame-catalog.json"))
-      .then((r) => r.json())
-      .then((catalog) => {
-        const seq = catalog?.sequences?.[stateName];
-        if (!Array.isArray(seq) || seq.length === 0) return;
-        let idx = 0;
-        const schedule = () => {
-          if (!document.body.classList.contains("otaclaw-widget")) return;
-          if ((this.otaclaw?.getState?.() || "") !== stateName) return;
-          const [col, row] = seq[idx % seq.length];
-          const st = document.getElementById("speech-text");
-          const text =
-            stateName === "success"
-              ? st?.textContent || this._t("success")
-              : stateName === "error"
-                ? st?.textContent || ""
-                : idx === 0
-                  ? speech || this._t(stateName) || ""
-                  : "";
-          this._setFrameDirect(col, row, text);
-          const frameMs = this._getFrameMs(stateName, idx, 400);
-          idx += 1;
-          this[handleKey] = setTimeout(schedule, frameMs);
-        };
-        schedule();
-      })
-      .catch(() => {});
+    this.stopAllAnimations();
+    this._startTagPoolAnimation(stateName, speech, handleKey || "_tagSeqHandle");
   }
 
-  /** Thinking: contemplative wait. Processing: active generation. Uses processingSprites/Sequence when state is processing, else thinkingSprites/Sequence. Falls back to frame-catalog sequences when no sprites. */
+  /**
+   * Progressive thinking: cycles through emotional phases during the long LLM wait
+   * so Hal feels alive and engaged rather than frozen on one expression.
+   */
   startThinkingAnimation() {
-    this.stopThinkingAnimation();
-    if (!document.body.classList.contains("otaclaw-widget")) return;
-    const state = this.otaclaw?.getState?.() || "";
-    const isProcessing = state === "processing";
-    const procSprites = this.config?.sprites?.processingSprites;
-    const thinkSprites = this.config?.sprites?.thinkingSprites;
-    const sprites =
-      isProcessing && Array.isArray(procSprites) && procSprites.length
-        ? procSprites
-        : thinkSprites;
-    if (!Array.isArray(sprites) || sprites.length === 0) {
-      this._runSheetSequence(
-        isProcessing ? "processing" : "thinking",
-        "",
-        "_thinkingAnimationHandle",
-      );
-      return;
-    }
-    const procSeq = this.config?.sprites?.processingSequence;
-    const thinkSeq = this.config?.sprites?.thinkingSequence;
-    const seq =
-      isProcessing && Array.isArray(procSeq) && procSeq.length
-        ? procSeq
-        : Array.isArray(thinkSeq) && thinkSeq.length
-          ? thinkSeq
-          : [0, 1, 0, 1, 2, 1, 0];
-    const stateName = isProcessing ? "processing" : "thinking";
-    let idx = 0;
-    const schedule = () => {
-      if (!document.body.classList.contains("otaclaw-widget")) return;
-      const cur = this.otaclaw?.getState?.() || "";
-      if (cur !== "thinking" && cur !== "processing") return;
-      const useProc =
-        cur === "processing" &&
-        Array.isArray(procSprites) &&
-        procSprites.length;
-      const spr = useProc ? procSprites : sprites;
-      const seqUse =
-        useProc && Array.isArray(procSeq) && procSeq.length ? procSeq : seq;
-      const frameIdx = seqUse[idx % seqUse.length];
-      const file = spr[frameIdx];
-      if (file) this._setFrameFromSprite(file, "");
-      const frameMs = this._getFrameMs(stateName, idx, 400);
-      idx += 1;
-      this._thinkingAnimationHandle = setTimeout(schedule, frameMs);
+    this.stopAllAnimations();
+    this._thinkingPhaseIndex = 0;
+    this._thinkingPhaseStart = Date.now();
+
+    const phases = [
+      { tag: "thinking",   speech: this._t("thinking"),   minMs: 0,     maxMs: 8000  },
+      { tag: "curious",    speech: "Hmm?",                minMs: 8000,  maxMs: 20000 },
+      { tag: "processing", speech: this._t("processing"), minMs: 20000, maxMs: 40000 },
+      { tag: "thinking",   speech: "Let me see...",       minMs: 40000, maxMs: 60000 },
+      { tag: "worried",    speech: "Almost...",           minMs: 60000, maxMs: 90000 },
+      { tag: "curious",    speech: "Interesting...",      minMs: 90000, maxMs: Infinity },
+    ];
+
+    const runPhase = () => {
+      const currentState = this.otaclaw?.getState?.();
+      if (currentState !== "thinking" && currentState !== "processing") return;
+
+      const elapsed = Date.now() - this._thinkingPhaseStart;
+      let phase = phases[0];
+      for (let i = phases.length - 1; i >= 0; i--) {
+        if (elapsed >= phases[i].minMs) { phase = phases[i]; break; }
+      }
+
+      // During streaming, use accumulated LLM text for speech, but keep animation tag
+      const speechText = (this._streamingSpeechActive && this._accumulatedText)
+        ? this._accumulatedText.slice(0, 100)
+        : phase.speech;
+
+      this._startTagPoolAnimation(phase.tag, speechText, "_thinkingAnimationHandle");
+
+      const nextPhase = phases.find(p => p.minMs > elapsed);
+      if (nextPhase) {
+        const delay = nextPhase.minMs - elapsed + 200;
+        this._thinkingPhaseTimer = setTimeout(runPhase, delay);
+      }
     };
-    schedule();
+
+    runPhase();
   }
 
   stopThinkingAnimation() {
-    if (this._thinkingAnimationHandle) {
-      clearTimeout(this._thinkingAnimationHandle);
-      this._thinkingAnimationHandle = null;
+    if (this._thinkingPhaseTimer) {
+      clearTimeout(this._thinkingPhaseTimer);
+      this._thinkingPhaseTimer = null;
     }
   }
 
-  /** Success: thumbs-up micro sequence. Preserves speech bubble (Got it!). Uses successSequence when set, else successSprites. Falls back to frame-catalog when no sprites. */
-  startSuccessAnimation() {
-    this.stopSuccessAnimation();
-    if (!document.body.classList.contains("otaclaw-widget")) return;
-    const seqConfig = this.config?.sprites?.successSequence;
-    const sprites =
-      Array.isArray(seqConfig?.sprites) && seqConfig.sprites.length
-        ? seqConfig.sprites
-        : this.config?.sprites?.successSprites;
-    if (!Array.isArray(sprites) || sprites.length === 0) {
-      this._runSheetSequence("success", this._t("success"), "_successAnimationHandle");
-      return;
-    }
-    const frameMsArr = seqConfig?.frameMs;
-    let idx = 0;
-    const schedule = () => {
-      if (!document.body.classList.contains("otaclaw-widget")) return;
-      if ((this.otaclaw?.getState?.() || "") !== "success") return;
-      const st = document.getElementById("speech-text");
-      const speech = st?.textContent || this._t("success");
-      this._setFrameFromSprite(sprites[idx % sprites.length], speech);
-      const frameMs = Array.isArray(frameMsArr) && frameMsArr.length
-        ? (frameMsArr[idx % frameMsArr.length] ?? frameMsArr[0] ?? 400)
-        : this._getFrameMs("success", idx, 400);
-      idx += 1;
-      this._successAnimationHandle = setTimeout(schedule, frameMs);
-    };
-    schedule();
-  }
-
-  stopSuccessAnimation() {
-    if (this._successAnimationHandle) {
-      clearTimeout(this._successAnimationHandle);
-      this._successAnimationHandle = null;
-    }
-  }
-
-  /** Error: ¯\_(ツ)_/¯ shrug – 2 frames. Preserves speech bubble (brief reason). Falls back to frame-catalog when no sprites. */
-  startErrorAnimation() {
-    this.stopErrorAnimation();
-    if (!document.body.classList.contains("otaclaw-widget")) return;
-    const sprites = this.config?.sprites?.errorSprites;
-    if (!Array.isArray(sprites) || sprites.length === 0) {
-      const st = document.getElementById("speech-text");
-      this._runSheetSequence("error", st?.textContent || "", "_errorAnimationHandle");
-      return;
-    }
-    let idx = 0;
-    const schedule = () => {
-      if (!document.body.classList.contains("otaclaw-widget")) return;
-      if ((this.otaclaw?.getState?.() || "") !== "error") return;
-      const st = document.getElementById("speech-text");
-      const speech = st?.textContent || "";
-      this._setFrameFromSprite(sprites[idx % sprites.length], speech);
-      const frameMs = this._getFrameMs("error", idx, 500);
-      idx += 1;
-      this._errorAnimationHandle = setTimeout(schedule, frameMs);
-    };
-    schedule();
-  }
-
-  stopErrorAnimation() {
-    if (this._errorAnimationHandle) {
-      clearTimeout(this._errorAnimationHandle);
-      this._errorAnimationHandle = null;
-    }
-  }
-
-  /** Surprised: blushing / losing color – 5 frames, 2.5s total. Falls back to frame-catalog when no sprites. */
-  startSurprisedAnimation() {
-    this.stopSurprisedAnimation();
-    if (!document.body.classList.contains("otaclaw-widget")) return;
-    const sprites = this.config?.sprites?.surprisedSprites;
-    if (!Array.isArray(sprites) || sprites.length === 0) {
-      this._runSheetSequence("surprised", "", "_surprisedAnimationHandle");
-      return;
-    }
-    const cfg =
-      typeof window !== "undefined" ? window.OTACLAW_CONFIG : this.config;
-    const DURATION = cfg?.stateDurations?.surprised ?? 2500;
-    const defaultMs = Math.max(300, DURATION / sprites.length);
-    let idx = 0;
-    const schedule = () => {
-      if (!document.body.classList.contains("otaclaw-widget")) return;
-      if ((this.otaclaw?.getState?.() || "") !== "surprised") return;
-      this._setFrameFromSprite(sprites[idx % sprites.length], "");
-      const frameMs = this._getFrameMs("surprised", idx, defaultMs);
-      idx += 1;
-      this._surprisedAnimationHandle = setTimeout(schedule, frameMs);
-    };
-    schedule();
-  }
-
-  stopSurprisedAnimation() {
-    if (this._surprisedAnimationHandle) {
-      clearTimeout(this._surprisedAnimationHandle);
-      this._surprisedAnimationHandle = null;
-    }
-  }
-
-  stopLaughingAnimation() {
-    if (this._laughHandle) {
-      clearTimeout(this._laughHandle);
-      this._laughHandle = null;
-    }
-    if (this._laughEnd) {
-      clearTimeout(this._laughEnd);
-      this._laughEnd = null;
-    }
-  }
-
-  /** Laughing: laugh micro sequence (tickle), ~400ms per frame, 4s total.
-   * Prefer catalog laughing (Layer-2/3/4) when useIndividualFiles – guaranteed to exist.
-   * Fallback: config laughingSprites. Never use sheet (otaclock-original.png is gitignored). */
   startLaughingAnimation() {
-    this.stopLaughingAnimation();
-    this.stopIdleAnimation();
-    this.stopThinkingAnimation();
-    this.stopSuccessAnimation();
-    this.stopErrorAnimation();
-    this.stopSurprisedAnimation();
-    if (!document.body.classList.contains("otaclaw-widget")) return;
-    const cfg =
-      typeof window !== "undefined" ? window.OTACLAW_CONFIG : this.config;
-    const DURATION = cfg?.stateDurations?.laughing ?? 4000;
-    const cal = window.otaclaw;
-    const catalog = cal?.getSpriteCatalog?.();
-
-    /* 1) Catalog laughing sequence (Layer-2/3/4) – always works when useIndividualFiles */
-    if (catalog?.useIndividualFiles) {
-      const seq =
-        catalog.sequences?.find((s) => s.name === "laughing")?.indices ??
-        catalog.sprites
-          ?.filter((s) => s.tags?.includes("laughing"))
-          ?.map((s) => s.idx) ??
-        [38, 39];
-      if (seq.length) {
-        let idx = 0;
-        const schedule = () => {
-          if (!document.body.classList.contains("otaclaw-widget")) return;
-          if ((this.otaclaw?.getState?.() || "") !== "laughing") return;
-          if (cal?.setFrameByIndex) {
-            cal.setFrameByIndex(seq[idx % seq.length], {
-              speech: this._t("laughing"),
-            });
-          } else {
-            const s = catalog.sprites?.find((sp) => sp.idx === seq[idx % seq.length]);
-            if (s && cal?.setFrame)
-              cal.setFrame(s.col, s.row, { speech: this._t("laughing") });
-          }
-          const frameMs = this._getFrameMs("laughing", idx, 400);
-          idx += 1;
-          this._laughHandle = setTimeout(schedule, frameMs);
-        };
-        schedule();
-        this._laughEnd = setTimeout(() => {
-          if (this._laughHandle) clearTimeout(this._laughHandle);
-          this._laughHandle = null;
-          this._laughEnd = null;
-          if (document.body.classList.contains("widget-waiting")) return;
-          this.otaclaw.setState("idle", { speech: "" });
-          this.startIdleAnimation();
-        }, DURATION);
-        return;
-      }
-    }
-
-    /* 2) Config laughingSprites (otacon_sprite_laugh_00/01/02.png) */
-    const sprites = this.config?.sprites?.laughingSprites;
-    if (Array.isArray(sprites) && sprites.length) {
-      let idx = 0;
-      const schedule = () => {
-        if (!document.body.classList.contains("otaclaw-widget")) return;
-        if ((this.otaclaw?.getState?.() || "") !== "laughing") return;
-        this._setFrameFromSprite(
-          sprites[idx % sprites.length],
-          this._t("laughing"),
-        );
-        const frameMs = this._getFrameMs("laughing", idx, 400);
-        idx += 1;
-        this._laughHandle = setTimeout(schedule, frameMs);
-      };
-      schedule();
-      this._laughEnd = setTimeout(() => {
-        if (this._laughHandle) clearTimeout(this._laughHandle);
-        this._laughHandle = null;
-        this._laughEnd = null;
-        if (document.body.classList.contains("widget-waiting")) return;
-        this.otaclaw.setState("idle", { speech: "" });
-        this.startIdleAnimation();
-      }, DURATION);
-      return;
-    }
-
-    /* 3) Fallback: hardcoded Layer files – always in repo, never use sheet (404) */
-    const FALLBACK_LAUGH = [
-      "otacon_sprite.png_0037_Layer-2.png",
-      "otacon_sprite.png_0038_Layer-3.png",
-      "otacon_sprite.png_0039_Layer-4.png",
-    ];
-    const defaultMs = Math.max(200, DURATION / (FALLBACK_LAUGH.length * 2));
-    let idx = 0;
-    const schedule = () => {
-      if (!document.body.classList.contains("otaclaw-widget")) return;
-      if ((this.otaclaw?.getState?.() || "") !== "laughing") return;
-      this._setFrameFromSprite(
-        FALLBACK_LAUGH[idx % FALLBACK_LAUGH.length],
-        this._t("laughing"),
-      );
-      const frameMs = this._getFrameMs("laughing", idx, defaultMs);
-      idx += 1;
-      this._laughHandle = setTimeout(schedule, frameMs);
-    };
-    schedule();
-    this._laughEnd = setTimeout(() => {
-      if (this._laughHandle) clearTimeout(this._laughHandle);
-      this._laughHandle = null;
-      this._laughEnd = null;
-      if (document.body.classList.contains("widget-waiting")) return;
-      this.otaclaw.setState("idle", { speech: "" });
-      this.startIdleAnimation();
-    }, DURATION);
+    this.stopAllAnimations();
+    // During streaming, preserve LLM text in bubble
+    const speech = (this._streamingSpeechActive && this._accumulatedText)
+      ? this._accumulatedText.slice(0, 100)
+      : null;
+    this._startTagPoolAnimation("laughing", speech, "_laughingAnimationHandle");
   }
+
+  stopLaughingAnimation() {}
+
+  startSuccessAnimation() {
+    this.stopAllAnimations();
+    // During streaming, preserve LLM text in bubble
+    const speech = (this._streamingSpeechActive && this._accumulatedText)
+      ? this._accumulatedText.slice(0, 100)
+      : null;
+    this._startTagPoolAnimation("success", speech, "_successAnimationHandle");
+  }
+
+  stopSuccessAnimation() {}
+
+  startErrorAnimation() {
+    this.stopAllAnimations();
+    // During streaming, preserve LLM text in bubble
+    const speech = (this._streamingSpeechActive && this._accumulatedText)
+      ? this._accumulatedText.slice(0, 100)
+      : null;
+    this._startTagPoolAnimation("error", speech, "_errorAnimationHandle");
+  }
+
+  stopErrorAnimation() {}
+
+  startSurprisedAnimation() {
+    this.stopAllAnimations();
+    // During streaming, preserve LLM text in bubble
+    const speech = (this._streamingSpeechActive && this._accumulatedText)
+      ? this._accumulatedText.slice(0, 100)
+      : null;
+    this._startTagPoolAnimation("surprised", speech, "_surprisedAnimationHandle");
+  }
+
+  stopSurprisedAnimation() {}
 
   /**
    * Extract brief error reason for speech bubble (~25 chars). No full stack.
@@ -1734,7 +1738,9 @@ class OtaClawApp {
       const text =
         error && error.message
           ? String(error.message)
-          : this._t("configRequired");
+          : error
+            ? JSON.stringify(error, Object.getOwnPropertyNames(error))
+            : this._t("configRequired");
       if (msg) msg.textContent = text;
     }
   }

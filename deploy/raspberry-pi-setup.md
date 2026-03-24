@@ -570,7 +570,7 @@ sudo nano /boot/firmware/cmdline.txt
 
 After hardware setup:
 
-1. [Configure OpenClaw integration](../config/openclaw-integration.md)
+1. [Configure OpenClaw integration](../docs/OPENCLAW-INTEGRATION.md)
 2. [Customize OtaClaw appearance](../docs/CUSTOMIZATION.md)
 3. [Deploy OtaClaw to your Pi](../README.md#installation)
 

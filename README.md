@@ -7,7 +7,7 @@
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-%3E%3D2026.2.0-blue)](https://github.com/U-N-B-R-A-N-D-E-D/openclaw)
 
 <p align="center">
-  <img src="src/assets/sprites/OtIcon.png" alt="OtaClaw" width="80" />
+  <img src="src/assets/sprites/OtIcon.png" alt="OtaClaw" width="80" style="image-rendering: pixelated; image-rendering: crisp-edges;" />
 </p>
 
 <p align="center">
@@ -32,7 +32,7 @@
 ## What is OtaClaw?
 
 <p align="center">
-  <img src="src/assets/sprites/otacon_sprite.png_0004_Sprite-5.png" alt="Hal (Otacon) idle" width="120" />
+  <img src="src/assets/sprites/otacon_sprite.png_0004_Sprite-5.png" alt="Hal (Otacon) idle" width="120" style="image-rendering: pixelated; image-rendering: crisp-edges;" />
 </p>
 
 OtaClaw is a **visual face for OpenClaw** — an animated companion that accompanies your interactions with the gateway. Instead of a simple clock like the original [Kojima Productions Otaclock](https://metalgear.fandom.com/wiki/Otaclock), this version reacts to OpenClaw events with expressive animations, giving you a visual accompaniment for every exchange.
@@ -64,19 +64,67 @@ Perfect for:
 
 ## Quick Start
 
+### Option 1: Public Mode (Default - for GitHub/fresh OpenClaw installs)
+
 ```bash
 git clone https://github.com/U-N-B-R-A-N-D-E-D/otaclaw.git
 cd otaclaw
-./deploy/deploy-to-openclaw.sh --local
+
+# Copy config template
+cp config/config.example.js config/config.js
+
+# Deploy to your OpenClaw gateway
+./deploy/deploy-to-openclaw.sh --host=YOUR_OPENCLAW_HOST --user=YOUR_USER
 ```
 
-The deploy script outputs a **local network URL with token** — open it from any device on your LAN (Mac, phone, tablet) to see Hal connected to your OpenClaw.
+**What is Public Mode?**
+- Connects to OpenClaw Gateway (local or remote)
+- Uses standard OpenClaw WebSocket events
+- Works out-of-the-box with fresh OpenClaw installations
+- Falls back to demo mode if no connection
+- **Best for:** Users who want OOTB experience with standard OpenClaw
 
-Remote deploy: `./deploy/deploy-to-openclaw.sh --host=YOUR_OPENCLAW_HOST --user=YOUR_USER`
+### Option 2: Local Mode (for Raspberry Pi + Local Inference Cluster)
 
-**Dev server (no OpenClaw):** `npm start` or `npx serve src -p 8080` from repo root, then deploy when gateway is ready.
+```bash
+git clone https://github.com/U-N-B-R-A-N-D-E-D/otaclaw.git
+cd otaclaw
 
-See [QUICKSTART.md](QUICKSTART.md) for the two display modes.
+# Configure for local inference cluster
+cp config/config.example.js config/config.js
+
+# Edit config.js to enable local mode:
+# mode: 'local',
+# localCluster: {
+#   nodes: ['192.168.86.23', '192.168.86.29'],
+#   modelName: 'Qwen3.5-4B',
+#   showClusterStatus: true
+# }
+
+# Deploy to your Pi
+./deploy/deploy-to-openclaw.sh --host=YOUR_PI_HOST --user=pi
+```
+
+**What is Local Mode?**
+- Connects to local inference cluster (e.g., Mac Minis running Qwen3.5-4B)
+- Shows cluster health status in debug panel
+- Extended timeouts for local network inference
+- **Best for:** Users with local LLM inference setups
+
+### Development Server (no OpenClaw)
+
+```bash
+npm start
+# or
+npx serve src -p 8080
+```
+
+**Dev server features:**
+- Demo mode with simulated interactions
+- All animations work without OpenClaw
+- URL params: `?demo=1`, `?emotions=1`, `?kiosk=1`
+
+See [QUICKSTART.md](QUICKSTART.md) for detailed display modes and configuration.
 
 ---
 
