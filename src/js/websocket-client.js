@@ -209,11 +209,26 @@ export class WebSocketClient {
           data.event === "session.start" ||
           data.event === "session.end" ||
           data.event === "channel.connected" ||
-          data.event === "channel.disconnected"
+          data.event === "channel.disconnected" ||
+          data.event === "easter.konami" ||
+          data.event === "easter.grayfox" ||
+          data.event === "easter.panic" ||
+          data.event === "easter.codec" ||
+          data.event === "command.codec"
         ) {
           normalized = { type: data.event, data: data.payload };
         } else {
           normalized = { type: data.event, data: data.payload };
+        }
+      }
+
+      // Check for special commands in message content
+      if (data.payload?.message || data.payload?.content) {
+        const command = this._detectSpecialCommand(
+          data.payload.message || data.payload.content
+        );
+        if (command) {
+          normalized.type = command;
         }
       }
 
@@ -273,6 +288,16 @@ export class WebSocketClient {
    * Handle OpenClaw-specific events and map to OtaClaw states
    */
   handleOpenClawEvent(data) {
+    // Handle easter egg triggers (bot sends event + payload; normalization may put payload in data.data)
+    if (data.type === 'easter.trigger' || data.event === 'easter.trigger') {
+      const payload = data.payload || data.data || {};
+      const easterEgg = payload.easterEgg || data.easterEgg;
+      if (easterEgg) {
+        this.emit(`easter.${easterEgg}`, payload);
+      }
+      return;
+    }
+    
     const eventMap = this.config.eventMap || {};
     const eventType = data.type;
 
@@ -347,7 +372,35 @@ export class WebSocketClient {
       case "client.interaction":
         this.emit("clientInteraction", data);
         break;
+
+      case "command.codec":
+      case "easter.codec":
+        this.emit("codecCommand", data);
+        break;
     }
+  }
+
+  /**
+   * Check for special commands in message content
+   * @param {string} content - Message text
+   * @returns {string|null} Command type or null
+   */
+  _detectSpecialCommand(content) {
+    if (!content) return null;
+
+    const lower = content.toLowerCase().trim();
+
+    // Codec mode toggle
+    if (lower === '!codec' || lower === '/codec') {
+      return 'command.codec';
+    }
+
+    // Other easter eggs can be added here
+    if (lower === '!konami' || lower === 'konami code') {
+      return 'easter.konami';
+    }
+
+    return null;
   }
 
   /**
@@ -399,7 +452,8 @@ export class WebSocketClient {
   }
 
   /**
-   * Schedule reconnection attempt with optional exponential backoff
+   * Schedule reconnection attempt with exponential backoff and jitter
+   * Improves UX by preventing thundering herd and providing visual feedback
    */
   scheduleReconnect() {
     const {
@@ -422,12 +476,19 @@ export class WebSocketClient {
 
     this.reconnectAttempts++;
 
+    // Calculate delay with exponential backoff
     let delay = Number(reconnectInterval) || 5000;
     if (reconnectBackoff) {
       const cap = Math.max(delay, Number(maxBackoffMs) || 60000);
       delay = Math.min(delay * Math.pow(2, this.reconnectAttempts - 1), cap);
     }
 
+    // Add jitter (±25%) to prevent thundering herd
+    const jitter = delay * 0.25;
+    delay = delay + (Math.random() * jitter * 2 - jitter);
+    delay = Math.round(delay);
+
+    // Emit offline suggestion after threshold
     if (
       offlineAfterReconnects > 0 &&
       this.reconnectAttempts >= offlineAfterReconnects
@@ -440,15 +501,40 @@ export class WebSocketClient {
       `Scheduling reconnect attempt ${this.reconnectAttempts} in ${delay}ms`,
     );
 
+    // Emit detailed reconnection event for UI feedback
     this.emit("reconnecting", {
       attempt: this.reconnectAttempts,
       maxAttempts: maxReconnectAttempts,
       delay,
+      progress: this._calculateReconnectProgress(maxReconnectAttempts),
+      message: this._getReconnectMessage(this.reconnectAttempts),
     });
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnect();
     }, delay);
+  }
+
+  /**
+   * Calculate reconnect progress percentage
+   */
+  _calculateReconnectProgress(maxAttempts) {
+    if (!maxAttempts || maxAttempts <= 0) return 0;
+    return Math.min((this.reconnectAttempts / maxAttempts) * 100, 95);
+  }
+
+  /**
+   * Get user-friendly reconnect message
+   */
+  _getReconnectMessage(attempt) {
+    const messages = [
+      'Reconnecting...',
+      'Connection lost. Retrying...',
+      'Still reconnecting...',
+      'Having trouble connecting...',
+      'Attempting to reconnect...',
+    ];
+    return messages[Math.min(attempt - 1, messages.length - 1)];
   }
 
   /**
@@ -549,11 +635,11 @@ export class WebSocketClient {
               : "browser",
           mode: "webchat",
         },
-        /* role/scopes omitted – gateway may reject operator without device auth; webchat mode works */
         userAgent:
           typeof navigator !== "undefined" && navigator.userAgent
             ? navigator.userAgent
             : "otaclaw",
+        scopes: ["operator.read", "operator.write"],
         ...(authToken ? { auth: { token: authToken } } : {}),
       },
     };

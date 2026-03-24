@@ -83,7 +83,6 @@ export class OtaClawEngine {
 
     let lastTap = 0;
     let lastTickleTime = 0;
-    const debounceTime = this.config.touch?.debounceTime || 300;
     const TICKLE_IGNORE_CLICK_MS = 500;
     const TICKLE_DEBOUNCE_MS = 1500;
     const SWIPE_MIN_PX = 20;
@@ -112,7 +111,15 @@ export class OtaClawEngine {
     function onTap(e) {
       const now = Date.now();
       if (now - lastTickleTime < TICKLE_IGNORE_CLICK_MS) return;
-      if (now - lastTap < debounceTime) return;
+      
+      // Double tap detection for tickle
+      if (now - lastTap < 600) {
+        lastTap = 0; // reset
+        lastTickleTime = now;
+        this.emit("tickle", { x: e.clientX, y: e.clientY });
+        return;
+      }
+      
       lastTap = now;
 
       this.emit("tap", { x: e.clientX, y: e.clientY });
@@ -353,6 +360,7 @@ export class OtaClawEngine {
       timestamp: Date.now(),
       trigger: options.trigger,
       data: options.data,
+      speech: options.speech,
     });
 
     this.log("info", `State changed: ${this.previousState} -> ${newState}`);
@@ -421,9 +429,12 @@ export class OtaClawEngine {
     }, 250);
 
     // Update speech bubble if options.speech provided
+    // Skip if streaming is active (preserves LLM text being typed)
     const speechText = document.getElementById("speech-text");
     const speechBubble = document.getElementById("speech-bubble");
-    if (options.speech !== undefined && speechText && speechBubble) {
+    const isStreaming = window.__otaclawStreamingActive === true;
+    
+    if (options.speech !== undefined && speechText && speechBubble && !isStreaming) {
       speechText.textContent = options.speech;
       speechBubble.classList.toggle("has-text", !!options.speech);
     }

@@ -69,15 +69,21 @@
               return "";
             }
           })(),
-          reconnectInterval: 5000,
-          maxReconnectAttempts: 12,
-          connectionTimeout: 10000,
-          heartbeatInterval: 45000,
-          staleThreshold: 300000,
+          reconnectInterval: 3000,
+          reconnectBackoff: false,
+          maxReconnectAttempts: 0,
+          connectionTimeout: 20000,
+          heartbeatInterval: 20000,
+          staleThreshold: 60000,
           maxQueuedMessages: 120,
+          // Set to "channel:<ID>" or "user:<ID>" to route tickle reactions to a chat channel.
+          // Get the ID from Discord: Settings > Advanced > Developer Mode, then right-click channel > Copy Channel ID.
+          // Leave null to only animate on screen (no chat delivery).
+          tickleDiscordChannel: null,
         },
         personality: "hal",
         behavior: {
+          profile: "expressive",
           idleTimeout: 30000,
           agentResponseTimeoutMs: 35000,
           sleepIdleMs: 180000,
@@ -97,7 +103,19 @@
           "error",
           "laughing",
           "surprised",
+          "curious",
+          "confused",
+          "excited",
+          "presenting",
+          "worried",
+          "sad",
+          "scared"
         ],
+        stateChaining: {
+          success: { next: "presenting", duration: 1500 },
+          laughing: { next: "excited", duration: 1000 },
+          error: { next: "sad", duration: 2000 },
+        },
         eventMap: {
           "agent.message.start": "thinking",
           "agent.message.delta": "processing",
@@ -149,22 +167,12 @@
             coat: [3, 4, 5, 6],
             blink: [7, 8, 9],
           },
-          idleSprites: [
-            "otacon_sprite.png_0004_Sprite-5.png",
-            "otacon_sprite.png_0005_Sprite-6.png",
-            "otacon_sprite.png_0006_Sprite-7.png",
-            "otacon_sprite_coat_00.png",
-            "otacon_sprite_coat_01.png",
-            "otacon_sprite_coat_02.png",
-            "otacon_sprite_coat_03.png",
-            "otacon_sprite_blink_00.png",
-            "otacon_sprite_blink_01.png",
-            "otacon_sprite_blink_02.png",
-          ],
+          idleSprites: null,
           /* Sequence: indices into idleSprites. Blink (7,8,9) runs fast (~50ms/frame); coat (3–6) slower. */
           idleSequence: [
-            0, 0, 1, 7, 8, 9, 3, 0, 4, 1, 7, 8, 9, 0, 5, 0, 2, 6, 0, 1, 7, 8, 9,
-            0,
+            [0, 0], [0, 0], [3, 0], [0, 0], 
+            [4, 0], [0, 0], [5, 1], [0, 0], 
+            [8, 0], [0, 0], [1, 0], [0, 0]
           ],
           idleBaseDelayMs: 5000,
           idleJitterMs: 3000,
@@ -176,45 +184,21 @@
           idleCoatIndices: [3, 4, 5, 6],
           idleCoatMultiplier: 3,
           idleBlinkDelayMs: 50,
+          blinkOverlay: true,
           /* Thinking: contemplative wait (message received, not yet generating). */
-          thinkingSprites: [
-            "otacon_sprite_think_00.png",
-            "otacon_sprite_think_01.png",
-            "otacon_sprite_think_02.png",
-          ],
+          thinkingSprites: null,
           thinkingSequence: [0, 1, 0, 1, 2, 1, 0],
           /* Processing: active generation (tokens streaming). If absent, uses thinkingSprites. */
           processingSprites: null,
           processingSequence: [0, 1, 0, 1],
           /* Success: thumbs-up micro sequence */
-          successSprites: [
-            "otacon_sprite_thumbs_00.png",
-            "otacon_sprite_thumbs_01.png",
-            "otacon_sprite_thumbs_02.png",
-            "otacon_sprite_thumbs_03.png",
-            "otacon_sprite_thumbs_04.png",
-            "otacon_sprite_thumbs_05.png",
-            "otacon_sprite_thumbs_06.png",
-          ],
+          successSprites: null,
           /* Error: shrug / frustration */
-          errorSprites: [
-            "otacon_sprite_frustration_00.png",
-            "otacon_sprite_frustration_01.png",
-          ],
+          errorSprites: null,
           /* Laughing: tickle / laugh */
-          laughingSprites: [
-            "otacon_sprite_laugh_00.png",
-            "otacon_sprite_laugh_01.png",
-            "otacon_sprite_laugh_02.png",
-          ],
+          laughingSprites: null,
           /* Surprised: blushing */
-          surprisedSprites: [
-            "otacon_sprite_blush_00.png",
-            "otacon_sprite_blush_01.png",
-            "otacon_sprite_blush_02.png",
-            "otacon_sprite_blush_03.png",
-            "otacon_sprite_blush_04.png",
-          ],
+          surprisedSprites: null,
           frames: {
             idle: 2,
             thinking: 2,
@@ -262,6 +246,28 @@
               [2, 0],
               [5, 0],
               [11, 0],
+            ],
+            excited: [
+              [2, 1],
+              [6, 3],
+              [7, 3],
+            ],
+            curious: [
+              [5, 2],
+              [1, 2],
+            ],
+            worried: [
+              [0, 2],
+              [4, 2],
+            ],
+            scared: [
+              [9, 0],
+              [10, 0],
+              [10, 3],
+            ],
+            presenting: [
+              [6, 3],
+              [7, 3],
             ],
             sad: [
               [2, 2],
@@ -422,10 +428,10 @@
         });
       })();
     </script>
-    <link rel="stylesheet" href="css/otaclaw.css" />
-    <link rel="stylesheet" href="css/animations.css" />
-    <link rel="stylesheet" href="css/sprite-sheet.css" />
-    <link rel="stylesheet" href="css/widget.css" />
+    <link rel="stylesheet" href="css/otaclaw.css?v=20" />
+    <link rel="stylesheet" href="css/animations.css?v=20" />
+    <link rel="stylesheet" href="css/sprite-sheet.css?v=20" />
+    <link rel="stylesheet" href="css/widget.css?v=20" />
     <link rel="icon" type="image/png" href="assets/favicon.png" />
   </head>
   <body class="use-otacon-sprite otaclaw-widget">
@@ -553,9 +559,9 @@
         }
       })();
     </script>
-    <script src="js/display-tools.js"></script>
-    <script src="js/app-calibration.js"></script>
-    <script type="module" src="js/app.js"></script>
+    <script src="js/display-tools.js?v=20"></script>
+    <script src="js/app-calibration.js?v=20"></script>
+    <script type="module" src="js/app.js?v=46"></script>
   </body>
   <div
     id="boot-black-overlay"

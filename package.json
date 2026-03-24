@@ -1,6 +1,6 @@
 {
   "name": "otaclaw-openclaw",
-  "version": "0.0.1",
+  "version": "0.0.5",
   "description": "An animated Otacon avatar interface for OpenClaw - Give your AI a face that reacts to every interaction",
   "main": "src/index.html",
   "type": "module",
@@ -11,8 +11,10 @@
     "build": "echo 'No build step required - OtaClaw is vanilla HTML/CSS/JS'",
     "deploy": "./deploy/deploy-to-openclaw.sh",
     "deploy:remote": "./deploy/deploy-to-openclaw.sh",
-    "lint": "npx eslint src/js/",
-    "test": "echo 'Tests not yet implemented'",
+    "lint": "npx eslint src/js/ --ignore-pattern '**/__tests__/**' --ignore-pattern '**/*.test.js' --ignore-pattern 'src/js/app-refactored.js'",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "npm test -- --watch",
+    "test:coverage": "npm test -- --coverage",
     "format": "npx prettier --write 'src/**/*.{js,css,html}'",
     "clean": "rm -rf node_modules"
   },
@@ -44,18 +46,12 @@
   "homepage": "https://github.com/U-N-B-R-A-N-D-E-D/otaclaw#readme",
   "devDependencies": {
     "eslint": "^8.55.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
     "prettier": "^3.1.1",
     "serve": "^14.2.1"
   },
   "engines": {
     "node": ">=16.0.0"
-  },
-  "browserslist": [
-    "last 2 Chrome versions",
-    "last 2 Firefox versions",
-    "last 2 Safari versions",
-    "last 2 Edge versions",
-    "Chrome >= 80",
-    "Firefox >= 80"
-  ]
+  }
 }
