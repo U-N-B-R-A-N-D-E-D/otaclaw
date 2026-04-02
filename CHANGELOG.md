@@ -2,6 +2,21 @@
 
 All notable changes to OtaClaw for OpenClaw.
 
+## [0.0.6] - 2026-04-02
+
+### Fixed
+
+- **Speech bubble thinking tokens** – Filter LLM reasoning artifacts from display. Removes `<think>...</think>` blocks, repetitive dots (`........`), reasoning markers, and incomplete thinking tags that were showing raw in the speech bubble during streaming.
+- **Speech bubble text overflow** – Improved CSS with word-wrap, max-width (320px), and proper text centering. Long messages now wrap instead of overflowing the bubble.
+- **Text truncation** – Show last 80 chars of response (recent context) instead of first 100 chars when text is long.
+
+### Changed
+
+- Speech bubble font size reduced slightly (20px → 18px in widget) for better readability with longer text
+- Added `_cleanThinkingTokens()` utility for filtering LLM artifacts
+
+**Compatibility:** Tested with OpenClaw 2026.4.1 (protocol v3).
+
 ## [0.0.1] - 2026-03-01
 
 ### Added
@@ -50,4 +65,4 @@ Initial release. WebSocket integration, emotional states, kiosk mode, deploy scr
 
 ---
 
-**Compatibility:** OtaClaw requires OpenClaw 2026.2.x or later (protocol v3).
+**Compatibility:** OtaClaw requires OpenClaw 2026.2.x or later (protocol v3). Tested with OpenClaw 2026.4.1.

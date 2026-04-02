@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/github/package-json/v/U-N-B-R-A-N-D-E-D/otaclaw)](https://github.com/U-N-B-R-A-N-D-E-D/otaclaw)
 [![Node](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen)](https://nodejs.org)
-[![OpenClaw](https://img.shields.io/badge/OpenClaw-%3E%3D2026.2.0-blue)](https://github.com/U-N-B-R-A-N-D-E-D/openclaw)
+[![OpenClaw](https://img.shields.io/badge/OpenClaw-%3E%3D2026.2.0-blue)](https://github.com/openclaw/openclaw)
 
 <p align="center">
   <img src="src/assets/sprites/OtIcon.png" alt="OtaClaw" width="80" style="image-rendering: pixelated; image-rendering: crisp-edges;" />
@@ -96,7 +96,7 @@ cp config/config.example.js config/config.js
 # Edit config.js to enable local mode:
 # mode: 'local',
 # localCluster: {
-#   nodes: ['192.168.86.23', '192.168.86.29'],
+#   nodes: ['192.168.1.10', '192.168.1.11'],  # Your local inference nodes
 #   modelName: 'Qwen3.5-4B',
 #   showClusterStatus: true
 # }

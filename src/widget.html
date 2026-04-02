@@ -55,8 +55,22 @@
     <script>
       window.OTACLAW_CONFIG = {
         openclaw: {
-          host: "auto",
-          port: 18789,
+          // Allow URL params to override: ?host=YOUR_OPENCLAW_HOST&port=18789
+          host: (function () {
+            try {
+              return new URLSearchParams(window.location.search).get("host") || "auto";
+            } catch (_) {
+              return "auto";
+            }
+          })(),
+          port: (function () {
+            try {
+              var p = new URLSearchParams(window.location.search).get("port");
+              return p ? parseInt(p, 10) : 18789;
+            } catch (_) {
+              return 18789;
+            }
+          })(),
           wsPath: "/ws",
           protocolVersion: 3,
           authToken: (function () {
