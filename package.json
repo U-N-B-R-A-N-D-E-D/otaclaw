@@ -1,6 +1,6 @@
 {
   "name": "otaclaw-openclaw",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "An animated Otacon avatar interface for OpenClaw - Give your AI a face that reacts to every interaction",
   "main": "src/index.html",
   "type": "module",
@@ -38,7 +38,7 @@
   "author": "[ U N B R A N D E D ]",
   "license": "MIT",
   "peerDependencies": {
-    "openclaw": ">=2026.2.0"
+    "openclaw": ">=2026.2.0 || >=2026.4.0"
   },
   "bugs": {
     "url": "https://github.com/U-N-B-R-A-N-D-E-D/otaclaw/issues"

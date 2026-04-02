@@ -639,10 +639,12 @@ class OtaClawApp {
     });
 
     this.wsClient.on("agentComplete", (data) => {
-      // Show final accumulated text briefly before success state
-      const finalText = this._accumulatedText?.slice(0, 100);
+      // Clean and show final accumulated text briefly before success state
+      const rawText = this._accumulatedText || "";
+      const cleanedText = this._cleanThinkingTokens(rawText);
+      const finalText = cleanedText?.slice(-80) || "";
       this._clearStreamingState();
-      // Use accumulated text for speech bubble if we have it
+      // Use cleaned accumulated text for speech bubble if we have it
       this.otaclaw.setState("success", {
         trigger: "agent.complete",
         data,
@@ -1295,11 +1297,62 @@ class OtaClawApp {
   }
 
   /**
+   * Clean LLM thinking tokens and artifacts from text for speech bubble display.
+   * Filters: <think>...</think>, reasoning markers, repetitive dots, etc.
+   * @param {string} text - Raw LLM output
+   * @returns {string} Cleaned text suitable for display
+   */
+  _cleanThinkingTokens(text) {
+    if (!text || typeof text !== "string") return "";
+
+    let cleaned = text;
+
+    // Remove <think>...</think> blocks (Qwen3, Claude thinking mode)
+    cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, "");
+    cleaned = cleaned.replace(/<thinking>[\s\S]*?<\/thinking>/gi, "");
+    
+    // Remove [thinking]...[/thinking] markers
+    cleaned = cleaned.replace(/\[thinking\][\s\S]*?\[\/thinking\]/gi, "");
+    cleaned = cleaned.replace(/\[think\][\s\S]*?\[\/think\]/gi, "");
+    
+    // Remove incomplete thinking tags at start (streaming mid-block)
+    cleaned = cleaned.replace(/^[\s\S]*?<\/think>/gi, "");
+    cleaned = cleaned.replace(/^[\s\S]*?<\/thinking>/gi, "");
+    cleaned = cleaned.replace(/<think>[\s\S]*$/gi, "");
+    cleaned = cleaned.replace(/<thinking>[\s\S]*$/gi, "");
+    
+    // Remove repetitive dots (4+ dots in a row) - common LLM thinking artifact
+    cleaned = cleaned.replace(/\.{4,}/g, "...");
+    
+    // Remove lines that are only dots or whitespace
+    cleaned = cleaned.replace(/^[\s.]+$/gm, "");
+    
+    // Remove markdown code fence thinking (```thinking ... ```)
+    cleaned = cleaned.replace(/```thinking[\s\S]*?```/gi, "");
+    cleaned = cleaned.replace(/```think[\s\S]*?```/gi, "");
+    
+    // Remove reasoning step markers like "Step 1:", "Thought:", etc.
+    cleaned = cleaned.replace(/^(Step \d+:|Thought:|Reasoning:|Analysis:)\s*/gim, "");
+    
+    // Collapse multiple newlines and clean whitespace
+    cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
+    cleaned = cleaned.trim();
+
+    return cleaned;
+  }
+
+  /**
    * Update speech bubble with streaming text (like Discord message editing)
    * Shows accumulated text in real-time as it arrives from deltas
    */
   _updateStreamingSpeech(text) {
     if (!text || typeof text !== "string") return;
+
+    // Clean thinking tokens before display
+    const cleanedText = this._cleanThinkingTokens(text);
+    
+    // Skip if only thinking tokens were present (nothing to show)
+    if (!cleanedText || cleanedText.length < 2) return;
 
     // Mark streaming as active (local and global for otaclaw.js)
     this._streamingSpeechActive = true;
@@ -1308,10 +1361,19 @@ class OtaClawApp {
     }
 
     // Truncate for display (keep it readable in the bubble)
-    const maxLength = 100;
-    const displayText = text.length > maxLength
-      ? text.slice(0, maxLength - 3) + "..."
-      : text;
+    const maxLength = 80;
+    let displayText = cleanedText;
+    
+    // Take last meaningful portion if too long (shows recent context)
+    if (displayText.length > maxLength) {
+      // Find a good break point (word boundary)
+      displayText = displayText.slice(-maxLength);
+      const spaceIdx = displayText.indexOf(" ");
+      if (spaceIdx > 0 && spaceIdx < 20) {
+        displayText = displayText.slice(spaceIdx + 1);
+      }
+      displayText = "..." + displayText;
+    }
 
     // Update speech bubble DOM directly
     const st = document.getElementById("speech-text");

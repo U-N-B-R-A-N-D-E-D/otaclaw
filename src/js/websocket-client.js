@@ -44,8 +44,20 @@ export class WebSocketClient {
 
   /**
    * Build WebSocket URL from configuration
+   * Priority: URL param hal_ws > config host/port > auto (localhost)
    */
   getWebSocketUrl() {
+    // Check URL param hal_ws first (used when running on remote device like Pi)
+    if (typeof window !== "undefined") {
+      try {
+        const urlWs = new URLSearchParams(window.location.search).get("hal_ws");
+        if (urlWs) {
+          console.log("[WS] Using hal_ws URL param:", urlWs);
+          return urlWs;
+        }
+      } catch (_) {}
+    }
+    
     let { host, port, wsPath } = this.config.openclaw;
     if (host === "auto" || !host)
       host =
