@@ -635,7 +635,8 @@ export class OtaClawEngine {
     const debugConnectionSection = document.getElementById(
       "debug-connection-section",
     );
-    const showConnectionMetrics = this.config?.openclaw?.debugPanel !== false;
+    const showConnectionMetrics =
+      (this.config?.gateway || this.config?.openclaw)?.debugPanel !== false;
     if (debugConnectionSection) {
       debugConnectionSection.classList.toggle("hidden", !showConnectionMetrics);
     }

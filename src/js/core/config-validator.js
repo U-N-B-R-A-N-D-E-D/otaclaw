@@ -16,9 +16,28 @@
  * ```
  */
 
+/**
+ * Normalize gateway connection config.
+ * Prefers `gateway`; keeps `openclaw` as a backward-compatible alias.
+ * Any WebSocket event gateway (OpenClaw, HAL Discord bot, custom) works.
+ *
+ * @param {Object} config
+ * @returns {Object} same config object, mutated for alias sync
+ */
+export function normalizeGatewayConfig(config) {
+  if (!config || typeof config !== 'object') return config;
+  // Prefer `gateway` when set; otherwise lift the legacy `openclaw` alias.
+  if (config.gateway) {
+    config.openclaw = config.gateway;
+  } else if (config.openclaw) {
+    config.gateway = config.openclaw;
+  }
+  return config;
+}
+
 export class ConfigValidator {
   constructor(config) {
-    this.config = config;
+    this.config = normalizeGatewayConfig(config);
     this.errors = [];
     this.warnings = [];
   }
@@ -112,49 +131,49 @@ export class ConfigValidator {
   }
 
   /**
-   * Validate OpenClaw connection settings
+   * Validate gateway connection settings (`gateway` or legacy `openclaw`)
    */
   _validateOpenClaw() {
-    const oc = this.config.openclaw;
+    const oc = this.config.gateway || this.config.openclaw;
 
     if (!oc) {
-      this.errors.push('Missing required section: openclaw');
+      this.errors.push('Missing required section: gateway (or openclaw alias)');
       return;
     }
 
     // Host validation
     if (!oc.host) {
-      this.warnings.push('openclaw.host is not set, will use "auto"');
+      this.warnings.push('gateway.host is not set, will use "auto"');
     }
 
     // Port validation
     const port = Number(oc.port);
     if (isNaN(port) || port < 1 || port > 65535) {
-      this.errors.push(`openclaw.port must be a valid port number (1-65535), got: ${oc.port}`);
+      this.errors.push(`gateway.port must be a valid port number (1-65535), got: ${oc.port}`);
     }
 
     // WebSocket path
     if (oc.wsPath && typeof oc.wsPath !== 'string') {
-      this.errors.push('openclaw.wsPath must be a string');
+      this.errors.push('gateway.wsPath must be a string');
     }
 
     // Timeouts
     if (oc.connectionTimeout !== undefined) {
       const timeout = Number(oc.connectionTimeout);
       if (isNaN(timeout) || timeout < 1000) {
-        this.warnings.push('openclaw.connectionTimeout is very low (<1000ms), may cause connection failures');
+        this.warnings.push('gateway.connectionTimeout is very low (<1000ms), may cause connection failures');
       }
     }
 
     // Reconnect settings
     if (oc.maxReconnectAttempts !== undefined && oc.maxReconnectAttempts < 0) {
-      this.errors.push('openclaw.maxReconnectAttempts must be >= 0');
+      this.errors.push('gateway.maxReconnectAttempts must be >= 0');
     }
 
     if (oc.reconnectInterval !== undefined) {
       const interval = Number(oc.reconnectInterval);
       if (isNaN(interval) || interval < 1000) {
-        this.warnings.push('openclaw.reconnectInterval is very low (<1000ms)');
+        this.warnings.push('gateway.reconnectInterval is very low (<1000ms)');
       }
     }
   }
@@ -347,13 +366,19 @@ export class ConfigValidator {
    * Useful for debugging
    */
   getSummary() {
-    const oc = this.config?.openclaw || {};
+    const oc = this.config?.gateway || this.config?.openclaw || {};
     const behavior = this.config?.behavior || {};
     const states = this.config?.states || [];
     const cluster = this.config?.localCluster || {};
 
     const summary = {
       mode: this.config?.mode || 'public',
+      gateway: {
+        host: oc.host || 'auto',
+        port: oc.port || 18789,
+        wsPath: oc.wsPath || '/ws',
+      },
+      // Backward-compatible alias for older tests / callers
       openclaw: {
         host: oc.host || 'auto',
         port: oc.port || 18789,

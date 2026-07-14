@@ -12,16 +12,18 @@ git clone https://github.com/U-N-B-R-A-N-D-E-D/otaclaw.git && cd otaclaw && ./de
 
 Replace `YOUR_HOST` and `YOUR_USER` with your OpenClaw host and SSH user. Use `--local` for same-machine install.
 
-## 1. Install OpenClaw
+## 1. Install a Compatible Gateway
 
-OtaClaw is a visual face for OpenClaw. Install the gateway first:
+OtaClaw is a visual face for **any** event gateway that speaks the WebSocket protocol in [docs/WEBSOCKET-PROTOCOL.md](docs/WEBSOCKET-PROTOCOL.md).
+
+**OpenClaw (optional):**
 
 ```bash
 npm install -g openclaw
 openclaw onboard
 ```
 
-See [docs.openclaw.ai](https://docs.openclaw.ai) for full setup.
+See [docs.openclaw.ai](https://docs.openclaw.ai) for full setup. HAL Discord bot and custom bridges work the same way — point `gateway.host` / `gateway.port` at your WS endpoint.
 
 ## 2. Clone and Deploy
 
@@ -59,7 +61,7 @@ Then open `http://YOUR_HOST:18789/__openclaw__/canvas/otaclaw/widget.html`
 
 Edit the config for your setup (host, port, states, sprites). See [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md).
 
-## No OpenClaw Yet?
+## No Gateway Yet?
 
 Run the dev server to try the UI in demo mode:
 
@@ -69,7 +71,7 @@ npm start
 # Open http://localhost:8080
 ```
 
-Tap "Start in Demo Mode" to cycle through states. Deploy once OpenClaw is running.
+Tap "Start in Demo Mode" to cycle through states. Deploy once your gateway is running.
 
 ---
 

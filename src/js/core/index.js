@@ -9,21 +9,14 @@
  * - AnimationController: Sprite animation state machine
  * - ConfigValidator: Runtime configuration validation
  * - StateMachine: Emotional state transitions
- *
- * ## Usage
- * ```javascript
- * import {
- *   TimerManager,
- *   AnimationController,
- *   ConfigValidator,
- *   StateMachine,
- *   validateConfig
- * } from './core/index.js';
- * ```
+ * - ThinkingParser: Streaming reasoning trace parser
+ * - OtaclawMonitor: Optional logging / metrics / remote export
  */
 
 export { TimerManager, timerManager } from './timer-manager.js';
 export { AnimationController } from './animation-controller.js';
-export { ConfigValidator, validateConfig } from './config-validator.js';
+export { ConfigValidator, validateConfig, normalizeGatewayConfig } from './config-validator.js';
 export { StateMachine } from './state-machine.js';
 export { ThinkingParser, thinkingParser } from './thinking-parser.js';
+export { OtaclawMonitor, otaclawMonitor } from './monitor.js';
+export { CharacterExpressionEngine, characterExpression } from './character-expression.js';

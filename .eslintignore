@@ -5,4 +5,3 @@ coverage/
 **/__tests__/**
 **/*.test.js
 **/*.spec.js
-src/js/app-refactored.js

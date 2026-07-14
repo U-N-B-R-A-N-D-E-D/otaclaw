@@ -1,7 +1,7 @@
 {
   "name": "otaclaw-openclaw",
-  "version": "0.0.6",
-  "description": "An animated Otacon avatar interface for OpenClaw - Give your AI a face that reacts to every interaction",
+  "version": "0.0.7",
+  "description": "Animated Otacon avatar for any WebSocket event gateway (OpenClaw, HAL, custom) — give your AI a face that reacts to every interaction",
   "main": "src/index.html",
   "type": "module",
   "scripts": {
@@ -11,7 +11,7 @@
     "build": "echo 'No build step required - OtaClaw is vanilla HTML/CSS/JS'",
     "deploy": "./deploy/deploy-to-openclaw.sh",
     "deploy:remote": "./deploy/deploy-to-openclaw.sh",
-    "lint": "npx eslint src/js/ --ignore-pattern '**/__tests__/**' --ignore-pattern '**/*.test.js' --ignore-pattern 'src/js/app-refactored.js'",
+    "lint": "npx eslint src/js/ --ignore-pattern '**/__tests__/**' --ignore-pattern '**/*.test.js'",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "npm test -- --watch",
     "test:coverage": "npm test -- --coverage",
@@ -24,9 +24,12 @@
   },
   "keywords": [
     "openclaw",
+    "hal",
     "ai",
     "avatar",
     "websocket",
+    "inference",
+    "llm",
     "raspberry-pi",
     "touchscreen",
     "kiosk",
@@ -39,6 +42,11 @@
   "license": "MIT",
   "peerDependencies": {
     "openclaw": ">=2026.2.0 || >=2026.4.0"
+  },
+  "peerDependenciesMeta": {
+    "openclaw": {
+      "optional": true
+    }
   },
   "bugs": {
     "url": "https://github.com/U-N-B-R-A-N-D-E-D/otaclaw/issues"

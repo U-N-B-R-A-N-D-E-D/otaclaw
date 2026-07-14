@@ -1,12 +1,16 @@
 /**
- * OtaClaw for OpenClaw - WebSocket Client
- * Handles connection to OpenClaw Gateway and event routing
- * Config passed from app (window.OTACLAW_CONFIG or config.js)
+ * OtaClaw WebSocket Client
+ * Handles connection to any compatible event gateway (OpenClaw, HAL Discord bot, custom)
+ * and routes agent.* / gateway.* events to the avatar.
+ * Config: window.OTACLAW_CONFIG or config.js — use `gateway` (preferred) or `openclaw` (alias).
  */
+
+import { otaclawMonitor as monitor } from "./core/monitor.js";
+import { normalizeGatewayConfig } from "./core/config-validator.js";
 
 export class WebSocketClient {
   constructor(config) {
-    this.config = config;
+    this.config = normalizeGatewayConfig(config) || config;
     this.ws = null;
     this.reconnectAttempts = 0;
     this.reconnectTimer = null;
@@ -15,7 +19,7 @@ export class WebSocketClient {
     this.lastReceivedAt = 0;
     this.maxQueuedMessages = Math.max(
       10,
-      Number(this.config?.openclaw?.maxQueuedMessages || 120),
+      Number(this.gateway?.maxQueuedMessages || 120),
     );
     this.queueDropCount = 0;
     this.isConnected = false;
@@ -43,6 +47,13 @@ export class WebSocketClient {
   }
 
   /**
+   * Gateway connection settings (`gateway` preferred, `openclaw` alias).
+   */
+  get gateway() {
+    return this.config?.gateway || this.config?.openclaw || {};
+  }
+
+  /**
    * Build WebSocket URL from configuration
    * Priority: URL param hal_ws > config host/port > auto (localhost)
    */
@@ -52,13 +63,13 @@ export class WebSocketClient {
       try {
         const urlWs = new URLSearchParams(window.location.search).get("hal_ws");
         if (urlWs) {
-          console.log("[WS] Using hal_ws URL param:", urlWs);
+          monitor.debug("websocket.url_param", { url: urlWs });
           return urlWs;
         }
       } catch (_) {}
     }
     
-    let { host, port, wsPath } = this.config.openclaw;
+    let { host, port, wsPath } = this.gateway;
     if (host === "auto" || !host)
       host =
         typeof window !== "undefined" ? window.location.hostname : "localhost";
@@ -70,7 +81,7 @@ export class WebSocketClient {
   }
 
   /**
-   * Establish WebSocket connection to OpenClaw
+   * Establish WebSocket connection to event gateway
    */
   connect() {
     if (this.isConnecting || this.isConnected) {
@@ -82,14 +93,14 @@ export class WebSocketClient {
     this.emit("connecting");
 
     const wsUrl = this.getWebSocketUrl();
-    this.log("info", `Connecting to OpenClaw at ${wsUrl}`);
+    this.log("info", `Connecting to gateway at ${wsUrl}`);
 
     return new Promise((resolve, reject) => {
       try {
         this.ws = new WebSocket(wsUrl);
 
         /* Tunnel (localhost) can add latency; use 20s when connecting via localhost */
-        const baseCt = Number(this.config.openclaw.connectionTimeout) || 10000;
+        const baseCt = Number(this.gateway.connectionTimeout) || 10000;
         const isLocalhost =
           typeof window !== "undefined" &&
           (window.location?.hostname === "localhost" ||
@@ -125,7 +136,8 @@ export class WebSocketClient {
     this.isConnecting = false;
     this.reconnectAttempts = 0;
 
-    this.log("info", "Connected to OpenClaw Gateway");
+    this.log("info", "Connected to event gateway");
+    monitor.recordMetric("connection", "uptime", Date.now() - this.startTime);
     this.emit("connected");
 
     // Send any queued messages
@@ -245,7 +257,7 @@ export class WebSocketClient {
       }
 
       // Batch agent.message.delta to reduce DOM thrash (configurable)
-      const deltaBatchMs = Number(this.config?.openclaw?.deltaBatchMs) || 0;
+      const deltaBatchMs = Number(this.gateway?.deltaBatchMs) || 0;
       if (
         deltaBatchMs > 0 &&
         normalized.type === "agent.message.delta"
@@ -266,6 +278,10 @@ export class WebSocketClient {
       if (normalized.type) {
         this._lastEventType = normalized.type;
         this._lastEventAt = Date.now();
+        // Debug logging for stockagent events
+        if (normalized.type.startsWith('stockagent.')) {
+          this.log("info", `Emitting stockagent event: ${normalized.type}`, normalized);
+        }
         this.emit(normalized.type, normalized);
         this.handleOpenClawEvent(normalized);
       }
@@ -324,6 +340,7 @@ export class WebSocketClient {
         trigger: eventType,
         data,
         priority,
+        category: data.category,
       });
     } else if (
       typeof eventType === "string" &&
@@ -389,6 +406,20 @@ export class WebSocketClient {
       case "easter.codec":
         this.emit("codecCommand", data);
         break;
+
+      // StockAgent trade events - explicitly extract payload
+      case "stockagent.trade.opened":
+        this.log("info", "StockAgent trade opened:", data);
+        this.emit("stockagent.trade.opened", { ...data.data, ...data });
+        break;
+      case "stockagent.trade.closed":
+        this.log("info", "StockAgent trade closed:", data);
+        this.emit("stockagent.trade.closed", { ...data.data, ...data });
+        break;
+      case "stockagent.analyzing":
+        this.log("info", "StockAgent analyzing:", data);
+        this.emit("stockagent.analyzing", { ...data.data, ...data });
+        break;
     }
   }
 
@@ -447,6 +478,7 @@ export class WebSocketClient {
     this.isConnecting = false;
 
     this.log("warn", `Connection closed: ${event.code} ${event.reason}`);
+    monitor.recordMetric("connection", "lastClose", { code: event.code, reason: event.reason, at: Date.now() });
     this.emit("disconnected", { code: event.code, reason: event.reason });
 
     // Attempt reconnection if not intentionally closed
@@ -460,6 +492,7 @@ export class WebSocketClient {
    */
   onError(error) {
     this.log("error", "WebSocket error:", error);
+    monitor.error("websocket.transport_error", { error: String(error) });
     this.emit("error", error);
   }
 
@@ -474,7 +507,7 @@ export class WebSocketClient {
       reconnectBackoff,
       maxBackoffMs,
       offlineAfterReconnects,
-    } = this.config.openclaw || {};
+    } = this.gateway;
 
     if (
       maxReconnectAttempts > 0 &&
@@ -557,11 +590,11 @@ export class WebSocketClient {
     this.stopHeartbeat();
     const INTERVAL_MS = Math.max(
       10000,
-      Number(this.config?.openclaw?.heartbeatInterval || 45000),
+      Number(this.gateway?.heartbeatInterval || 45000),
     );
     const STALE_MS = Math.max(
       INTERVAL_MS * 2,
-      Number(this.config?.openclaw?.staleThreshold || 120000),
+      Number(this.gateway?.staleThreshold || 120000),
     );
     this.heartbeatTimer = setInterval(() => {
       if (!this.isConnected || !this.ws) return;
@@ -617,7 +650,7 @@ export class WebSocketClient {
         if (queryToken && queryToken.trim()) return queryToken.trim();
       } catch {}
     }
-    const configToken = this.config?.openclaw?.authToken;
+    const configToken = this.gateway?.authToken;
     if (typeof configToken === "string" && configToken.trim())
       return configToken.trim();
     return "";
@@ -627,7 +660,7 @@ export class WebSocketClient {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return false;
     const protocolVersion = Math.max(
       1,
-      Number(this.config?.openclaw?.protocolVersion || 3),
+      Number(this.gateway?.protocolVersion || 3),
     );
     const authToken = this.getAuthToken();
     const frame = {
@@ -819,13 +852,13 @@ export class WebSocketClient {
    */
   getStats() {
     const staleThreshold = Number(
-      this.config?.openclaw?.staleThreshold || 120000,
+      this.gateway?.staleThreshold || 120000,
     );
     const staleSince =
       this._lastEventAt > 0 && Date.now() - this._lastEventAt > staleThreshold
         ? this._lastEventAt
         : null;
-    const cfg = { ...this.config?.openclaw };
+    const cfg = { ...this.gateway };
     if (cfg.authToken) cfg.authToken = "[REDACTED]";
     return {
       isConnected: this.isConnected,

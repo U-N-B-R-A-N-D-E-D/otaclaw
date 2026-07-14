@@ -28,6 +28,8 @@
  * ```
  */
 
+import { otaclawMonitor as monitor } from './monitor.js';
+
 export class StateMachine {
   constructor(config, callbacks = {}) {
     this.config = config;
@@ -56,7 +58,7 @@ export class StateMachine {
     return this.config?.states || [
       'idle', 'thinking', 'processing', 'success', 'error',
       'laughing', 'surprised', 'curious', 'confused', 'excited',
-      'worried', 'sad', 'presenting'
+      'worried', 'sad', 'presenting', 'greeting', 'scared', 'confident',
     ];
   }
 
@@ -96,7 +98,7 @@ export class StateMachine {
 
     // Validate state
     if (!this.isValidState(newState)) {
-      console.error(`[StateMachine] Invalid state: ${newState}`);
+      monitor.error('state_machine.invalid_state', { state: newState });
       return false;
     }
 
@@ -111,6 +113,9 @@ export class StateMachine {
     // Store previous state
     this.previousState = this.currentState;
     this.currentState = newState;
+
+    // Emit metric – cheap no-op when monitoring.metrics is false
+    monitor.recordTransition(this.previousState, newState, trigger);
 
     // Add to history
     this._addToHistory({
@@ -258,7 +263,7 @@ export class StateMachine {
       if (elapsed > this._inactivityThreshold) {
         // Force return to idle if stuck in non-idle state
         if (this.currentState !== 'idle' && this.currentState !== 'sleeping') {
-          console.log(`[StateMachine] Inactivity timeout, forcing idle (was ${this.currentState})`);
+          monitor.warn('state_machine.inactivity_timeout', { wasState: this.currentState, elapsed });
           this.transition('idle', {
             trigger: 'inactivity.timeout',
             force: true,
@@ -355,14 +360,19 @@ export class StateMachine {
    * Handle WebSocket events
    */
   handleEvent(eventType, data = {}) {
-    // Check priority
-    if (!this.shouldOverride(eventType)) {
+    // Resolve categorized events: agent.tool.call + {category} → agent.tool.<category>
+    // Same for agent.progress.* + {phase} → agent.progress.<phase>
+    // Falls back to original eventType for backward compatibility.
+    const resolvedType = this._resolveCategorizedEvent(eventType, data);
+
+    // Check priority (use resolved type so categorized events get their own priority)
+    if (!this.shouldOverride(resolvedType)) {
       return false;
     }
 
     // Map event to state
     const eventMap = this.config?.eventMap || {};
-    const targetState = eventMap[eventType];
+    const targetState = eventMap[resolvedType] || eventMap[eventType];
 
     if (!targetState) {
       return false;
@@ -372,10 +382,35 @@ export class StateMachine {
     const speech = this._getSpeechForState(targetState, data);
 
     return this.transition(targetState, {
-      trigger: eventType,
+      trigger: resolvedType,
       data,
       speech,
     });
+  }
+
+  /**
+   * Resolve a categorized event type using payload metadata.
+   * - agent.tool.call with data.category → agent.tool.<category>
+   * - agent.progress.* with data.phase   → agent.progress.<phase>
+   * Returns the original eventType when no category/phase is present so
+   * generic events keep their existing eventMap entry (backward compat).
+   */
+  _resolveCategorizedEvent(eventType, data) {
+    if (!data || typeof data !== 'object') return eventType;
+
+    if (eventType === 'agent.tool.call' && typeof data.category === 'string' && data.category) {
+      const candidate = `agent.tool.${data.category}`;
+      const eventMap = this.config?.eventMap || {};
+      if (eventMap[candidate]) return candidate;
+    }
+
+    if (eventType === 'agent.progress' && typeof data.phase === 'string' && data.phase) {
+      const candidate = `agent.progress.${data.phase}`;
+      const eventMap = this.config?.eventMap || {};
+      if (eventMap[candidate]) return candidate;
+    }
+
+    return eventType;
   }
 
   /**

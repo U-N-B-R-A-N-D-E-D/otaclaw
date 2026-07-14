@@ -26,6 +26,8 @@
  */
 
 import { TimerManager } from './timer-manager.js';
+import { otaclawMonitor as monitor } from './monitor.js';
+import { detectEmotion, RECENT_WINDOW } from './emotion-patterns.js';
 
 export class AnimationController {
   constructor(config, timerManager) {
@@ -41,6 +43,9 @@ export class AnimationController {
     this._currentToken = null;
     this._accumulatedText = '';
     this._emotionLock = null;
+    this._context = null;
+    this._lastFrameKey = null;
+    this._poolCycleIndex = {};
 
     // Callback for frame updates
     this._frameCallback = null;
@@ -81,16 +86,51 @@ export class AnimationController {
   }
 
   /**
+   * Provide runtime context (category, tool, phase...) so sprite/tag selection
+   * can be emotionally and task-appropriate rather than generic.
+   */
+  setContext(ctx) {
+    this._context = ctx || null;
+  }
+
+  /**
+   * Inject a preloaded frame catalog (early fetch / app.js share).
+   * Single source of sprite semantics for the kiosk path.
+   */
+  setCatalog(catalog) {
+    if (catalog && Array.isArray(catalog.frames)) {
+      this._frameCatalog = catalog;
+    }
+  }
+
+  getCatalog() {
+    return this._frameCatalog;
+  }
+
+  /**
    * Load frame catalog for semantic animations
    */
   async _loadFrameCatalog() {
     try {
+      if (typeof window !== 'undefined') {
+        if (window.__otaclawEarlyCatalog) {
+          this._frameCatalog = window.__otaclawEarlyCatalog;
+          return;
+        }
+        if (window.__otaclawFrameCatalog) {
+          this._frameCatalog = window.__otaclawFrameCatalog;
+          return;
+        }
+      }
       const assetUrl = typeof window?.otaclawAssetUrl === 'function'
         ? window.otaclawAssetUrl
         : (p) => p;
 
-      const response = await fetch(assetUrl('data/frame-catalog.json?v=15'));
+      const response = await fetch(assetUrl('data/frame-catalog.json?v=20'));
       this._frameCatalog = await response.json();
+      if (typeof window !== 'undefined') {
+        window.__otaclawFrameCatalog = this._frameCatalog;
+      }
     } catch {
       // Catalog is optional - fallbacks exist
       this._frameCatalog = null;
@@ -269,7 +309,7 @@ export class AnimationController {
   _runIndividualSequence(sequenceName, options = {}) {
     const sequence = this._individualSequences[sequenceName];
     if (!sequence) {
-      console.warn(`[AnimationController] Unknown sequence: ${sequenceName}`);
+      monitor.warn('animation.unknown_sequence', { sequence: sequenceName });
       return;
     }
 
@@ -539,46 +579,349 @@ export class AnimationController {
   /**
    * Set frame from emotion tag using frame catalog
    */
-  setFrameFromTag(tag, speech = '') {
-    if (!this._frameCatalog?.frames) {
-      // Fallback without catalog
-      this._fallbackFrameFromTag(tag, speech);
-      return;
-    }
-
-    const searchTags = this._getSearchTagsForState(tag);
-    const pool = this._frameCatalog.frames.filter(f =>
-      f.tags && f.tags.some(t => searchTags.includes(t))
-    );
-
+  setFrameFromTag(tag, speech = '', context = null) {
+    const pool = this.getOrganicFramePool(tag, context || this._context);
     if (pool.length > 0) {
       const frame = pool[Math.floor(Math.random() * pool.length)];
       this.setFrame(frame.col, frame.row, speech);
-    } else {
-      this._fallbackFrameFromTag(tag, speech);
+      this._lastFrameKey = `${frame.col},${frame.row}`;
+      return;
     }
+    this._fallbackFrameFromTag(tag, speech);
   }
 
   /**
-   * Get search tags for a given state
+   * Catalog `primary` emotions allowed per agent state (hard gate when frame.primary set).
+   * Organic human: idle = calm rest only (+ rare social sparkle). Work stays faithful.
    */
-  _getSearchTagsForState(state) {
-    const tagMap = {
-      idle: ['idle', 'calm', 'resting', 'neutral', 'waiting', 'polite'],
-      thinking: ['thinking', 'contemplative', 'neutral', 'puzzled', 'questioning'],
-      processing: ['explaining', 'talking', 'neutral', 'thinking', 'asking', 'dynamic'],
-      success: ['success', 'happy', 'positive', 'confident', 'presenting'],
-      error: ['error', 'disappointed', 'sad', 'worried', 'unpleasant'],
-      laughing: ['laughing', 'happy', 'playful', 'excited'],
-      surprised: ['surprised', 'amazed', 'shocked', 'wonder'],
-      curious: ['curious', 'interested', 'intrigued'],
-      confused: ['confused', 'puzzled', 'uncertain'],
-      excited: ['excited', 'enthusiastic', 'energetic'],
+  _getAllowedPrimaries(state) {
+    const map = {
+      // Calm rest only — no wink/play (reads as laugh on small screens)
+      idle: ['idle', 'greeting'],
+      thinking: ['thinking'],
+      processing: ['explaining', 'talking', 'presenting', 'confident'],
+      success: ['success', 'presenting', 'confident', 'playful'],
+      error: ['sad', 'worried'],
+      laughing: ['laughing', 'playful'],
+      surprised: ['surprised'],
+      curious: ['curious'],
+      confused: ['confused'],
+      excited: ['success', 'presenting', 'playful', 'confident', 'laughing'],
+      worried: ['worried'],
+      sad: ['sad'],
+      scared: ['scared'],
+      presenting: ['presenting', 'explaining', 'confident'],
+      greeting: ['greeting'],
+      confident: ['confident'],
+    };
+    return map[state] || [state];
+  }
+
+  /**
+   * Catalog `lane` allowed per state.
+   */
+  _getAllowedLanes(state) {
+    const map = {
+      idle: ['idle', 'social'],
+      thinking: ['work'],
+      processing: ['work'],
+      curious: ['work'],
+      confused: ['work'],
+      confident: ['work'],
+      presenting: ['work', 'react'],
+      success: ['react', 'social', 'work'],
+      error: ['react'],
+      laughing: ['react', 'social'],
+      surprised: ['react'],
+      worried: ['react'],
+      sad: ['react'],
+      scared: ['react'],
+      excited: ['react', 'social', 'work'],
+      greeting: ['social'],
+    };
+    return map[state] || ['work', 'react', 'social'];
+  }
+
+  /**
+   * Legacy tag aliases (tests + frames without `primary` yet).
+   */
+  _getPrimaryTags(state) {
+    const map = {
+      idle: ['idle_base', 'base', 'greeting', 'waving'],
+      thinking: ['thinking', 'contemplative'],
+      processing: ['explaining', 'talking', 'processing', 'assertive', 'ready'],
+      success: ['success', 'approval', 'assertive', 'wink', 'playful', 'ta-da'],
+      error: ['error', 'disappointed', 'sad', 'worried'],
+      laughing: ['laughing', 'funny', 'wink', 'playful'],
+      surprised: ['surprised', 'shocked', 'amazed'],
+      curious: ['curious', 'interested'],
+      confused: ['confused', 'puzzled', 'uncertain', 'shrug'],
+      excited: ['excited', 'ta-da', 'presenting', 'playful'],
       worried: ['worried', 'concerned', 'anxious'],
-      sad: ['sad', 'disappointed', 'unhappy'],
+      sad: ['sad', 'disappointed'],
+      scared: ['scared', 'frightened'],
+      presenting: ['presenting', 'ta-da', 'assertive'],
+      greeting: ['greeting', 'waving'],
+    };
+    return map[state] || [state];
+  }
+
+  /**
+   * Soft secondary tags (rank boost only — never expand eligibility alone).
+   */
+  _getSecondaryTags(state) {
+    const map = {
+      idle: ['idle', 'calm', 'resting', 'waiting', 'polite'],
+      thinking: ['calm'],
+      processing: ['emphasis', 'dynamic', 'ready'],
+      success: ['happy', 'positive'],
+      error: ['unpleasant', 'distressed'],
+      laughing: ['happy', 'positive', 'excited'],
+      surprised: ['amazed'],
+      curious: ['positive'],
+      confused: ['questioning'],
+      excited: ['positive'],
+      worried: ['unpleasant'],
+      presenting: ['positive'],
+      greeting: ['hello', 'happy'],
+    };
+    return map[state] || [];
+  }
+
+  /**
+   * Tags that disqualify a frame (anti-bleed only — never quarantine a whole lane).
+   * Pain/distress stays out of calm work. Social is allowed in idle/laugh/success/greeting.
+   */
+  _getExcludedTags(state) {
+    if (state === 'idle') {
+      // Idle: calm rest + rare wave. No wink (reads as laugh), no pain/scare/ta-da.
+      return [
+        'laughing', 'funny', 'wink', 'playful',
+        'scared', 'surprised', 'shocked', 'ta-da',
+        'error', 'sad', 'alarmed', 'distressed', 'worried', 'unpleasant',
+        'cold', 'uncomfortable',
+      ];
+    }
+    const exclude = [];
+    if (!['laughing', 'excited'].includes(state)) {
+      exclude.push('laughing', 'funny');
+    }
+    // Social celebrate only where it belongs (wink ≠ idle)
+    if (!['laughing', 'success', 'excited'].includes(state)) {
+      exclude.push('wink', 'playful');
+    }
+    if (!['laughing', 'success', 'excited', 'greeting', 'idle'].includes(state)) {
+      exclude.push('waving', 'greeting');
+    }
+    if (!['worried', 'error', 'sad', 'scared'].includes(state)) {
+      exclude.push(
+        'scared', 'frightened', 'worried', 'unpleasant', 'distressed',
+        'sad', 'error', 'cold', 'uncomfortable', 'alarmed',
+      );
+    }
+    if (state === 'thinking' || state === 'processing' || state === 'curious') {
+      exclude.push('confused');
+    }
+    return exclude;
+  }
+
+  _isWorkState(state) {
+    return [
+      'thinking', 'processing', 'curious', 'presenting', 'confused', 'confident',
+    ].includes(state);
+  }
+
+  /**
+   * Search-tag list for legacy callers / tests.
+   */
+  _getSearchTagsForState(state, context = null) {
+    let tags = [
+      ...this._getPrimaryTags(state),
+      ...this._getSecondaryTags(state),
+    ];
+
+    if (state === 'idle') {
+      return [...new Set([...this._getPrimaryTags('idle'), ...this._getSecondaryTags('idle')])];
+    }
+
+    const c = context || this._context || {};
+    if (c.category === 'creative') tags = [...tags, 'presenting', 'confident'];
+    else if (c.category === 'search' || c.category === 'analytical') tags = [...tags, 'curious', 'thinking'];
+    else if (c.category === 'risky') tags = [...tags, 'worried', 'concerned'];
+    else if (c.category === 'communication') tags = [...tags, 'talking', 'greeting', 'dynamic'];
+
+    return [...new Set(tags.filter((t) => t !== 'neutral'))];
+  }
+
+  /**
+   * Whether a catalog frame is eligible for this agent state.
+   * Prefers `primary` + `lane` (v2); falls back to tag matching for fixtures.
+   */
+  _frameEligibleForState(frame, stateName, excludedTags) {
+    const tags = Array.isArray(frame.tags) ? frame.tags : [];
+    if (tags.some((t) => excludedTags.includes(t))) return false;
+
+    const allowedPrimaries = this._getAllowedPrimaries(stateName);
+    const allowedLanes = this._getAllowedLanes(stateName);
+
+    if (stateName === 'idle') {
+      // Organic rest: true idle bases, plus rare wave only (no wink — looks like laugh)
+      if (frame.primary === 'idle' && frame.lane === 'idle') return true;
+      if (frame.primary === 'greeting' && frame.lane === 'social') return true;
+      if (!frame.primary) {
+        const hits = this._getPrimaryTags('idle').filter((t) => tags.includes(t));
+        return hits.length > 0 && !tags.includes('shrug') && !tags.includes('open') && !tags.includes('wink');
+      }
+      return false;
+    }
+
+    if (frame.primary) {
+      if (frame.lane && !allowedLanes.includes(frame.lane)) return false;
+      return allowedPrimaries.includes(frame.primary);
+    }
+
+    const primaryHits = this._getPrimaryTags(stateName).filter((t) => tags.includes(t));
+    return primaryHits.length > 0;
+  }
+
+  /**
+   * Sole organic pool builder for kiosk + core.
+   * Work = fidelity. Idle = life (whole calm/social repertoire, base-weighted).
+   * Every catalog frame is reachable from ≥1 state.
+   */
+  getOrganicFramePool(stateName, context = null) {
+    const cat = this._frameCatalog;
+    const ctx = stateName === 'idle' ? {} : (context || this._context || {});
+    const secondary = this._getSecondaryTags(stateName);
+    const excluded = this._getExcludedTags(stateName);
+    const isWork = this._isWorkState(stateName);
+
+    let boost = [];
+    if (isWork || stateName === 'success' || stateName === 'excited') {
+      if (ctx.category === 'creative') boost = ['presenting', 'confident', 'positive'];
+      else if (ctx.category === 'search' || ctx.category === 'analytical') boost = ['curious', 'contemplative'];
+      else if (ctx.category === 'risky') boost = ['worried', 'concerned'];
+      else if (ctx.category === 'communication') boost = ['talking', 'greeting', 'dynamic'];
+    }
+
+    const fallbacks = {
+      thinking: [{ col: 1, row: 0 }, { col: 2, row: 0 }, { col: 11, row: 0 }, { col: 4, row: 0 }],
+      processing: [
+        { col: 6, row: 0 }, { col: 7, row: 0 }, { col: 6, row: 1 }, { col: 8, row: 1 },
+        { col: 10, row: 1 }, { col: 6, row: 2 },
+      ],
+      success: [
+        { col: 0, row: 1 }, { col: 1, row: 1 }, { col: 2, row: 1 }, { col: 3, row: 1 },
+        { col: 6, row: 3 }, { col: 4, row: 3 }, { col: 8, row: 1 },
+      ],
+      error: [{ col: 0, row: 2 }, { col: 2, row: 2 }, { col: 4, row: 2 }],
+      laughing: [{ col: 2, row: 3 }, { col: 3, row: 3 }, { col: 4, row: 3 }, { col: 5, row: 3 }],
+      surprised: [{ col: 9, row: 0 }, { col: 10, row: 0 }],
+      curious: [{ col: 5, row: 2 }],
+      confused: [{ col: 1, row: 2 }, { col: 5, row: 0 }],
+      excited: [{ col: 2, row: 1 }, { col: 6, row: 3 }, { col: 7, row: 3 }, { col: 4, row: 3 }],
+      worried: [{ col: 0, row: 2 }, { col: 4, row: 2 }, { col: 9, row: 3 }],
+      idle: [
+        { col: 0, row: 0 }, { col: 3, row: 0 }, { col: 8, row: 0 },
+        { col: 7, row: 2 }, { col: 4, row: 3 },
+      ],
+      presenting: [{ col: 6, row: 3 }, { col: 7, row: 3 }, { col: 6, row: 0 }, { col: 10, row: 1 }],
+      greeting: [{ col: 7, row: 2 }, { col: 4, row: 3 }, { col: 5, row: 3 }],
+      confused: [{ col: 5, row: 0 }, { col: 1, row: 2 }, { col: 5, row: 1 }, { col: 4, row: 1 }],
+      scared: [{ col: 10, row: 3 }],
     };
 
-    return tagMap[state] || [state, 'neutral'];
+    if (!cat?.frames?.length) {
+      return fallbacks[stateName] || [{ col: 0, row: 0 }];
+    }
+
+    const scored = [];
+    for (const f of cat.frames) {
+      const tags = Array.isArray(f.tags) ? f.tags : [];
+      if (!this._frameEligibleForState(f, stateName, excluded)) continue;
+
+      let score = 0;
+      if (f.primary && this._getAllowedPrimaries(stateName).includes(f.primary)) {
+        score += 20;
+      } else {
+        const primaryHits = this._getPrimaryTags(stateName).filter((t) => tags.includes(t));
+        score += primaryHits.length * 10;
+      }
+      for (const t of secondary) {
+        if (tags.includes(t)) score += 2;
+      }
+      for (const t of boost) {
+        if (tags.includes(t) || f.primary === t) score += 3;
+      }
+      if (stateName === 'idle') {
+        // Weight: calm base dominates; wave is rare
+        if (f.primary === 'idle' || tags.includes('idle_base') || tags.includes('base')) score += 16;
+        else if (f.primary === 'greeting') score += 1;
+      }
+      scored.push({ col: f.col, row: f.row, score, tags, primary: f.primary, lane: f.lane });
+    }
+
+    scored.sort((a, b) => b.score - a.score);
+
+    let pool = scored.map(({ col, row }) => ({ col, row }));
+    if (pool.length === 0) {
+      return fallbacks[stateName] || [{ col: 0, row: 0 }];
+    }
+
+    // No work-pool slice: every eligible cell must stay reachable (100% sheet use).
+
+    if (stateName === 'idle') {
+      const baseFrames = scored
+        .filter((s) => s.primary === 'idle' || s.tags.includes('idle_base') || s.tags.includes('base'))
+        .map(({ col, row }) => ({ col, row }));
+      if (baseFrames.length) {
+        // Heavy base bias so pick ~80%+ lands on calm rest
+        pool = [...baseFrames, ...baseFrames, ...baseFrames, ...baseFrames, ...pool];
+      }
+    }
+
+    if (this._lastFrameKey && pool.length > 1) {
+      const filtered = pool.filter((f) => `${f.col},${f.row}` !== this._lastFrameKey);
+      if (filtered.length) pool = filtered;
+    }
+
+    return pool;
+  }
+
+  /**
+   * Pick next frame from organic pool (stable cycle for work, weighted random for idle).
+   */
+  pickOrganicFrame(stateName, context = null, { stable = false } = {}) {
+    const ctx = context || this._context || {};
+    const pool = this.getOrganicFramePool(stateName, ctx);
+    if (!pool.length) return { col: 0, row: 0 };
+
+    let frame;
+    if (stable || this._isWorkState(stateName)) {
+      const cycleKey = `${stateName}:${ctx.category || 'neutral'}`;
+      const idx = this._poolCycleIndex[cycleKey] || 0;
+      frame = pool[idx % pool.length];
+      this._poolCycleIndex[cycleKey] = idx + 1;
+    } else if (stateName === 'idle' && pool.length > 1) {
+      // Organic rest: ~90% calm base, ~10% rare wave
+      const baseKeys = new Set(['0,0', '3,0', '8,0']);
+      const bases = pool.filter((f) => baseKeys.has(`${f.col},${f.row}`));
+      const sparkle = pool.filter((f) => !baseKeys.has(`${f.col},${f.row}`));
+      if (bases.length && Math.random() < 0.9) {
+        frame = bases[Math.floor(Math.random() * bases.length)];
+      } else if (sparkle.length && Math.random() < 0.35) {
+        frame = sparkle[Math.floor(Math.random() * sparkle.length)];
+      } else if (bases.length) {
+        frame = bases[Math.floor(Math.random() * bases.length)];
+      } else {
+        frame = pool[Math.floor(Math.random() * pool.length)];
+      }
+    } else {
+      frame = pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    this._lastFrameKey = `${frame.col},${frame.row}`;
+    return frame;
   }
 
   /**
@@ -592,10 +935,11 @@ export class AnimationController {
       success: { col: 0, row: 1 },
       error: { col: 0, row: 2 },
       laughing: { col: 2, row: 3 },
-      surprised: { col: 0, row: 3 },
-      curious: { col: 3, row: 0 },
-      confused: { col: 4, row: 0 },
-      excited: { col: 1, row: 1 },
+      surprised: { col: 9, row: 0 },
+      curious: { col: 5, row: 2 },
+      confused: { col: 5, row: 0 },
+      excited: { col: 2, row: 1 },
+      worried: { col: 0, row: 2 },
     };
 
     const frame = fallbacks[tag] || { col: 0, row: 0 };
@@ -603,47 +947,29 @@ export class AnimationController {
   }
 
   /**
-   * Start idle animation with organic timing
+   * Idle = life only: calm base holds + occasional micro gestures.
+   * Ignores task category (fidelity is for work states).
    */
   startIdle() {
     this.stopAll();
     this._currentState = 'idle';
+    this._blinkEnabled = true;
     const token = this._generateToken();
     this._currentToken = token;
-
-    let forceBaseNext = false;
 
     const schedule = () => {
       if (!this._isTokenValid(token)) return;
 
-      // Get pool of frames for idle
-      const searchTags = this._getSearchTagsForState('idle');
-      let pool = [];
+      const frame = this.pickOrganicFrame('idle', {}, { stable: false });
+      // Idle never drives the bubble — leave it alone after app clears it on enter.
+      this.setFrame(frame.col, frame.row, undefined);
 
-      if (this._frameCatalog?.frames) {
-        pool = this._frameCatalog.frames.filter(f =>
-          f.tags && f.tags.some(t => searchTags.includes(t))
-        );
-      }
-
-      // Fallback to base frame if no catalog
-      if (pool.length === 0) {
-        pool = [{ col: 0, row: 0 }];
-      }
-
-      // Force base frame if needed, otherwise random from pool
-      const frame = forceBaseNext
-        ? { col: 0, row: 0 }
-        : pool[Math.floor(Math.random() * pool.length)];
-
-      forceBaseNext = (frame.col !== 0 || frame.row !== 0);
-
-      this.setFrame(frame.col, frame.row, '');
-
-      // Calculate delay: base frames hold longer, variants are brief
-      const delay = (frame.col === 0 && frame.row === 0)
-        ? 2000 + Math.random() * 3000  // 2-5s for base
-        : 800 + Math.random() * 600;     // 0.8-1.4s for variants
+      const baseKeys = new Set(['0,0', '3,0', '8,0']);
+      const isBase = baseKeys.has(`${frame.col},${frame.row}`);
+      // Human rest: long holds on calm, brief sparkle if social
+      const delay = isBase
+        ? 4000 + Math.random() * 4000
+        : 700 + Math.random() * 500;
 
       this.timers.setTimeout('idle', schedule, delay);
     };
@@ -652,57 +978,47 @@ export class AnimationController {
   }
 
   /**
-   * Start thinking animation with progressive phases
+   * Work = fidelity: stable cycle through a narrow category-matched pool.
+   * Speech is applied once on the first frame only — later ticks leave the
+   * bubble alone so it doesn't flash like a notification tray.
    */
-  startThinking(_getTextFn) {
+  startWork(stateName, speech = '') {
+    const state = stateName || 'thinking';
     this.stopAll();
-    this._currentState = 'thinking';
+    this._currentState = state;
+    this._blinkEnabled = true;
     const token = this._generateToken();
     this._currentToken = token;
 
-    const phases = [
-      { tag: 'thinking', speech: this._t('thinking'), maxMs: 15000 },
-      { tag: 'processing', speech: this._t('processing'), maxMs: 45000 },
-      { tag: 'thinking', speech: 'Let me see...', maxMs: 60000 },
-    ];
+    const text = speech || this._t(state) || this._t('thinking');
+    let spokeOnce = false;
 
-    const startTime = Date.now();
-
-    const runPhase = () => {
+    const schedule = () => {
       if (!this._isTokenValid(token)) return;
+      if (this._currentState !== state) return;
 
-      const elapsed = Date.now() - startTime;
-      let phase = phases[0];
-      for (let i = phases.length - 1; i >= 0; i--) {
-        if (elapsed >= phases[i].maxMs) continue;
-        phase = phases[i];
-        break;
+      const frame = this.pickOrganicFrame(state, this._context, { stable: true });
+      // First tick: set speech. Later ticks: omit speech so the frame callback
+      // can skip bubble updates (avoids constant notification spam).
+      if (!spokeOnce) {
+        this.setFrame(frame.col, frame.row, text);
+        spokeOnce = true;
+      } else {
+        this.setFrame(frame.col, frame.row, undefined);
       }
 
-      // Run tag pool animation for this phase
-      this._runTagPool(phase.tag, phase.speech, 'thinking', token);
-
-      // Schedule next phase check
-      const nextPhase = phases.find(p => p.maxMs > elapsed);
-      if (nextPhase && nextPhase.maxMs !== Infinity) {
-        const delay = nextPhase.maxMs - elapsed + 200;
-        this.timers.setTimeout('thinkingPhase', runPhase, delay);
-      }
+      const delay = 2800 + Math.random() * 800;
+      this.timers.setTimeout('workPool', schedule, delay);
     };
 
-    runPhase();
+    schedule();
   }
 
   /**
    * Start processing animation
    */
   startProcessing(speech) {
-    this.stopAll();
-    this._currentState = 'processing';
-    const token = this._generateToken();
-    this._currentToken = token;
-
-    this._runTagPool('processing', speech, 'processing', token);
+    this.startWork('processing', speech);
   }
 
   /**
@@ -809,8 +1125,10 @@ export class AnimationController {
   }
 
   /**
-   * Start thinking animation with progressive phases
-   * Switches to deep thinking (think sprites) after 10s
+   * Start thinking animation with progressive phases.
+   * Phases use cumulative thresholds — phase N is active while
+   * `elapsed < maxMs`. Advances thinking (0-15s) -> curious (15-30s) ->
+   * deep thinking (30s+, individual think sprites).
    */
   startThinking(_getTextFn) {
     this.stopAll();
@@ -820,7 +1138,7 @@ export class AnimationController {
 
     const phases = [
       { tag: 'thinking', speech: this._t('thinking'), maxMs: 15000 },
-      { tag: 'curious', speech: this._t('curious') || 'Hmm?', maxMs: 15000 },
+      { tag: 'curious', speech: this._t('curious') || 'Hmm?', maxMs: 30000 },
       // Deep thinking phase uses individual think sprites
       { type: 'deep', tag: 'thinking', speech: 'Let me think...', maxMs: Infinity },
     ];
@@ -831,13 +1149,8 @@ export class AnimationController {
       if (!this._isTokenValid(token)) return;
 
       const elapsed = Date.now() - startTime;
-      let phase = phases[0];
-
-      for (let i = phases.length - 1; i >= 0; i--) {
-        if (elapsed >= phases[i].maxMs) continue;
-        phase = phases[i];
-        break;
-      }
+      // First phase whose threshold is still ahead of us is the active one.
+      const phase = phases.find(p => p.maxMs > elapsed) || phases[phases.length - 1];
 
       if (phase.type === 'deep') {
         // Use individual think sequence for deep thinking
@@ -850,10 +1163,9 @@ export class AnimationController {
         this._runTagPool(phase.tag, phase.speech, 'thinking', token);
       }
 
-      // Schedule next phase
-      const nextPhase = phases.find(p => p.minMs > elapsed);
-      if (nextPhase && nextPhase.maxMs !== Infinity) {
-        const delay = nextPhase.maxMs - elapsed + 200;
+      // Re-check exactly when this phase's own threshold is crossed.
+      if (phase.maxMs !== Infinity) {
+        const delay = phase.maxMs - elapsed + 200;
         this.timers.setTimeout('thinkingPhase', runPhase, delay);
       }
     };
@@ -904,15 +1216,21 @@ export class AnimationController {
   }
 
   /**
-   * Analyze text and determine emotion
-   * Called on each message delta to detect emotional content
-   * Also checks for easter egg triggers
+   * Analyze text and determine emotion.
+   * Called on each message delta to detect emotional content.
+   * Also checks for easter egg triggers.
+   *
+   * Uses the shared, precision-tuned pattern table in emotion-patterns.js —
+   * only unambiguous signals (explicit laughter, strong exclamation/surprise,
+   * explicit apology/error, explicit confusion) produce an override. Everyday
+   * helpful-assistant phrasing intentionally returns null so the caller keeps
+   * whatever contextual/category-driven state it was already in.
    */
   analyzeEmotion(text) {
     if (!text) return null;
 
     this._accumulatedText += text.toLowerCase();
-    const recent = this._accumulatedText.slice(-120);
+    const recent = this._accumulatedText.slice(-RECENT_WINDOW);
 
     // Check for easter eggs first
     const easterEgg = this._checkEasterEggs(recent);
@@ -920,58 +1238,10 @@ export class AnimationController {
       this._triggerEasterEgg(easterEgg);
     }
 
-    const scores = {
-      laughing: 0,
-      surprised: 0,
-      excited: 0,
-      worried: 0,
-      curious: 0,
-      thinking: 0,
-      presenting: 0,
-      sad: 0,
-      confused: 0,
-    };
-
-    const patterns = [
-      [/haha|hehe|😂|🤣|😆|lol|lmao|rofl/gi, 'laughing', 3],
-      [/funny|joke|hilarious|comedy|humor/gi, 'laughing', 2],
-      [/happy|glad|love|excellent|great|awesome|fantastic/gi, 'laughing', 1],
-      [/wow|amazing|incredible|omg|gosh|impressive|wonderful/gi, 'surprised', 3],
-      [/!!+/g, 'surprised', 1],
-      [/🎉|🚀|💪|excited|can't wait|thrilling/gi, 'excited', 3],
-      [/cool|neat|nice|sweet/gi, 'excited', 1],
-      [/oops|uh oh|sorry|😅|apologies|unfortunately|problem/gi, 'worried', 3],
-      [/careful|warning|caution|risk|danger/gi, 'worried', 2],
-      [/sad|😢|😭|miss|lost|gone|disappointing/gi, 'sad', 3],
-      [/\?{2,}/g, 'confused', 2],
-      [/confused|unclear|don't understand|what do you mean/gi, 'confused', 3],
-      [/hmm|🤔|let me think|let's see|analyzing|considering/gi, 'thinking', 2],
-      [/interesting|perhaps|maybe|might/gi, 'thinking', 1],
-      [/\?/g, 'curious', 1],
-      [/what|how|why|tell me|explain|curious|wonder/gi, 'curious', 1],
-      [/here|look|check|presenting|result|done|built|created/gi, 'presenting', 2],
-      [/ta-da|voilà|behold/gi, 'presenting', 3],
-    ];
-
-    for (const [regex, emotion, weight] of patterns) {
-      const matches = recent.match(regex);
-      if (matches) {
-        scores[emotion] += matches.length * weight;
-      }
-    }
-
-    let bestEmotion = null;
-    let bestScore = 0;
-    for (const [emotion, score] of Object.entries(scores)) {
-      if (score > bestScore) {
-        bestScore = score;
-        bestEmotion = emotion;
-      }
-    }
-
-    if (bestScore >= 2) {
-      this._emotionLock = bestEmotion;
-      return bestEmotion;
+    const emotion = detectEmotion(recent);
+    if (emotion) {
+      this._emotionLock = emotion;
+      return emotion;
     }
 
     return null;

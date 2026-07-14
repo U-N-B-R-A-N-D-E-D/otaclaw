@@ -1,6 +1,30 @@
 # Changelog
 
-All notable changes to OtaClaw for OpenClaw.
+All notable changes to OtaClaw.
+
+## [0.0.7] - 2026-07-14
+
+### Added
+
+- **Gateway-agnostic config** – Prefer `gateway` in config; `openclaw` remains a backward-compatible alias. Works with OpenClaw, HAL Discord bot, or any WS bridge that emits `agent.*` / `gateway.*` events.
+- **Emotion patterns + character expression** – Shared pattern table and expression engine for richer reactions.
+- **Monitoring** – Optional `OtaclawMonitor` (metrics / remote export). See `docs/MONITORING.md`.
+- **StockAgent events** – `stockagent.trade.opened|closed`, `stockagent.analyzing`.
+- **Tool categories & progress phases** in default `eventMap` (search/creative/risky/analytical + planning/executing/validating/finalizing).
+- **WebSocket protocol docs** – `docs/WEBSOCKET-PROTOCOL.md`.
+
+### Changed
+
+- OpenClaw is an optional peer dependency (not required).
+- Sprite catalog / frame catalog expanded; organic idle + tag sequences populated.
+- Animation controller / calibration / kiosk script stability fixes.
+
+### Fixed
+
+- Tickle / laughing / sleep-wake edge cases and catalog-driven frame selection.
+- Speech bubble and thinking-token filtering carried forward from 0.0.6.
+
+**Compatibility:** Any gateway speaking protocol v3 event shapes. OpenClaw ≥ 2026.2.x still supported.
 
 ## [0.0.6] - 2026-04-02
 
