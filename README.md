@@ -1,18 +1,18 @@
-# OtaClaw for OpenClaw
+# OtaClaw
 
 [![CI](https://github.com/U-N-B-R-A-N-D-E-D/otaclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/U-N-B-R-A-N-D-E-D/otaclaw/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/github/package-json/v/U-N-B-R-A-N-D-E-D/otaclaw)](https://github.com/U-N-B-R-A-N-D-E-D/otaclaw)
 [![Node](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen)](https://nodejs.org)
-[![OpenClaw](https://img.shields.io/badge/OpenClaw-%3E%3D2026.2.0-blue)](https://github.com/openclaw/openclaw)
+[![Gateway](https://img.shields.io/badge/gateway-WebSocket%20events-blue)](docs/WEBSOCKET-PROTOCOL.md)
 
 <p align="center">
   <img src="src/assets/sprites/OtIcon.png" alt="OtaClaw" width="80" style="image-rendering: pixelated; image-rendering: crisp-edges;" />
 </p>
 
 <p align="center">
-  <strong>Hal as the face of OpenClaw</strong><br>
-  Self-hosted, your data stays local. Give your AI assistant a face that reacts to every interaction.<br>
+  <strong>Hal as the face of your AI</strong><br>
+  Self-hosted, your data stays local. Give any inference stack a face that reacts to every interaction.<br>
   <em>Swipe to tickle. Tap to wake. Watch Hal come alive.</em>
 </p>
 
@@ -35,7 +35,7 @@
   <img src="src/assets/sprites/otacon_sprite.png_0004_Sprite-5.png" alt="Hal (Otacon) idle" width="120" style="image-rendering: pixelated; image-rendering: crisp-edges;" />
 </p>
 
-OtaClaw is a **visual face for OpenClaw** — an animated companion that accompanies your interactions with the gateway. Instead of a simple clock like the original [Kojima Productions Otaclock](https://metalgear.fandom.com/wiki/Otaclock), this version reacts to OpenClaw events with expressive animations, giving you a visual accompaniment for every exchange.
+OtaClaw is a **visual face for any compatible event gateway** — an animated companion that reacts to LLM / agent traffic over WebSocket. OpenClaw is a first-class integration; HAL Discord bot and custom bridges work the same way. Instead of a simple clock like the original [Kojima Productions Otaclock](https://metalgear.fandom.com/wiki/Otaclock), Hal reacts with expressive animations for every exchange.
 
 Your AI now has NES-style reactions:
 - **Hmmm....** when thinking
@@ -46,7 +46,7 @@ Your AI now has NES-style reactions:
 
 Perfect for:
 - **Raspberry Pi + Touchscreen** – Physical AI face
-- **Kiosk displays** – Visual feedback for OpenClaw (responsive: small to large screens)
+- **Kiosk displays** – Visual feedback for any local inference stack
 - **Desktop dashboards** – Always-on status
 - **Floating widget** – Embed in corners, sidebars, any UI via iframe
 
@@ -54,17 +54,17 @@ Perfect for:
 
 ## Prerequisites
 
-- **OpenClaw** – OtaClaw is a face for OpenClaw; the gateway must be running first.
-  - Install: `npm install -g openclaw`
-  - Setup: `openclaw onboard` (or see [docs.openclaw.ai](https://docs.openclaw.ai))
-- **Node.js 16+** – For dev server (`npm start`) and OpenClaw
+- **An event gateway** that emits `agent.*` / `gateway.*` WebSocket events (see [docs/WEBSOCKET-PROTOCOL.md](docs/WEBSOCKET-PROTOCOL.md))
+  - OpenClaw: `npm install -g openclaw` then `openclaw onboard`
+  - Or HAL Discord bot / any custom bridge in front of your LLM
+- **Node.js 16+** – For the dev server (`npm start`)
 - **Bash** – Deploy script requires bash (Linux, macOS, or WSL/Git Bash on Windows)
 
 ---
 
 ## Quick Start
 
-### Option 1: Public Mode (Default - for GitHub/fresh OpenClaw installs)
+### Option 1: Public Mode (Default – OpenClaw or any remote gateway)
 
 ```bash
 git clone https://github.com/U-N-B-R-A-N-D-E-D/otaclaw.git
@@ -73,18 +73,18 @@ cd otaclaw
 # Copy config template
 cp config/config.example.js config/config.js
 
-# Deploy to your OpenClaw gateway
-./deploy/deploy-to-openclaw.sh --host=YOUR_OPENCLAW_HOST --user=YOUR_USER
+# Deploy (OpenClaw canvas path) or serve locally and point gateway.host/port
+./deploy/deploy-to-openclaw.sh --host=YOUR_GATEWAY_HOST --user=YOUR_USER
 ```
 
 **What is Public Mode?**
-- Connects to OpenClaw Gateway (local or remote)
-- Uses standard OpenClaw WebSocket events
-- Works out-of-the-box with fresh OpenClaw installations
+- Connects to any compatible event gateway (local or remote)
+- Uses standard `agent.*` / `gateway.*` WebSocket events
+- Works OOTB with OpenClaw; same events work with HAL or a custom bridge
 - Falls back to demo mode if no connection
-- **Best for:** Users who want OOTB experience with standard OpenClaw
+- **Best for:** Users who want a face on top of whatever inference they already run
 
-### Option 2: Local Mode (for Raspberry Pi + Local Inference Cluster)
+### Option 2: Local Mode (Raspberry Pi + Local Inference Cluster)
 
 ```bash
 git clone https://github.com/U-N-B-R-A-N-D-E-D/otaclaw.git
@@ -95,6 +95,7 @@ cp config/config.example.js config/config.js
 
 # Edit config.js to enable local mode:
 # mode: 'local',
+# gateway: { host: '192.168.1.100', port: 18789 },
 # localCluster: {
 #   nodes: ['192.168.1.10', '192.168.1.11'],  # Your local inference nodes
 #   modelName: 'Qwen3.5-4B',
@@ -106,12 +107,12 @@ cp config/config.example.js config/config.js
 ```
 
 **What is Local Mode?**
-- Connects to local inference cluster (e.g., Mac Minis running Qwen3.5-4B)
+- Connects to a local inference cluster (e.g., Mac Minis running Qwen3.5-4B) via any event gateway
 - Shows cluster health status in debug panel
 - Extended timeouts for local network inference
 - **Best for:** Users with local LLM inference setups
 
-### Development Server (no OpenClaw)
+### Development Server (no gateway)
 
 ```bash
 npm start
@@ -121,7 +122,7 @@ npx serve src -p 8080
 
 **Dev server features:**
 - Demo mode with simulated interactions
-- All animations work without OpenClaw
+- All animations work without a live gateway
 - URL params: `?demo=1`, `?emotions=1`, `?kiosk=1`
 
 See [QUICKSTART.md](QUICKSTART.md) for detailed display modes and configuration.
@@ -153,7 +154,7 @@ Mode B: Long-press or tap ⚙ for Face rotation, Full window, Backdrop color.
 | **Surprised** | Tool call | Wide eyes, shocked expression |
 
 ### Technical Features
-- 🎯 **WebSocket** – Real-time reaction to OpenClaw events
+- 🎯 **WebSocket** – Real-time reaction to gateway events (`agent.*` / `gateway.*`)
 - 📱 **Touchscreen** – Raspberry Pi displays
 - ⚡ **Lightweight** – Vanilla HTML/CSS/JS, no frameworks
 - 🔧 **Configurable** – States, sprites, event mapping, i18n
@@ -167,7 +168,7 @@ Mode B: Long-press or tap ⚙ for Face rotation, Full window, Backdrop color.
 
 ### Requirements
 
-- [OpenClaw](https://github.com/openclaw/openclaw) installed and running
+- A compatible **event gateway** (OpenClaw, HAL Discord bot, or custom WS bridge) — see [WEBSOCKET-PROTOCOL.md](docs/WEBSOCKET-PROTOCOL.md)
 - Modern web browser (Chrome, Firefox, Safari, Edge)
 - For Raspberry Pi: Chromium browser + touchscreen (optional)
 
@@ -226,17 +227,17 @@ Edit `config/config.js`:
 
 ```javascript
 export const OTACLAW_CONFIG = {
-  // OpenClaw Gateway connection
-  openclaw: {
+  // Event gateway connection (OpenClaw, HAL, or custom)
+  gateway: {
     host: 'auto',               // Use current page host (recommended)
-    port: 18789,                // OpenClaw gateway port
+    port: 18789,                // Gateway port
     wsPath: '/ws',              // WebSocket endpoint
     reconnectInterval: 5000,    // Reconnect every 5s if disconnected
     heartbeatInterval: 45000,   // Lower network/CPU cost
     staleThreshold: 120000,     // Force reconnect if connection is stale
     maxQueuedMessages: 120,     // Prevent offline queue memory growth
   },
-  
+  // Legacy alias still works: openclaw: { ... }
   // Behavior settings
   behavior: {
     idleTimeout: 30000,       // Return to idle after 30s

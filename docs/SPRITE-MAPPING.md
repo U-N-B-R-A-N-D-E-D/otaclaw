@@ -84,7 +84,7 @@ For Pi/TFT35A with minimal CPU/bandwidth:
 | row | col 0 | col 1 | col 2 | col 3 | col 4 | col 5 | col 6 | col 7 | col 8 | col 9 | col 10 | col 11 |
 |-----|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|--------|--------|
 | **0** | neutral, arms relaxed | head left, arm across | head right, arm across | hand near chest | hand near chest | confused/thoughtful | left arm out | right arm out | arms crossed | **surprised L** | **surprised R** | contemplative |
-| **1** | thumbs-up left | thumbs-up right | both thumbs-up | shrug/present | **arms wide** @0.9 | hands clasped | arm raised R | arm raised L | hand on hip R | hand on hip L | both hands hips | arm out, hip |
+| **1** | thumbs-up left | thumbs-up right | both thumbs-up | thumbs+hip success | **arms-open shrug (confused)** | **doubt shrug (confused)** — NOT idle | arm raised R | arm raised L | hand on hip R | hand on hip L | both hands hips | arm out, hip |
 | **2** | lean forward, worried | lean back, puzzled | sad, clasped | sad intense | worried, chin | curious, smile | phone to ear | waving | pointing | *(partial)* | *(empty)* | *(empty)* |
 | **3** | facing left | facing right | laughing | laughing wide | wink R | wink L | ta-da | ta-da left | arms crossed smug | shiver/cold | scared+object | *(empty)* |
 
@@ -94,9 +94,17 @@ For Pi/TFT35A with minimal CPU/bandwidth:
 
 ## Frame catalog — Semantic range for Clawdbot
 
-The sprite sheet provides a **range** of expressions, not just 7 fixed emotions. Clawdbot can pick frames by context (e.g. unpleasant topic → scared pose 9,0 or 10,0).
+The sprite sheet provides a **range** of expressions, not just 7 fixed emotions. Clawdbot can pick frames by context (e.g. scary/alarming topic → scared pose 9,0 or 10,0).
 
-**Catalog:** `src/data/frame-catalog.json` — each cell has `desc` and `tags` for semantic matching.
+**Tag hygiene:** `"unpleasant"` is scoped to the worried/sad/error/scared/cold cluster only (frames like 0,2 / 2,2 / 3,2 / 4,2 / 9,3 / 10,3) — it is intentionally NOT on the `surprised` frames (9,0 / 10,0), since a surprise is not inherently unpleasant. Sharing a catch-all tag across unrelated emotional categories previously let `surprised` frames leak into `worried`/`error` pool selection. Avoid re-adding a shared qualifier tag across categories that shouldn't blend (e.g. don't add `"unpleasant"` back to `surprised`, `laughing`, or `excited` frames).
+
+**Catalog:** `src/data/frame-catalog.json` — each cell has:
+- `primary` — exactly one emotion (hard gate for selection)
+- `lane` — `idle` | `work` | `react` | `social` (`social` never auto during work)
+- `tags` — soft rank / idle_micro only
+- `desc` — human description
+
+Selection matches `primary` + `lane`, not OR across many soft tags.
 
 **Full emotional range demo:** Add `?emotions=1` to the URL. Two phases: (1) All sheet frames from frame-catalog (55 frames, 1.5s each), (2) Sequence demo – idle (blink/coat), thinking, processing, success (thumbs-up), error (shrug), laughing, surprised (blush). Loops. Press **F** to stop. Example: `widget.html?emotions=1`.
 
@@ -109,7 +117,7 @@ The sprite sheet provides a **range** of expressions, not just 7 fixed emotions.
 { "type": "otaclaw.frame", "col": 9, "row": 0 }
 ```
 
-**Clawdbot:** Include the catalog in the system prompt or as a tool. Given conversation context, pick the frame whose `tags` best match (e.g. "unpleasant", "scared" → 9,0 or 10,0).
+**Clawdbot:** Include the catalog in the system prompt or as a tool. Given conversation context, pick the frame whose `tags` best match (e.g. "scared", "alarmed" → 9,0 or 10,0).
 
 **Individual sprites:** Export each cell as a separate PNG for precise tagging. Use `sprite-catalog.json` with `useIndividualFiles: true`. Each sprite has `file`, `desc`, `tags`, and optional `skip`. Enables real animation ranges (e.g. 1-pixel micro-variants between frames).
 
@@ -131,6 +139,8 @@ python batch.py
 ```
 
 **Alternative (API):** A vision-based tagging script using OpenAI/OpenRouter is planned but not yet included.
+
+**Caution — clean captioner output before merging:** raw captioner output is a sentence fragment, not a tag ("character at rest. frame 8 of 12: winding down. pixel art sprite."). Never paste that directly into a sprite's `tags` array — it breaks tag-based pool matching (identical boilerplate ends up shared across visually distinct sprites) and is unreadable as a tag. Always reduce each caption to 3–6 short, lowercase, single-or-two-word tags derived from its actual meaning (e.g. "emotion: alert, attentive, focused" → `["alert", "attentive", "focused"]`), matching the style of the curated entries in `frame-catalog.json` and the good entries already in `sprite-catalog.json`.
 
 ---
 

@@ -1,11 +1,47 @@
 /**
- * OtaClaw for OpenClaw - Main Application
- * Entry point that initializes all components
- * Config: inline in HTML (window.OTACLAW_CONFIG) or config.js when MIME types correct
+ * OtaClaw for OpenClaw - Main Application (WebSocket / Agent Orchestrator)
+ *
+ * Entry point that wires the WebSocket client to the sprite engine.
+ *
+ * ## Load order (enforced by HTML)
+ *   1. `app-calibration.js`  (classic script) — installs sprite globals:
+ *          window.otaclaw, window.runSleepSequence, window.runWakeSequence,
+ *          window.showWidgetConnectionMsg, window.__otaclawBootComplete, ...
+ *   2. `app.js`              (ES module, THIS FILE) — consumes those globals
+ *          to drive states from OpenClaw / any compatible WS gateway events.
+ *
+ * `app.js` MUST NOT run before `app-calibration.js` has executed; the boot
+ * sequence in `app-calibration.js` owns the `widget-waiting` class on body.
+ *
+ * ## Sprite engine (single path)
+ * All organic frame selection and work/idle animation loops live in
+ * `AnimationController`. This file only orchestrates: WS events → context →
+ * `animator.startIdle()` / `startWork()` / terminal sequences. DOM helpers
+ * (waiting overlay, blink overlay, sleep) stay here.
+ *
+ * Config: inline in HTML (window.OTACLAW_CONFIG) or config.js when MIME types correct.
  */
 
-import { WebSocketClient } from "./websocket-client.js?v=46";
-import { OtaClawEngine } from "./otaclaw.js?v=46";
+import { WebSocketClient } from "./websocket-client.js?v=47";
+import { OtaClawEngine } from "./otaclaw.js?v=47";
+import { otaclawMonitor as monitor } from "./core/monitor.js";
+import { CharacterExpressionEngine } from "./core/character-expression.js";
+import { detectEmotion, RECENT_WINDOW } from "./core/emotion-patterns.js";
+import { AnimationController } from "./core/animation-controller.js";
+import { TimerManager } from "./core/timer-manager.js";
+import { normalizeGatewayConfig } from "./core/config-validator.js";
+
+// Early preload so catalog is ready before boot/waiting/idle start.
+if (typeof window !== "undefined" && typeof fetch === "function") {
+  const earlyAsset = (p) =>
+    typeof window.otaclawAssetUrl === "function" ? window.otaclawAssetUrl(p) : p;
+  fetch(earlyAsset("data/frame-catalog.json?early=" + Date.now()))
+    .then((r) => (r && r.ok ? r.json() : null))
+    .then((cat) => {
+      if (cat && !window.__otaclawEarlyCatalog) window.__otaclawEarlyCatalog = cat;
+    })
+    .catch(() => {});
+}
 
 class OtaClawApp {
   constructor() {
@@ -19,11 +55,26 @@ class OtaClawApp {
     this._blinkOverlayHandle = null;
     this._blinkRestoreTimer = null;
 
+    // For organic, context-aware sprite selection (category from tools, emotion lock, etc.)
+    this._lastContext = null;
+    this._lastFrameKey = null;
+    this._activeWorkUntil = 0;
+    this._poolCycleIndex = {};
+    this.animator = null;
+    this._timers = null;
+    this._lastSpokenText = "";
+    this._lastSpokenAt = 0;
+    this._speechClearTimer = null;
+
     // Streaming speech bubble state (like Discord message editing)
     this._currentMessageId = null;
     this._accumulatedText = "";
     this._lastDeltaUpdateAt = 0;
     this._streamingSpeechActive = false;
+    this._streamStartTime = 0;
+
+    // Character expression engine for speech bubble content
+    this._expressionEngine = new CharacterExpressionEngine();
 
     // Bind methods
     this.init = this.init.bind(this);
@@ -34,7 +85,6 @@ class OtaClawApp {
     this.enableOfflineMode = this.enableOfflineMode.bind(this);
     this.getSpriteSheetUrl = this.getSpriteSheetUrl.bind(this);
     this.getSpriteSheetMetrics = this.getSpriteSheetMetrics.bind(this);
-    this._updateStreamingSpeech = this._updateStreamingSpeech.bind(this);
   }
 
   /**
@@ -56,6 +106,10 @@ class OtaClawApp {
       waving: "Hey!",
       worried: "Hmm...",
       presenting: "Ta-da!",
+      scared: "Yikes!",
+      confident: "Easy!",
+      wink: ";)",
+      sad: "Aww...",
       timeout: "Timeout",
       listenerTimeout: "Listener timeout",
       connectionError: "Connection error",
@@ -73,6 +127,11 @@ class OtaClawApp {
       configError: "Configuration error: Copy config.example.js to config.js",
       runtimeError: "Runtime error: ",
       loading: "Loading…",
+      // StockAgent trading expressions
+      tradeOpened: "Trade opened!",
+      tradeClosedProfit: "Profit!",
+      tradeClosedLoss: "Loss...",
+      analyzingMarket: "Analyzing...",
     };
     let val =
       this.config?.personalities?.[this.config?.personality]?.[key] ??
@@ -118,18 +177,39 @@ class OtaClawApp {
       this.otaclaw = new OtaClawEngine(this.config);
       this.wsClient = new WebSocketClient(this.config);
 
+      // Single sprite engine — all organic selection + idle/work loops
+      this._timers = new TimerManager();
+      this.animator = new AnimationController(this.config, this._timers);
+      this.animator.setFrameCallback((col, row, speech, options) => {
+        if (options?.type === "individual" && options.url) {
+          this._setFrameFromSprite(options.url, speech);
+        } else {
+          this._setFrameDirect(col, row, speech);
+        }
+      });
+      if (window.__otaclawEarlyCatalog) {
+        this._frameCatalog = window.__otaclawEarlyCatalog;
+        this.animator.setCatalog(this._frameCatalog);
+      }
+
       // Setup event listeners
       this.setupEventListeners();
 
-      // Preload frame catalog for animations
+      // Preload frame catalog (also pick up early one from module top-level for t=0 organic idle)
       const assetUrl =
         typeof window.otaclawAssetUrl === "function"
           ? (p) => window.otaclawAssetUrl(p)
           : (p) => p;
-      fetch(assetUrl("data/frame-catalog.json?v=14" + Date.now()))
+      if (window.__otaclawEarlyCatalog && !this._frameCatalog) {
+        this._frameCatalog = window.__otaclawEarlyCatalog;
+        this.animator.setCatalog(this._frameCatalog);
+      }
+      fetch(assetUrl("data/frame-catalog.json?v=20" + Date.now()))
         .then((r) => r.json())
         .then((catalog) => {
           this._frameCatalog = catalog;
+          this.animator?.setCatalog(catalog);
+          if (typeof window !== "undefined") window.__otaclawFrameCatalog = catalog;
         })
         .catch(() => {});
 
@@ -150,6 +230,8 @@ class OtaClawApp {
       if (cal?.stopDemoCycle) this.otaclaw.stopDemoCycle = cal.stopDemoCycle;
       window.otaclaw = this.otaclaw;
       window.wsClient = this.wsClient;
+      // Expose monitor for debug panel and console inspection
+      window.otaclawMonitor = monitor;
 
       // Setup UI interactions
       this.setupUIInteractions();
@@ -164,6 +246,20 @@ class OtaClawApp {
           const img = new Image();
           img.src = typeof window.otaclawAssetUrl === "function" ? window.otaclawAssetUrl(url) : url;
       });
+
+      // Eager preload of frame-catalog (async, non-blocking) so the *first* visible idle/waiting
+      // after boot uses _getOrganicFramePool + catalog tags (idle_base, base, context bias)
+      // instead of falling back to the small hardcoded seqs. This is the production path for kiosk.
+      if (typeof window !== "undefined" && !this._frameCatalog) {
+        const assetUrlFn = typeof window.otaclawAssetUrl === "function" ? window.otaclawAssetUrl : (p) => p;
+        fetch(assetUrlFn("data/frame-catalog.json?v=20"))
+          .then((r) => r.json())
+          .then((catalog) => {
+            this._frameCatalog = catalog;
+            if (typeof window !== "undefined") window.__otaclawFrameCatalog = catalog;
+          })
+          .catch(() => {});
+      }
 
       if (document.body.classList.contains("otaclaw-widget")) {
         this.hideConnectionOverlay();
@@ -187,6 +283,7 @@ class OtaClawApp {
       }
       return true;
     } catch (error) {
+      monitor.error("init.failed", { error: String(error) });
       console.error("[OtaClaw] Initialization failed:", error);
       this.showConfigError(error);
       return false;
@@ -225,7 +322,9 @@ class OtaClawApp {
   async loadConfig() {
     if (typeof window !== "undefined" && window.OTACLAW_CONFIG) {
       this.config = window.OTACLAW_CONFIG;
+      normalizeGatewayConfig(this.config);
       this.debugMode = this.config.behavior?.debug || false;
+      monitor.configure(this.config);
       this._applyProfile();
       this._applyPersonality();
       return;
@@ -238,13 +337,19 @@ class OtaClawApp {
         throw new Error("Configuration not found");
       }
 
+      normalizeGatewayConfig(this.config);
+
       // Enable debug mode if configured
       this.debugMode = this.config.behavior?.debug || false;
+
+      // Apply monitor configuration now that real config is available
+      monitor.configure(this.config);
 
       // Apply behavior profile (minimal, expressive, etc.)
       this._applyProfile();
       this._applyPersonality();
     } catch (error) {
+      monitor.error("config.load.failed", { error: String(error) });
       console.error("[OtaClaw] Failed to load configuration:", error);
       throw new Error(
         this.config?.i18n?.configError ??
@@ -258,6 +363,7 @@ class OtaClawApp {
    */
   setupEventListeners() {
     this.wsClient.on("connecting", () => {
+      monitor.log("websocket.connecting");
       document.body.classList.add("widget-waiting");
       this.updateConnectionUI("connecting");
       if (
@@ -270,6 +376,7 @@ class OtaClawApp {
     });
 
     this.wsClient.on("connected", () => {
+      monitor.log("websocket.connected");
       this._cancelSleep();
       if (this._widgetConnectingTimer) {
         clearTimeout(this._widgetConnectingTimer);
@@ -332,6 +439,7 @@ class OtaClawApp {
     });
 
     this.wsClient.on("disconnected", (data = {}) => {
+      monitor.log("websocket.disconnected", { code: data.code, reason: data.reason });
       document.body.classList.add("widget-waiting");
       this.updateConnectionUI("disconnected");
       if (document.body.classList.contains("otaclaw-widget")) {
@@ -363,7 +471,13 @@ class OtaClawApp {
     });
 
     this.wsClient.on("reconnecting", () => {
+      monitor.log("websocket.reconnecting");
+      monitor.recordReconnect();
       this.updateConnectionUI("connecting");
+      const activeState = this.otaclaw.getState();
+      if (activeState === "thinking" || activeState === "processing") {
+        return;
+      }
       if (
         document.body.classList.contains("otaclaw-widget") &&
         window.__otaclawBootComplete
@@ -374,6 +488,7 @@ class OtaClawApp {
     });
 
     this.wsClient.on("maxReconnectReached", () => {
+      monitor.warn("websocket.max_reconnect_reached");
       this.updateConnectionUI("disconnected");
       if (
         document.body.classList.contains("otaclaw-widget") &&
@@ -385,8 +500,11 @@ class OtaClawApp {
     });
 
     this.wsClient.on("offlineSuggested", () => {
+      monitor.warn("websocket.offline_suggested");
       const offlineAfter = Number(
-        this.config?.openclaw?.offlineAfterReconnects || 0,
+        this.config?.gateway?.offlineAfterReconnects ||
+        this.config?.openclaw?.offlineAfterReconnects ||
+        0,
       );
       if (offlineAfter > 0 && !this.isOfflineMode) {
         this.enableOfflineMode(true);
@@ -394,7 +512,9 @@ class OtaClawApp {
       }
     });
 
-    this.wsClient.on("error", () => {});
+    this.wsClient.on("error", (err) => {
+      monitor.error("websocket.error", { error: String(err) });
+    });
 
     this.wsClient.on("stateChange", (data) => {
       this._lastActivityTime = Date.now();
@@ -412,10 +532,32 @@ class OtaClawApp {
 
       const opts = { trigger: data.trigger, data: data.data };
       
-      // Keep heuristic text analysis priority! Let Delta set the correct emotion instead of overriding it via event mapping.
-      if (data.trigger === "agent.message.delta" && this.otaclaw.getState() !== "thinking" && this.otaclaw.getState() !== "processing" && this.otaclaw.getState() !== "error" && this.otaclaw.getState() !== "idle") {
-         // Do not allow default generic "processing" to override our specific heuristical states (laughing, curious, etc.)
-         return;
+      // During active LLM/tool work, ignore delta→processing remaps so sprites stay task-coherent.
+      if (data.trigger === "agent.message.delta") {
+        const st = this.otaclaw.getState();
+        if (
+          this._isActiveWorkState(st) ||
+          (this._activeWorkUntil && Date.now() < this._activeWorkUntil)
+        ) {
+          return;
+        }
+        if (st !== "thinking" && st !== "processing" && st !== "error" && st !== "idle") {
+          // Do not allow generic "processing" to override heuristic terminal states (laughing, etc.)
+          return;
+        }
+      }
+
+      // Category-aware tool reactions instead of generic surprised for every tool call.
+      if (data.trigger === "agent.tool.call") {
+        const cat =
+          data?.category ||
+          data?.data?.category ||
+          this._lastContext?.category ||
+          "neutral";
+        const toolName = data?.data?.tool || data?.data?.name;
+        this._setLastContext({ category: cat, tool: toolName });
+        this._activeWorkUntil = Date.now() + 120000;
+        data.state = this._categoryToToolReaction(cat);
       }
       if (data.state === "error")
         opts.speech = this._briefErrorReason(data.data ?? data);
@@ -427,25 +569,39 @@ class OtaClawApp {
       else if (data.state === "curious") opts.speech = this._t("curious");
       else if (data.state === "confused") opts.speech = this._t("confused");
       else if (data.state === "excited") opts.speech = this._t("excited");
+      else if (data.state === "waving") opts.speech = this._t("waving");
+      else if (data.state === "worried") opts.speech = this._t("worried");
+      else if (data.state === "presenting") opts.speech = this._t("presenting");
+      else if (data.state === "scared") opts.speech = this._t("scared");
+      else if (data.state === "confident") opts.speech = this._t("confident");
+      else if (data.state === "wink") opts.speech = this._t("wink");
+      else if (data.state === "sad") opts.speech = this._t("sad");
       else if (data.state === "idle") {
         opts.speech = "";
         this._currentStatePriority = 0;
       }
       const applyState = () => {
         const prevState = this.otaclaw?.getState?.();
+        // If the incoming event carries category (from HAL agent-signals or stock), keep it for sprite bias
+        if (data?.category) {
+          this._setLastContext({ category: data.category });
+        }
         this.otaclaw.setState(data.state, { ...opts, force: data.state === "error" });
-        if (
-          data.trigger === "agent.tool.call" &&
-          (prevState === "thinking" || prevState === "processing")
-        ) {
-          const dur =
-            this.config?.stateDurations?.surprised ?? 2500;
+        if (data.trigger === "agent.tool.call") {
+          const reaction = data.state;
+          const dur = Math.min(
+            this.config?.stateDurations?.surprised ?? 2500,
+            1400,
+          );
           setTimeout(() => {
-        if (this.otaclaw.getState() === "surprised")
-          this.otaclaw.setState("thinking", {
-            trigger: "toolInterruptReturn",
-            speech: this._t("thinking"),
-          });
+            const st = this.otaclaw.getState();
+            const workState = this._resolveWorkState();
+            if (st === reaction || this._isActiveWorkState(st)) {
+              this.otaclaw.setState(workState, {
+                trigger: "tool.work",
+                speech: this._t(workState),
+              });
+            }
           }, dur);
         }
       };
@@ -480,7 +636,7 @@ class OtaClawApp {
          
          // If stuck for 45 seconds without ANY activity (deltas, state changes), force idle
          if (timeSinceActivity > 45000) {
-            console.log(`[OtaClaw] Forcing idle due to inactivity timeout. Last activity: ${timeSinceActivity}ms ago`);
+            monitor.warn("activity.timeout.forcing_idle", { timeSinceActivity });
             this.otaclaw.setState("idle", { trigger: "activity.timeout", speech: "", force: true });
             this._lastActivityTime = now;
             this._scheduleSleep();
@@ -523,26 +679,34 @@ class OtaClawApp {
       this._accumulatedText = "";
       this._streamingSpeechActive = false;
       this._currentEmotionLock = null;
+      this._streamStartTime = Date.now();
 
-      // Go to thinking state, but keep empty speech so bubble doesn't show generic text
-      // The actual content will come from deltas
+      this._expressionEngine.reset();
+      this._activeWorkUntil = Date.now() + 120000;
+
+      const opener = this._expressionEngine.getExpression({
+        state: "thinking",
+        activity: "thinking",
+      });
       this.otaclaw.setState("thinking", {
         trigger: "agent.start",
         data,
-        speech: "",  // Empty initially, will be filled by deltas
+        speech: opener,
       });
+      // One calm opener, then silence — face does the rest
+      this._updateSpeechBubble(opener, { force: true, holdMs: 4500 });
     });
 
     this.wsClient.on("agentDelta", (data) => {
       const target = this._extractDiscordTarget(data);
       if (target) this._lastDiscordTarget = target;
 
-      // Handle message ID for tracking new vs continuing messages
       const messageId = data.messageId || data.id || "default";
       if (messageId !== this._currentMessageId) {
-        // New message started - reset buffer
         this._currentMessageId = messageId;
         this._accumulatedText = "";
+        this._streamStartTime = Date.now();
+        this._expressionEngine.reset();
       }
 
       const text = data.message || data.delta || data.content || "";
@@ -560,69 +724,26 @@ class OtaClawApp {
       }
       this._lastDeltaUpdateAt = now;
 
-      // Update speech bubble with accumulated text (truncated for display)
-      this._updateStreamingSpeech(this._accumulatedText);
-      
-      const lower = this._accumulatedText.toLowerCase();
-      const recentText = lower.slice(-120);
-
-      const emotionScores = {
-        laughing:  0,
-        surprised: 0,
-        excited:   0,
-        worried:   0,
-        curious:   0,
-        thinking:  0,
-        presenting:0,
-        sad:       0,
-        confused:  0,
-      };
-
-      const patterns = [
-        [/haha|hehe|😂|🤣|😆|lol|lmao|rofl/gi,                     "laughing",   3],
-        [/funny|joke|hilarious|comedy|humor/gi,                       "laughing",   2],
-        [/happy|glad|love|excellent|great|awesome|fantastic/gi,        "laughing",   1],
-        [/wow|amazing|incredible|omg|gosh|impressive|wonderful/gi,     "surprised",  3],
-        [/!!+/g,                                                       "surprised",  1],
-        [/🎉|🚀|💪|excited|can't wait|thrilling/gi,                    "excited",    3],
-        [/cool|neat|nice|sweet/gi,                                     "excited",    1],
-        [/oops|uh oh|sorry|😅|apologies|unfortunately|problem/gi,      "worried",    3],
-        [/careful|warning|caution|risk|danger/gi,                      "worried",    2],
-        [/sad|😢|😭|miss|lost|gone|disappointing/gi,                    "sad",        3],
-        [/\?{2,}/g,                                                    "confused",   2],
-        [/confused|unclear|don't understand|what do you mean/gi,       "confused",   3],
-        [/hmm|🤔|let me think|let's see|analyzing|considering/gi,      "thinking",   2],
-        [/interesting|perhaps|maybe|might/gi,                          "thinking",   1],
-        [/\?/g,                                                        "curious",    1],
-        [/what|how|why|tell me|explain|curious|wonder/gi,              "curious",    1],
-        [/here|look|check|presenting|result|done|built|created/gi,     "presenting", 2],
-        [/ta-da|voilà|behold/gi,                                       "presenting", 3],
-      ];
-
-      for (const [regex, emotion, weight] of patterns) {
-        const matches = recentText.match(regex);
-        if (matches) emotionScores[emotion] += matches.length * weight;
-      }
-
-      let bestEmotion = null;
-      let bestScore = 0;
-      for (const [emotion, score] of Object.entries(emotionScores)) {
-        if (score > bestScore) { bestScore = score; bestEmotion = emotion; }
-      }
-
-      if (bestScore >= 2) {
-        this._currentEmotionLock = bestEmotion;
-      } else if (recentText.length > 60 && Math.random() < 0.04) {
-        const variety = ["thinking", "curious", "presenting", "excited"];
-        if (!this._currentEmotionLock) {
-          this._currentEmotionLock = variety[Math.floor(Math.random() * variety.length)];
-        }
-      }
-
       const currentState = this.otaclaw.getState();
+      const inActiveWork =
+        this._isActiveWorkState(currentState) ||
+        (this._activeWorkUntil && Date.now() < this._activeWorkUntil);
+
+      // No per-delta bubble updates — that was the notification spam.
+      if (inActiveWork) {
+        return;
+      }
+
+      const lower = this._accumulatedText.toLowerCase();
+      const recentText = lower.slice(-RECENT_WINDOW);
+
+      const emotion = detectEmotion(recentText);
+      if (emotion) {
+        this._currentEmotionLock = emotion;
+      }
+
       const targetEmotion = this._currentEmotionLock || "processing";
-      
-      // Only change emotion state if NOT streaming (to avoid interrupting the text flow)
+
       if (targetEmotion !== "processing" && !this._streamingSpeechActive) {
           if (currentState !== targetEmotion) {
               this.otaclaw.setState(targetEmotion, {
@@ -630,26 +751,25 @@ class OtaClawApp {
                   data,
                   speech: this._t(targetEmotion)
               });
+              this._updateSpeechBubble(this._t(targetEmotion), { force: true, holdMs: 2500 });
               if (targetEmotion === "laughing") this.startLaughingAnimation();
               else if (targetEmotion === "surprised") this.startSurprisedAnimation();
           }
       }
-      // Note: During streaming, we rely on _updateStreamingSpeech to update the bubble text
-      // We don't call setState repeatedly to avoid freezing the animations
     });
 
     this.wsClient.on("agentComplete", (data) => {
-      // Clean and show final accumulated text briefly before success state
-      const rawText = this._accumulatedText || "";
-      const cleanedText = this._cleanThinkingTokens(rawText);
-      const finalText = cleanedText?.slice(-80) || "";
+      const lastActivity = this._expressionEngine.detectActivity(this._accumulatedText);
+      const completionExpression = this._expressionEngine.getCompletionExpression(lastActivity, true);
+
       this._clearStreamingState();
-      // Use cleaned accumulated text for speech bubble if we have it
+
       this.otaclaw.setState("success", {
         trigger: "agent.complete",
         data,
-        speech: finalText || this._t("success"),
+        speech: completionExpression,
       });
+      this._updateSpeechBubble(completionExpression, { force: true, holdMs: 2800 });
     });
 
     this.wsClient.on("agentError", (data) => {
@@ -661,18 +781,60 @@ class OtaClawApp {
         speech: brief,
         force: true
       });
+      this._updateSpeechBubble(brief, { force: true, holdMs: 3500 });
     });
 
     this.wsClient.on("toolCall", (data) => {
-      this.otaclaw.setState("surprised", {
-        trigger: "tool.call",
-        data,
-        speech: this._t("surprised"),
-      });
+      const toolName = data?.tool || data?.name || "tool";
+      const category = data?.category || "neutral";
+      // Silent tools — category still drives the face; no bubble spam per tool.
+      this._setLastContext({ category, tool: toolName });
+      this._activeWorkUntil = Date.now() + 120000;
     });
 
     this.wsClient.on("gatewayIdle", () => {
       this.otaclaw.setState("idle", { trigger: "gateway.idle", speech: "" });
+      this._updateSpeechBubble("", { force: true });
+    });
+
+    const stockagentBubbleMs = Math.max(
+      10000,
+      Math.min(20000, Number(this.config?.behavior?.stockagentBubbleMs) || 15000),
+    );
+
+    const showStockagentBubble = (state, speech, trigger) => {
+      clearTimeout(this._stockagentBubbleTimer);
+      this.otaclaw.setState(state, { trigger, speech });
+      clearTimeout(this.otaclaw.stateTimer);
+      // Cap trade bubbles — long holds felt like constant alerts
+      const ms = Math.min(stockagentBubbleMs, 8000);
+      this._updateSpeechBubble(speech, { force: true, holdMs: ms });
+      this._stockagentBubbleTimer = setTimeout(() => {
+        this.otaclaw.setState("idle", { speech: "" });
+        this._updateSpeechBubble("", { force: true });
+      }, ms);
+    };
+
+    // StockAgent trade events — bubbles stay visible long enough to read (10–20s)
+    this.wsClient.on("stockagent.trade.opened", (data) => {
+      this._setLastContext({ category: 'risky', kind: 'trade', symbol: data?.symbol });
+      const speech = data?.speech || data?.data?.speech || "Trade opened!";
+      showStockagentBubble("excited", speech, "stockagent.trade");
+    });
+
+    this.wsClient.on("stockagent.trade.closed", (data) => {
+      const pnl = data?.pnl ?? data?.data?.pnl ?? 0;
+      const state = pnl >= 0 ? "success" : "worried";
+      const speech = data?.speech || data?.data?.speech || (pnl >= 0 ? "Profit!" : "Loss...");
+      this._setLastContext({ category: pnl >= 0 ? 'creative' : 'risky', kind: 'trade-close', pnl });
+      showStockagentBubble(state, speech, "stockagent.close");
+    });
+
+    this.wsClient.on("stockagent.analyzing", (data) => {
+      const symbol = data?.symbol || data?.data?.symbol || 'UNKNOWN';
+      const speech = data?.speech || data?.data?.speech || `Checking ${symbol}...`;
+      this._setLastContext({ category: 'analytical', kind: 'signal', symbol });
+      showStockagentBubble("curious", speech, "stockagent.analysis");
     });
 
     // Direct frame (Clawdbot semantic selection). Supports { col, row }, { tag }, { speech }.
@@ -721,7 +883,8 @@ class OtaClawApp {
           this._scheduleSleep();
         } else {
           this._cancelSleep();
-          if (data.state === "thinking" || data.state === "processing") {
+          const workAnimStates = ["thinking", "processing", "curious", "excited", "worried"];
+          if (workAnimStates.includes(data.state)) {
             this.stopIdleAnimation();
             this.stopSuccessAnimation();
             this.stopErrorAnimation();
@@ -797,7 +960,10 @@ class OtaClawApp {
         });
       }
               // Send tickle reaction to the configured chat channel (Discord, Telegram, etc.)
-              const tickleTarget = this.config?.openclaw?.tickleDiscordChannel || this._lastDiscordTarget;
+              const tickleTarget =
+                this.config?.gateway?.tickleDiscordChannel ||
+                this.config?.openclaw?.tickleDiscordChannel ||
+                this._lastDiscordTarget;
               if (this.wsClient?.isConnected && typeof this.wsClient.sendRequest === "function" && tickleTarget) {
                 const tickleReactions = [
                   "S-stop! I can't breathe! Snake, help me!",
@@ -994,10 +1160,10 @@ class OtaClawApp {
     // Handle visibility change (pause/resume)
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
-        if (this.debugMode) console.log("[OtaClaw] Tab hidden");
+        monitor.debug("tab.hidden");
         this.stopIdleAnimation();
       } else {
-        if (this.debugMode) console.log("[OtaClaw] Tab visible");
+        monitor.debug("tab.visible");
         if (!this.isOfflineMode && this.wsClient) {
           if (!this.wsClient.isConnected) {
             this.wsClient.reconnect();
@@ -1231,14 +1397,19 @@ class OtaClawApp {
     if (isIdle) sprite.classList.add("state-idle");
     sprite.dataset.frame = filename;
     this._lastFrame = { type: "sprite", file: filename, speech };
-    const st = document.getElementById("speech-text");
-    const sb = document.getElementById("speech-bubble");
-    if (st) st.textContent = speech;
-    if (sb) sb.classList.toggle("has-text", !!speech);
+    if (speech !== undefined) {
+      const st = document.getElementById("speech-text");
+      const sb = document.getElementById("speech-bubble");
+      if (st) st.textContent = speech || "";
+      if (sb) sb.classList.toggle("has-text", !!speech);
+    }
   }
 
-  /** Direct frame update. Prefer calibration setFrame (uses individual sprites from catalog). */
-  _setFrameDirect(col, row, speech = "") {
+  /**
+   * Direct frame update. Prefer calibration setFrame (uses individual sprites from catalog).
+   * Pass `speech === undefined` to change pose without touching the bubble.
+   */
+  _setFrameDirect(col, row, speech) {
     if (
       document.body.classList.contains("otaclaw-widget") &&
       !window.__otaclawBootComplete
@@ -1246,7 +1417,8 @@ class OtaClawApp {
       return;
     const cal = window.otaclaw;
     if (cal?.setFrame) {
-      cal.setFrame(col, row, { speech });
+      const opts = speech === undefined ? {} : { speech: speech || "" };
+      cal.setFrame(col, row, opts);
       this._lastFrame = { type: "direct", col, row, speech };
       return;
     }
@@ -1290,10 +1462,12 @@ class OtaClawApp {
     sprite.classList.add("state-frame");
     sprite.dataset.frame = `${col},${row}`;
     this._lastFrame = { type: "direct", col, row, speech };
-    const st = document.getElementById("speech-text");
-    const sb = document.getElementById("speech-bubble");
-    if (st) st.textContent = speech;
-    if (sb) sb.classList.toggle("has-text", !!speech);
+    if (speech !== undefined) {
+      const st = document.getElementById("speech-text");
+      const sb = document.getElementById("speech-bubble");
+      if (st) st.textContent = speech || "";
+      if (sb) sb.classList.toggle("has-text", !!speech);
+    }
   }
 
   /**
@@ -1342,56 +1516,71 @@ class OtaClawApp {
   }
 
   /**
-   * Update speech bubble with streaming text (like Discord message editing)
-   * Shows accumulated text in real-time as it arrives from deltas
+   * Get short Otacon-style expression based on accumulated text
+   * DEPRECATED: Use CharacterExpressionEngine directly
+   * Kept for backward compatibility, delegates to expression engine
    */
-  _updateStreamingSpeech(text) {
-    if (!text || typeof text !== "string") return;
-
-    // Clean thinking tokens before display
-    const cleanedText = this._cleanThinkingTokens(text);
-    
-    // Skip if only thinking tokens were present (nothing to show)
-    if (!cleanedText || cleanedText.length < 2) return;
-
-    // Mark streaming as active (local and global for otaclaw.js)
-    this._streamingSpeechActive = true;
-    if (typeof window !== "undefined") {
-      window.__otaclawStreamingActive = true;
-    }
-
-    // Truncate for display (keep it readable in the bubble)
-    const maxLength = 80;
-    let displayText = cleanedText;
-    
-    // Take last meaningful portion if too long (shows recent context)
-    if (displayText.length > maxLength) {
-      // Find a good break point (word boundary)
-      displayText = displayText.slice(-maxLength);
-      const spaceIdx = displayText.indexOf(" ");
-      if (spaceIdx > 0 && spaceIdx < 20) {
-        displayText = displayText.slice(spaceIdx + 1);
-      }
-      displayText = "..." + displayText;
-    }
-
-    // Update speech bubble DOM directly
-    const st = document.getElementById("speech-text");
-    const sb = document.getElementById("speech-bubble");
-    if (st && sb) {
-      st.textContent = displayText;
-      sb.classList.add("has-text");
-      sb.style.display = "block";
-    }
+  _getOtaconExpression(text) {
+    return this._expressionEngine.getExpression({
+      state: this.otaclaw?.getState?.() || 'processing',
+      activity: this._expressionEngine.detectActivity(text),
+    });
   }
 
   /**
-   * Clear streaming state when message completes
+   * Speech bubble policy (anti-notification spam):
+   * - Idle: empty
+   * - Enter work: one short phrase, then silence (face carries the state)
+   * - Streaming deltas: do NOT rewrite the bubble every chunk
+   * - Terminal (success/error/laugh): brief hold then clear
    */
+  _updateSpeechBubble(text, options = {}) {
+    const force = options.force === true;
+    const holdMs = options.holdMs;
+    const minIntervalMs = options.minIntervalMs ?? 6000;
+    const next = text == null ? "" : String(text);
+
+    if (!force && next && next === this._lastSpokenText) return;
+    if (
+      !force &&
+      next &&
+      this._lastSpokenAt &&
+      Date.now() - this._lastSpokenAt < minIntervalMs
+    ) {
+      return;
+    }
+
+    const st = document.getElementById("speech-text");
+    const sb = document.getElementById("speech-bubble");
+    if (st && sb) {
+      st.textContent = next;
+      sb.classList.toggle("has-text", !!next);
+      if (next) sb.style.display = "block";
+    }
+    this._lastSpokenText = next;
+    this._lastSpokenAt = Date.now();
+
+    if (this._speechClearTimer) {
+      clearTimeout(this._speechClearTimer);
+      this._speechClearTimer = null;
+    }
+    if (next && holdMs > 0) {
+      this._speechClearTimer = setTimeout(() => {
+        this._speechClearTimer = null;
+        this._updateSpeechBubble("", { force: true });
+      }, holdMs);
+    }
+  }
+
+  /** Clear streaming state when message completes */
   _clearStreamingState() {
     this._streamingSpeechActive = false;
     this._accumulatedText = "";
     this._currentMessageId = null;
+    this._streamStartTime = 0;
+    this._currentEmotionLock = null;
+    this._activeWorkUntil = 0;
+    this._expressionEngine.reset();
     if (typeof window !== "undefined") {
       window.__otaclawStreamingActive = false;
     }
@@ -1442,8 +1631,19 @@ class OtaClawApp {
     }
   }
 
-  /** During connecting/reconnecting: run idle sequence with fast timing so user sees active animation. */
-  startWaitingAnimation(speech = "") {
+  /**
+   * PRODUCTION PATH (Pi kiosk via widget.html + app-calibration.js + this):
+   * startWaiting + startIdle + _getOrganicFramePool + _tryPlayStateSequence
+   * deliver catalog-driven, context-biased, sequence-using animation from first visible frame.
+   */
+  /**
+   * During connecting/reconnecting: run idle sequence with fast timing so user sees active animation.
+   * PRODUCTION PATH for Pi kiosk: this + startIdle + _getOrganicFramePool + _tryPlayStateSequence
+   * ensure catalog-driven organic selection (with idle_base bias + task category from _lastContext)
+   * and real sequences (thumbs-up, laughing, etc.) from the very first visible frame after boot.
+   * Made async only to allow a short race-wait for catalog preload; callers do not await.
+   */
+  async startWaitingAnimation(speech = "") {
     /* Boot sequence has exclusive control ~3s – never compete with it */
     if (typeof window !== "undefined" && !window.__otaclawBootComplete) return;
     if (typeof window !== "undefined")
@@ -1462,14 +1662,61 @@ class OtaClawApp {
       Array.isArray(sprites.idleSprites) && sprites.idleSprites.length
         ? sprites.idleSprites
         : null;
-    const IDLE_SEQ =
-      Array.isArray(sprites.idleSequence) && sprites.idleSequence.length
-        ? sprites.idleSequence
-        : [
-            0, 0, 1, 7, 8, 9, 3, 0, 4, 1, 7, 8, 9, 0, 5, 0, 2, 6, 0, 1, 7, 8, 9,
-            0,
-          ];
-    const seq = IDLE_SEQ;
+    // PRODUCTION (Pi kiosk): prefer catalog-driven organic pool (see _getOrganicFramePool) for first frames.
+    // This fallback is only used if catalog not ready yet; enriched with calm bases so even the first tick
+    // after boot/wait shows varied resting sprites instead of a 3-5 loop.
+    const fallbackSeq = Array.isArray(sprites.idleSequence) && sprites.idleSequence.length
+      ? sprites.idleSequence
+      : [
+          [0, 0], [0, 0], [3, 0], [0, 0], [4, 0], [5, 1], [0, 0], [8, 0], [3, 0], [0, 0],
+          [4, 0], [0, 0], [5, 1], [1, 0], [8, 0], [0, 0],
+        ];
+    let seq = fallbackSeq;
+    // PRODUCTION PATH (kiosk widget): ensure the *very first* frame(s) after boot/wait use organic
+    // from frame-catalog (idle_base/base bias + category context) instead of tiny hardcoded.
+    // Early fetch at module top + adoption here + live switch in schedule guarantee it.
+    const adoptEarly = () => {
+      if (this._frameCatalog) return this._frameCatalog;
+      if (typeof window !== "undefined") {
+        if (window.__otaclawEarlyCatalog) {
+          this._frameCatalog = window.__otaclawEarlyCatalog;
+        } else if (window.__otaclawFrameCatalog) {
+          this._frameCatalog = window.__otaclawFrameCatalog;
+        }
+      }
+      return this._frameCatalog;
+    };
+    const catNow = adoptEarly();
+    const ctxForWait = this._lastContext || { category: "idle" };
+    if (catNow?.frames) {
+      const calmPool = this._getOrganicFramePool("idle", ctxForWait);
+      if (calmPool.length >= 3) {
+        seq = calmPool.slice(0, 12).map((f) => [f.col, f.row]);
+      }
+    } else if (!this._frameCatalog) {
+      // PRODUCTION: for the *very first* visible waiting/idle after boot, race a short fetch so the
+      // initial seq uses _getOrganicFramePool (rich catalog tags + idle_base bias + any early context)
+      // instead of the (now larger) fallback. Never hangs >350ms.
+      const au = typeof window.otaclawAssetUrl === "function" ? (p) => window.otaclawAssetUrl(p) : (p) => p;
+      // fire-and-forget kick (existing)
+      fetch(au("data/frame-catalog.json?v=wait" + Date.now()))
+        .then((r) => r.json())
+        .then((c) => { this._frameCatalog = c; if (typeof window !== "undefined") window.__otaclawFrameCatalog = c; })
+        .catch(() => {});
+      // Also race a brief wait so first schedule tick can adopt a real organic pool.
+      // This is the key to "organic sprite selection from t=0" on the Pi display.
+      try {
+        // Note: top-level early fetch + calibration fetch + this usually win; race is belt-and-suspenders.
+        const raced = await Promise.race([
+          fetch(au("data/frame-catalog.json?first=" + Date.now())).then((r) => (r && r.ok ? r.json() : null)),
+          new Promise((res) => setTimeout(() => res(null), 320)),
+        ]);
+        if (raced && Array.isArray(raced.frames)) {
+          this._frameCatalog = raced;
+          if (typeof window !== "undefined") window.__otaclawFrameCatalog = raced;
+        }
+      } catch (_) {}
+    }
     const baseMs = 450;
     const jitterMs = 150;
     let idx = 0;
@@ -1480,6 +1727,15 @@ class OtaClawApp {
       ) {
         this._waitingAnimationHandle = null;
         return;
+      }
+      // PRODUCTION: live upgrade to organic on every tick once catalog ready (guarantees rich sprites ASAP even if first tick used fallback)
+      if (!this._frameCatalog && typeof window !== "undefined") {
+        if (window.__otaclawEarlyCatalog) this._frameCatalog = window.__otaclawEarlyCatalog;
+        else if (window.__otaclawFrameCatalog) this._frameCatalog = window.__otaclawFrameCatalog;
+      }
+      if (this._frameCatalog?.frames) {
+        const p = this._getOrganicFramePool("idle", this._lastContext || { category: "idle" });
+        if (p.length >= 3) seq = p.slice(0, 12).map((f) => [f.col, f.row]);
       }
       const frameObj = seq[idx % seq.length];
       if (Array.isArray(frameObj)) {
@@ -1508,115 +1764,147 @@ class OtaClawApp {
     document.body.classList.remove("widget-check-config");
   }
 
+  /**
+   * Active LLM/tool states where sprites should stay task-coherent (not random idle variety).
+   */
+  _isActiveWorkState(state) {
+    return [
+      "thinking",
+      "processing",
+      "curious",
+      "excited",
+      "worried",
+      "presenting",
+    ].includes(state);
+  }
 
-  _startTagPoolAnimation(stateName, speechText = null, timerKey = "_tagPoolAnimationHandle") {
-    if (!document.body.classList.contains("otaclaw-widget")) return;
-
-    // During streaming, use much slower animation to prevent freezing
-    const isStreaming = this._streamingSpeechActive && this._accumulatedText?.length > 0;
-
-    // Cache the resolved text once when the animation starts
-    let currentSpeech = speechText !== null ? speechText : (stateName === "idle" ? "" : (this._t(stateName) || ""));
-
-    // Generate a unique token for this animation run
-    const runToken = {};
-    this[`${timerKey}_token`] = runToken;
-
-    const schedule = () => {
-      // Abort if a new animation of this type has been started
-      if (this[`${timerKey}_token`] !== runToken) return;
-      if (!document.body.classList.contains("otaclaw-widget")) return;
-      
-      let currentState = this.otaclaw?.getState?.() || "";
-      // Strictly abort if the state has changed
-      if (stateName !== "idle" && currentState !== stateName && currentState !== "processing" && currentState !== "thinking") return;
-      if (stateName === "idle" && currentState !== "idle") return;
-
-      // Sprite pool for animation variety
-      let pool = [];
-      if (stateName === "thinking" || stateName === "processing") {
-        pool = [{col:1, row:0}, {col:2, row:0}, {col:3, row:0}, {col:5, row:0}];
-      } else if (stateName === "error") {
-        pool = [{col:0, row:2}, {col:1, row:2}, {col:2, row:2}];
-      } else if (stateName === "success") {
-        pool = [{col:0, row:1}, {col:1, row:1}, {col:2, row:1}];
-      } else if (stateName === "laughing") {
-        pool = [{col:2, row:3}, {col:3, row:3}, {col:4, row:3}];
-      } else if (stateName === "idle") {
-        // Idle: more variety including blinking states
-        pool = [
-          {col:0, row:0},  // base
-          {col:1, row:0},  // slight variation
-          {col:0, row:0},  // base (duplicate for weight)
-          {col:2, row:0},  // another variation
-          {col:0, row:0},  // base (duplicate for weight)
-        ];
-      } else {
-        pool = [{ col: 0, row: 0 }];
-      }
-
-      // Pick a frame
-      const frame = pool[Math.floor(Math.random() * pool.length)];
-
-      // During streaming, preserve the accumulated text in speech bubble
-      if (isStreaming && this._accumulatedText) {
-        currentSpeech = this._accumulatedText.slice(0, 100);
-      }
-      
-      this._setFrameDirect(frame.col, frame.row, currentSpeech);
-
-      // 4. Set delay for organic feel - balanced for smoothness without freezing
-      let delay = 1500; // Base timing
-      if (stateName === "idle") {
-        delay = 2500 + Math.random() * 2000; // 2.5-4.5 seconds for idle (organic, slow)
-      } else if (stateName === "laughing") {
-        delay = 350 + Math.random() * 250; // Fast for laughing
-      } else if (stateName === "processing" || stateName === "thinking") {
-        delay = 1200 + Math.random() * 800; // 1.2-2 seconds for thinking/processing
-      } else if (stateName === "success" || stateName === "error") {
-        delay = 2000; // Hold for reactions
-      }
-
-      this[timerKey] = setTimeout(schedule, delay);
+  _categoryToWorkState(category) {
+    const map = {
+      search: "curious",
+      analytical: "thinking",
+      creative: "excited",
+      risky: "worried",
+      communication: "processing",
+      neutral: "thinking",
     };
-    
-    // Clear any existing timer for this key
-    if (this[timerKey]) {
-        clearTimeout(this[timerKey]);
+    return map[category] || "thinking";
+  }
+
+  _categoryToToolReaction(category) {
+    return this._categoryToWorkState(category);
+  }
+
+  _resolveWorkState() {
+    return this._categoryToWorkState(this._lastContext?.category || "neutral");
+  }
+
+  /** Keep app + AnimationController context in sync (single source for category). */
+  _setLastContext(partial) {
+    this._lastContext = {
+      ...(this._lastContext || {}),
+      ...partial,
+      ts: Date.now(),
+    };
+    this.animator?.setContext(this._lastContext);
+  }
+
+  /**
+   * Delegate organic pool to AnimationController (sole selection engine).
+   */
+  _getOrganicFramePool(stateName, context = {}) {
+    if (this.animator) {
+      if (this._frameCatalog) this.animator.setCatalog(this._frameCatalog);
+      this.animator.setContext(context || this._lastContext);
+      return this.animator.getOrganicFramePool(stateName, context || this._lastContext);
     }
-    
-    // Fetch catalog if missing, then start
-    if (!this._frameCatalog) {
-        const assetUrl = typeof window.otaclawAssetUrl === "function" ? (p) => window.otaclawAssetUrl(p) : (p) => p;
-        fetch(assetUrl("data/frame-catalog.json?v=15" + Date.now()))
-          .then((r) => r.json())
-          .then((catalog) => {
-            // Only proceed if this is still the active token
-            if (this[`${timerKey}_token`] === runToken) {
-                this._frameCatalog = catalog;
-                schedule();
+    return [{ col: 0, row: 0 }];
+  }
+
+  /**
+   * Try to play a full animation sequence for this state (from tagToSequences or catalog).
+   * Returns true if a sequence was started.
+   */
+  _tryPlayStateSequence(stateName, speech = "") {
+    if (!document.body.classList.contains("otaclaw-widget")) return false;
+
+    const seqMap = this.config?.sprites?.tagToSequences || {};
+    let seq = seqMap[stateName.toLowerCase()];
+
+    if (!Array.isArray(seq) || seq.length === 0) {
+      const catSeq = this._frameCatalog?.sequences?.[stateName];
+      if (Array.isArray(catSeq) && catSeq.length) seq = catSeq;
+    }
+
+    if (!Array.isArray(seq) || seq.length === 0) return false;
+
+    this.stopAllAnimations();
+    const frameMs = Number(this.config?.sprites?.tagSequenceFrameMs) || 350;
+    let idx = 0;
+    const run = () => {
+      if (!document.body.classList.contains("otaclaw-widget")) return;
+      const [c, r] = seq[idx];
+      this._setFrameDirect(c, r, speech || "");
+      idx++;
+      if (idx < seq.length) {
+        this._tagSeqHandle = setTimeout(run, frameMs);
+      } else {
+        this._tagSeqHandle = null;
+        if (["success", "laughing", "error", "surprised"].includes(stateName)) {
+          setTimeout(() => {
+            const st = this.otaclaw?.getState?.();
+            if (st === stateName || st === "processing") {
+              this.otaclaw?.setState("idle", { speech: "" });
             }
-          }).catch(() => {
-            if (this[`${timerKey}_token`] === runToken) schedule();
-          });
-    } else {
-        schedule();
-    }
+          }, 2200);
+        }
+      }
+    };
+    run();
+    return true;
   }
 
   stopAllAnimations() {
-    ["_idleAnimationHandle", "_thinkingAnimationHandle", "_successAnimationHandle", "_errorAnimationHandle", "_laughingAnimationHandle", "_surprisedAnimationHandle", "_tagSeqHandle", "_tagPoolAnimationHandle", "_thinkingPhaseTimer"].forEach(k => {
-        if (this[k]) {
-            clearTimeout(this[k]);
-            this[k] = null;
-        }
+    this.animator?.stopAll();
+    [
+      "_idleAnimationHandle",
+      "_thinkingAnimationHandle",
+      "_successAnimationHandle",
+      "_errorAnimationHandle",
+      "_laughingAnimationHandle",
+      "_surprisedAnimationHandle",
+      "_tagSeqHandle",
+      "_tagPoolAnimationHandle",
+      "_thinkingPhaseTimer",
+    ].forEach((k) => {
+      if (this[k]) {
+        clearTimeout(this[k]);
+        this[k] = null;
+      }
     });
   }
 
-  /** Idle: gentle cycle, organic timing – spaced out, random, not constant. */
+  /**
+   * After a tool/stock context arrives during idle, restart idle life loop
+   * (context itself does not bias idle poses — fidelity is work-only).
+   */
+  _refreshIdleWithContext() {
+    if (!document.body.classList.contains("otaclaw-widget")) return;
+    const st = this.otaclaw?.getState?.();
+    if (st === "idle") {
+      setTimeout(() => {
+        if (this.otaclaw?.getState?.() === "idle") this.startIdleAnimation();
+      }, 80);
+    }
+  }
+
+  /** Idle = life (base hold + micro). Delegates to AnimationController. */
   startIdleAnimation() {
     this.stopAllAnimations();
-    this._startTagPoolAnimation("idle", null, "_idleAnimationHandle");
+    if (!this.animator) return;
+    if (this._frameCatalog) this.animator.setCatalog(this._frameCatalog);
+    this.animator.setContext(null);
+    this._updateSpeechBubble("", { force: true });
+    this.animator.startIdle();
   }
 
   stopIdleAnimation() {
@@ -1626,12 +1914,13 @@ class OtaClawApp {
   _scheduleSleep() {
     this._cancelSleep();
     if (!document.body.classList.contains("otaclaw-widget")) return;
-    
-    // Default to 5 minutes (300000ms) - longer sleep to avoid constant wake/sleep cycles
-    const ms = (this.config?.behavior?.sleepIdleMs !== undefined && this.config?.behavior?.sleepIdleMs !== null)
-      ? Number(this.config.behavior.sleepIdleMs) 
-      : 300000;
-      
+
+    const ms =
+      this.config?.behavior?.sleepIdleMs !== undefined &&
+      this.config?.behavior?.sleepIdleMs !== null
+        ? Number(this.config.behavior.sleepIdleMs)
+        : 300000;
+
     if (ms <= 0) return;
     this._sleepTimer = setTimeout(() => {
       this._sleepTimer = null;
@@ -1640,7 +1929,6 @@ class OtaClawApp {
       if (typeof window.runSleepSequence === "function") {
         window.runSleepSequence();
       } else {
-        // Fallback sleep state if sequence missing
         this.otaclaw?.setState("sleeping", { speech: "zZz...", force: true });
         document.body.classList.add("widget-asleep");
       }
@@ -1654,60 +1942,23 @@ class OtaClawApp {
     }
   }
 
-  /**
-   * Run sheet-mode sequence from frame-catalog when sprite arrays are empty.
-   * @param {string} stateName - thinking, processing, success, error, laughing, surprised
-   * @param {string} speech - speech bubble text
-   * @param {string} handleKey - e.g. _thinkingAnimationHandle
-   */
   _runSheetSequence(stateName, speech, handleKey) {
     this.stopAllAnimations();
-    this._startTagPoolAnimation(stateName, speech, handleKey || "_tagSeqHandle");
+    if (!this.animator) return;
+    if (this._frameCatalog) this.animator.setCatalog(this._frameCatalog);
+    this.animator.setContext(this._lastContext);
+    this.animator.startWork(stateName, speech);
   }
 
-  /**
-   * Progressive thinking: cycles through emotional phases during the long LLM wait
-   * so Hal feels alive and engaged rather than frozen on one expression.
-   */
+  /** Work = fidelity: stable category-matched pool via AnimationController. */
   startThinkingAnimation() {
     this.stopAllAnimations();
-    this._thinkingPhaseIndex = 0;
-    this._thinkingPhaseStart = Date.now();
-
-    const phases = [
-      { tag: "thinking",   speech: this._t("thinking"),   minMs: 0,     maxMs: 8000  },
-      { tag: "curious",    speech: "Hmm?",                minMs: 8000,  maxMs: 20000 },
-      { tag: "processing", speech: this._t("processing"), minMs: 20000, maxMs: 40000 },
-      { tag: "thinking",   speech: "Let me see...",       minMs: 40000, maxMs: 60000 },
-      { tag: "worried",    speech: "Almost...",           minMs: 60000, maxMs: 90000 },
-      { tag: "curious",    speech: "Interesting...",      minMs: 90000, maxMs: Infinity },
-    ];
-
-    const runPhase = () => {
-      const currentState = this.otaclaw?.getState?.();
-      if (currentState !== "thinking" && currentState !== "processing") return;
-
-      const elapsed = Date.now() - this._thinkingPhaseStart;
-      let phase = phases[0];
-      for (let i = phases.length - 1; i >= 0; i--) {
-        if (elapsed >= phases[i].minMs) { phase = phases[i]; break; }
-      }
-
-      // During streaming, use accumulated LLM text for speech, but keep animation tag
-      const speechText = (this._streamingSpeechActive && this._accumulatedText)
-        ? this._accumulatedText.slice(0, 100)
-        : phase.speech;
-
-      this._startTagPoolAnimation(phase.tag, speechText, "_thinkingAnimationHandle");
-
-      const nextPhase = phases.find(p => p.minMs > elapsed);
-      if (nextPhase) {
-        const delay = nextPhase.minMs - elapsed + 200;
-        this._thinkingPhaseTimer = setTimeout(runPhase, delay);
-      }
-    };
-
-    runPhase();
+    if (!this.animator) return;
+    if (this._frameCatalog) this.animator.setCatalog(this._frameCatalog);
+    this.animator.setContext(this._lastContext);
+    const workState = this._resolveWorkState();
+    const speech = this._t(workState) || this._t("thinking");
+    this.animator.startWork(workState, speech);
   }
 
   stopThinkingAnimation() {
@@ -1715,48 +1966,45 @@ class OtaClawApp {
       clearTimeout(this._thinkingPhaseTimer);
       this._thinkingPhaseTimer = null;
     }
+    this.animator?.stopAll();
   }
 
   startLaughingAnimation() {
     this.stopAllAnimations();
-    // During streaming, preserve LLM text in bubble
-    const speech = (this._streamingSpeechActive && this._accumulatedText)
-      ? this._accumulatedText.slice(0, 100)
-      : null;
-    this._startTagPoolAnimation("laughing", speech, "_laughingAnimationHandle");
+    if (!this._tryPlayStateSequence("laughing", this._t("laughing"))) {
+      this.animator?.setCatalog(this._frameCatalog);
+      this.animator?.startLaughing(this._t("laughing"));
+    }
   }
 
   stopLaughingAnimation() {}
 
   startSuccessAnimation() {
     this.stopAllAnimations();
-    // During streaming, preserve LLM text in bubble
-    const speech = (this._streamingSpeechActive && this._accumulatedText)
-      ? this._accumulatedText.slice(0, 100)
-      : null;
-    this._startTagPoolAnimation("success", speech, "_successAnimationHandle");
+    if (!this._tryPlayStateSequence("success", this._t("success"))) {
+      this.animator?.setCatalog(this._frameCatalog);
+      this.animator?.startSuccess(this._t("success"));
+    }
   }
 
   stopSuccessAnimation() {}
 
   startErrorAnimation() {
     this.stopAllAnimations();
-    // During streaming, preserve LLM text in bubble
-    const speech = (this._streamingSpeechActive && this._accumulatedText)
-      ? this._accumulatedText.slice(0, 100)
-      : null;
-    this._startTagPoolAnimation("error", speech, "_errorAnimationHandle");
+    if (!this._tryPlayStateSequence("error", this._t("error"))) {
+      this.animator?.setCatalog(this._frameCatalog);
+      this.animator?.startError(this._t("error"));
+    }
   }
 
   stopErrorAnimation() {}
 
   startSurprisedAnimation() {
     this.stopAllAnimations();
-    // During streaming, preserve LLM text in bubble
-    const speech = (this._streamingSpeechActive && this._accumulatedText)
-      ? this._accumulatedText.slice(0, 100)
-      : null;
-    this._startTagPoolAnimation("surprised", speech, "_surprisedAnimationHandle");
+    if (!this._tryPlayStateSequence("surprised", this._t("surprised"))) {
+      this.animator?.setCatalog(this._frameCatalog);
+      this.animator?.startSurprised(this._t("surprised"));
+    }
   }
 
   stopSurprisedAnimation() {}
@@ -1844,7 +2092,7 @@ class OtaClawApp {
                 onComplete: () => this._runSequenceDemo(),
               })
               .catch((e) => {
-                console.error("[OtaClaw] emotions demo failed:", e);
+                monitor.error("emotions_demo.failed", { error: String(e) });
               });
           }
         } else {
@@ -1859,7 +2107,7 @@ class OtaClawApp {
         if (this.emotionsDemo && typeof this.otaclaw?.startFullRangeDemo === "function")
           this.otaclaw.startFullRangeDemo();
       }
-      console.log("[OtaClaw] Running in offline/demo mode");
+      monitor.log("offline.demo_mode");
       return;
     }
 

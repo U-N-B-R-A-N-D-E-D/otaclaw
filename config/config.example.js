@@ -1,46 +1,51 @@
 /**
- * OtaClaw for OpenClaw - Configuration Template
+ * OtaClaw Configuration Template
  *
  * Copy this file to config.js and customize for your setup:
  *   cp config/config.example.js config/config.js
  *
  * ## Modes
- * - "public": Standard OpenClaw connection (for GitHub/fresh installs)
- * - "local": Local inference cluster (Mac Minis array)
+ * - "public": Standard gateway connection (OpenClaw, HAL bot, or any compatible WS)
+ * - "local": Local inference cluster (Mac Minis array, llama.cpp, vLLM, etc.)
  *
  * ## Quick Setup
- * 1. For fresh OpenClaw install: Use as-is
- * 2. For local cluster: Change mode to "local" and set local gateway host
+ * 1. Point `gateway` at any event gateway that emits agent.* / gateway.* events
+ * 2. For OpenClaw: defaults below work OOTB
+ * 3. For local cluster: set mode to "local" and gateway.host to your WS host
+ *
+ * `gateway` is preferred. `openclaw` remains a backward-compatible alias
+ * (both keys are synced at runtime).
  */
 
 export const OTACLAW_CONFIG = {
   /**
    * Deployment mode
-   * "public": Connects to standard OpenClaw gateway
-   * "local": Connects to local/private OpenClaw instance
+   * "public": Connects to a standard event gateway
+   * "local": Connects to a local/private inference + gateway stack
    */
   mode: 'public',
 
   /**
-   * OpenClaw Gateway Connection Settings
-   * These define how OtaClaw connects to your OpenClaw instance
+   * Event Gateway Connection Settings
+   * Any WebSocket gateway that speaks the OtaClaw event protocol works:
+   * OpenClaw, HAL Discord bot, or a custom bridge in front of any LLM.
    */
-  openclaw: {
-    // Host: 'auto' = same as page (works when served from OpenClaw canvas)
+  gateway: {
+    // Host: 'auto' = same as page (works when served from the gateway)
     // For local mode, set to your local gateway IP (e.g., '192.168.1.100')
     host: 'auto',
 
-    // Port where OpenClaw gateway is running (default: 18789)
+    // Port where the event gateway is running (OpenClaw default: 18789)
     port: 18789,
 
     // WebSocket endpoint path
     wsPath: '/ws',
 
-    // Send screen taps (tickles) to Discord
+    // Send screen taps (tickles) to Discord (when gateway supports it)
     tickleToDiscord: true,
 
     // Target format: "channel:<channel_id>" or "user:<user_id>".
-    // Leave null to let OpenClaw determine default session routing.
+    // Leave null to let the gateway determine default session routing.
     tickleDiscordChannel: null,
 
     // Reconnection interval in milliseconds (default: 5000ms = 5s)
@@ -137,6 +142,9 @@ export const OTACLAW_CONFIG = {
 
     // Agent response timeout before showing error state (ms)
     agentResponseTimeoutMs: 35000,
+
+    // StockAgent trade/movement speech bubble display (10–20s recommended)
+    stockagentBubbleMs: 15000,
   },
 
   /**
@@ -181,8 +189,8 @@ export const OTACLAW_CONFIG = {
 
   /**
    * State Mapping
-   * Map OpenClaw events to OtaClaw states
-   * Format: 'openclaw.event.name': 'otaclaw-state'
+   * Map gateway events to OtaClaw states
+   * Format: 'event.name': 'otaclaw-state'
    */
   eventMap: {
     // Agent events
@@ -193,6 +201,20 @@ export const OTACLAW_CONFIG = {
     'agent.tool.call': 'surprised',
     'agent.tool.result': 'success',
     'agent.tool.error': 'error',
+
+    // Tool categories
+    'agent.tool.search':   'curious',
+    'agent.tool.creative': 'excited',
+    'agent.tool.risky':    'worried',
+    'agent.tool.analytical': 'thinking',
+    'agent.tool.communication': 'processing',
+    'agent.tool.neutral':  'surprised',
+
+    // Progress phases
+    'agent.progress.planning':    'thinking',
+    'agent.progress.executing':   'processing',
+    'agent.progress.validating':  'curious',
+    'agent.progress.finalizing':  'presenting',
 
     // Gateway events
     'gateway.idle': 'idle',
@@ -209,7 +231,7 @@ export const OTACLAW_CONFIG = {
     'channel.connected': 'idle',
     'channel.disconnected': 'idle',
 
-    // Fallback for unknown OpenClaw events (prevents Hal from getting stuck)
+    // Fallback for unknown gateway events (prevents Hal from getting stuck)
     '*': 'idle',
   },
 
@@ -223,6 +245,12 @@ export const OTACLAW_CONFIG = {
     'agent.message.complete': 5,
     'agent.tool.result': 5,
     'agent.tool.call': 4,
+    'agent.tool.creative': 7,
+    'agent.tool.risky': 8,
+    'agent.progress.planning': 4,
+    'agent.progress.executing': 5,
+    'agent.progress.validating': 5,
+    'agent.progress.finalizing': 6,
     'agent.message.start': 3,
     'agent.message.delta': 3,
     'gateway.error': 10,
@@ -348,9 +376,22 @@ export const OTACLAW_CONFIG = {
     },
 
     // Sequential animations (play frames in order)
+    // Populated with catalog sequences so more sprites + full animation sequences are used.
+    // Success/laughing/etc will prefer playing these for emotional, task-matched animation.
     tagToSequences: {
-      // Example: success sequence cycling through frames
-      // success: [[0, 1], [1, 1], [2, 1], [1, 1]],
+      success: [[0,1],[1,1],[2,1]],
+      laughing: [[2,3],[3,3]],
+      thinking: [[1,0],[2,0],[1,0]],
+      processing: [[6,0],[7,0],[6,1],[7,1]],
+      surprised: [[9,0],[10,0]],
+      curious: [[5,2],[1,2]],
+      confused: [[1,2],[5,0]],
+      excited: [[2,1],[6,3],[7,3]],
+      worried: [[0,2],[4,2]],
+      presenting: [[6,3],[7,3]],
+      error: [[0,2],[2,2],[3,2]],
+      sad: [[2,2],[3,2]],
+      scared: [[9,0],[10,0],[10,3]],
     },
 
     // Frame timing overrides (ms per frame for specific states)
@@ -372,8 +413,11 @@ export const OTACLAW_CONFIG = {
     idleSprites: [],
 
     // Idle animation sequence (indices into idleSprites or sheet positions)
+    // Calm idle sequence for the early "waiting" phase (before full organic idle).
+    // Prefer explicit [col, row] of resting/calm frames.
     idleSequence: [
-      0, 0, 1, 7, 8, 9, 3, 0, 4, 1, 7, 8, 9, 0, 5, 0, 2, 6, 0, 1, 7, 8, 9, 0,
+      [0, 0], [0, 0], [3, 0], [0, 0], [4, 0], [5, 1], [0, 0], [8, 0], [3, 0], [0, 0],
+      [4, 0], [0, 0], [5, 1],
     ],
   },
 
@@ -449,7 +493,7 @@ export const OTACLAW_CONFIG = {
     connected: 'Connected',
     disconnected: 'Disconnected',
     offline: 'Demo Mode',
-    configRequired: 'Configure OpenClaw connection in js/config.js',
+    configRequired: 'Configure gateway connection in js/config.js',
     configError: 'Configuration error: Copy config.example.js to config.js',
     runtimeError: 'Runtime error: ',
     loading: 'Loading…',
@@ -494,6 +538,28 @@ export const OTACLAW_CONFIG = {
     // Log to console
     console: true,
   },
+
+  /**
+   * Monitoring (OtaclawMonitor)
+   * Optional, low-overhead logging/metrics/remote-export system.
+   * See: src/js/core/monitor.js and docs/MONITORING.md
+   */
+  monitoring: {
+    // Level-0: console output (mirrors `logging.console` for back-compat)
+    console: true,
+
+    // Level-1: collect in-memory metrics (connection, emotions, performance)
+    // Off by default to keep production overhead at zero.
+    metrics: false,
+
+    // Level-3: remote endpoint for batched event export (debug only)
+    remote: false,
+    remoteEndpoint: null,
+    batchInterval: 5000,
+
+    // Threshold used by monitor: 'debug' | 'info' | 'warn' | 'error'
+    logLevel: 'info',
+  },
 };
 
 /**
@@ -502,14 +568,14 @@ export const OTACLAW_CONFIG = {
  */
 export const MODE_OVERRIDES = {
   public: {
-    // Standard OpenClaw defaults - no overrides needed
+    // Standard gateway defaults - no overrides needed
   },
 
   local: {
     // Local cluster settings
-    openclaw: {
+    gateway: {
       // Auto-detect won't work if served from file://
-      // Set to your local OpenClaw gateway IP
+      // Set to your local event gateway IP
       host: 'localhost',
       // Longer timeouts for local development
       connectionTimeout: 15000,
@@ -524,6 +590,10 @@ export const MODE_OVERRIDES = {
     },
     logging: {
       level: 'debug',
+    },
+    monitoring: {
+      metrics: true,
+      logLevel: 'debug',
     },
   },
 };
