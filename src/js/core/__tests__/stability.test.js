@@ -5,6 +5,7 @@
  * Run with: npm test (once configured)
  */
 
+import { jest } from '@jest/globals';
 import { TimerManager } from '../timer-manager.js';
 import { AnimationController } from '../animation-controller.js';
 import { ConfigValidator } from '../config-validator.js';
@@ -197,18 +198,30 @@ describe('ConfigValidator', () => {
     expect(summary.localCluster.nodes).toBe(2);
   });
 
-  test('should detect missing openclaw section', () => {
-    const badConfig = { ...mockConfig, openclaw: undefined };
+  test('should detect missing gateway section', () => {
+    const badConfig = { ...mockConfig, openclaw: undefined, gateway: undefined };
     const validator = new ConfigValidator(badConfig);
     const result = validator.validate();
 
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.includes('openclaw'))).toBe(true);
+    expect(result.errors.some(e => e.includes('gateway'))).toBe(true);
+  });
+
+  test('should accept gateway key as preferred alias for openclaw', () => {
+    const { openclaw, ...rest } = mockConfig;
+    const cfg = { ...rest, gateway: { ...openclaw } };
+    const validator = new ConfigValidator(cfg);
+    const result = validator.validate();
+
+    expect(result.valid).toBe(true);
+    expect(cfg.openclaw).toEqual(openclaw);
+    expect(cfg.gateway).toEqual(openclaw);
   });
 
   test('should detect invalid port', () => {
     const badConfig = {
       ...mockConfig,
+      gateway: undefined,
       openclaw: { ...mockConfig.openclaw, port: 99999 }
     };
     const validator = new ConfigValidator(badConfig);
@@ -368,7 +381,7 @@ describe('AnimationController', () => {
   });
 
   test('should analyze text emotions', () => {
-    const emotion = animator.analyzeEmotion('haha that is funny!');
+    const emotion = animator.analyzeEmotion('hahaha that is funny!');
     expect(emotion).toBe('laughing');
   });
 
@@ -382,8 +395,37 @@ describe('AnimationController', () => {
     expect(emotion).toBeNull();
   });
 
+  test('should NOT trigger an emotion override for mundane helpful-assistant phrasing', () => {
+    const mundanePhrases = [
+      "Here is the result I built for you",
+      "That's a great question, let me check",
+      "Sure, I can help with that",
+      "Great, that works!",
+      "What's the weather like today?",
+      "I love this feature, excellent work",
+      "here you go, done!",
+      "jaja ok",
+      "haha sure",
+    ];
+    for (const phrase of mundanePhrases) {
+      animator.resetAccumulatedText();
+      expect(animator.analyzeEmotion(phrase)).toBeNull();
+    }
+  });
+
+  test('should still detect strong, unambiguous emotion signals', () => {
+    animator.resetAccumulatedText();
+    expect(animator.analyzeEmotion("hahaha, that's hilarious!")).toBe('laughing');
+
+    animator.resetAccumulatedText();
+    expect(animator.analyzeEmotion('oops, sorry about that, I made a mistake')).toBe('worried');
+
+    animator.resetAccumulatedText();
+    expect(animator.analyzeEmotion("what?? I don't understand this at all")).toBe('confused');
+  });
+
   test('should track emotion lock', () => {
-    animator.analyzeEmotion('haha funny joke');
+    animator.analyzeEmotion('jajaja funny joke 😂');
     expect(animator.getEmotionLock()).toBe('laughing');
 
     animator.clearEmotionLock();
@@ -418,6 +460,169 @@ describe('AnimationController', () => {
     expect(Array.isArray(tags)).toBe(true);
     expect(tags).toContain('laughing');
     expect(tags).toContain('happy');
+  });
+
+  test('idle search tags should not pull in celebration terminals as primaries', () => {
+    // Idle life may include greeting/playful tags, but not laugh/ta-da/scared as search anchors
+    const tags = animator._getSearchTagsForState('idle');
+    expect(tags).not.toContain('laughing');
+    expect(tags).not.toContain('scared');
+    expect(tags).not.toContain('neutral');
+  });
+
+  test('organic idle pool uses life repertoire and excludes pain', () => {
+    animator.setCatalog({
+      frames: [
+        { col: 0, row: 0, primary: 'idle', lane: 'idle', tags: ['idle_base', 'base', 'calm'] },
+        { col: 1, row: 0, primary: 'thinking', lane: 'work', tags: ['idle_micro', 'calm', 'contemplative'] },
+        { col: 7, row: 2, primary: 'greeting', lane: 'social', tags: ['waving', 'hello'] },
+        { col: 4, row: 3, primary: 'playful', lane: 'social', tags: ['wink', 'playful'] },
+        { col: 8, row: 1, primary: 'confident', lane: 'work', tags: ['assertive'] },
+        { col: 2, row: 3, primary: 'laughing', lane: 'react', tags: ['laughing', 'funny'] },
+        { col: 0, row: 2, primary: 'worried', lane: 'react', tags: ['unpleasant', 'worried'] },
+        { col: 5, row: 1, primary: 'confused', lane: 'work', tags: ['shrug', 'open', 'uncertain'] },
+      ],
+    });
+    const pool = animator.getOrganicFramePool('idle');
+    const keys = pool.map((f) => `${f.col},${f.row}`);
+    expect(keys).toContain('0,0');
+    expect(keys).toContain('7,2');
+    // Organic rest: wave ok, wink looks like laugh — stay out of idle
+    expect(keys).not.toContain('4,3');
+    expect(keys).not.toContain('1,0');
+    expect(keys).not.toContain('8,1');
+    expect(keys).not.toContain('2,3');
+    expect(keys).not.toContain('0,2');
+    expect(keys).not.toContain('5,1');
+  });
+
+  test('organic work pool is primary-narrow and category ranks without expanding to wink', () => {
+    animator.setCatalog({
+      frames: [
+        { col: 1, row: 0, primary: 'thinking', lane: 'work', tags: ['contemplative'] },
+        { col: 5, row: 0, primary: 'confused', lane: 'work', tags: ['puzzled'] },
+        { col: 5, row: 2, primary: 'curious', lane: 'work', tags: ['interested'] },
+        { col: 4, row: 3, primary: 'playful', lane: 'social', tags: ['wink', 'playful'] },
+        { col: 0, row: 0, primary: 'idle', lane: 'idle', tags: ['idle_base', 'base'] },
+      ],
+    });
+    animator.setContext({ category: 'analytical' });
+    const pool = animator.getOrganicFramePool('thinking');
+    const keys = pool.map((f) => `${f.col},${f.row}`);
+    expect(keys).toContain('1,0');
+    expect(keys).not.toContain('4,3');
+    expect(keys).not.toContain('0,0');
+    expect(keys).not.toContain('5,0');
+    expect(pool.length).toBeGreaterThanOrEqual(1);
+  });
+
+  test('thinking pool never includes worried/pain frames', () => {
+    animator.setCatalog({
+      frames: [
+        { col: 1, row: 0, primary: 'thinking', lane: 'work', tags: ['contemplative', 'calm'] },
+        { col: 11, row: 0, primary: 'thinking', lane: 'work', tags: ['contemplative'] },
+        { col: 4, row: 2, primary: 'worried', lane: 'react', tags: ['unpleasant', 'anxious'] },
+        { col: 5, row: 0, primary: 'confused', lane: 'work', tags: ['puzzled'] },
+      ],
+    });
+    const pool = animator.getOrganicFramePool('thinking');
+    const keys = pool.map((f) => `${f.col},${f.row}`);
+    expect(keys).toContain('1,0');
+    expect(keys).toContain('11,0');
+    expect(keys).not.toContain('4,2');
+    expect(keys).not.toContain('5,0');
+  });
+
+  test('real catalog v2: thinking uses calm think frames only', async () => {
+    const { readFileSync } = await import('fs');
+    const { fileURLToPath } = await import('url');
+    const { dirname, join } = await import('path');
+    const dir = dirname(fileURLToPath(import.meta.url));
+    const catalog = JSON.parse(readFileSync(join(dir, '../../../data/frame-catalog.json'), 'utf8'));
+    animator.setCatalog(catalog);
+    const pool = animator.getOrganicFramePool('thinking');
+    const keys = pool.map((f) => `${f.col},${f.row}`);
+    expect(keys.every((k) => ['1,0', '2,0', '11,0', '4,0'].includes(k))).toBe(true);
+    expect(keys).not.toContain('4,2');
+    expect(keys).not.toContain('0,2');
+    expect(keys).not.toContain('5,0');
+    expect(keys).not.toContain('5,1');
+  });
+
+  test('real catalog: idle never shows doubt-shrug (5,1) or open-arms unsure (4,1)', async () => {
+    const { readFileSync } = await import('fs');
+    const { fileURLToPath } = await import('url');
+    const { dirname, join } = await import('path');
+    const dir = dirname(fileURLToPath(import.meta.url));
+    const catalog = JSON.parse(readFileSync(join(dir, '../../../data/frame-catalog.json'), 'utf8'));
+    animator.setCatalog(catalog);
+    const idle = animator.getOrganicFramePool('idle').map((f) => `${f.col},${f.row}`);
+    expect(idle).not.toContain('5,1');
+    expect(idle).not.toContain('4,1');
+    expect(idle).toContain('0,0');
+    const confused = animator.getOrganicFramePool('confused').map((f) => `${f.col},${f.row}`);
+    expect(confused).toContain('5,1');
+    expect(confused).toContain('4,1');
+  });
+
+  test('real catalog: every frame is reachable from at least one state (100% utilization)', async () => {
+    const { readFileSync } = await import('fs');
+    const { fileURLToPath } = await import('url');
+    const { dirname, join } = await import('path');
+    const dir = dirname(fileURLToPath(import.meta.url));
+    const catalog = JSON.parse(readFileSync(join(dir, '../../../data/frame-catalog.json'), 'utf8'));
+    animator.setCatalog(catalog);
+    const states = [
+      'idle', 'thinking', 'processing', 'success', 'error', 'laughing',
+      'surprised', 'curious', 'confused', 'excited', 'worried', 'sad',
+      'scared', 'presenting', 'greeting', 'confident',
+    ];
+    const reachable = new Set();
+    for (const state of states) {
+      for (const f of animator.getOrganicFramePool(state)) {
+        reachable.add(`${f.col},${f.row}`);
+      }
+    }
+    const missing = catalog.frames
+      .map((f) => `${f.col},${f.row}`)
+      .filter((id) => !reachable.has(id));
+    expect(missing).toEqual([]);
+  });
+
+  test('should have a single startThinking implementation that advances phases correctly', () => {
+    // Regression test: a duplicate startThinking used to shadow the real one,
+    // and that real one compared against `p.minMs` (always undefined) instead
+    // of `p.maxMs`, so it never advanced past the first phase.
+    animator.startThinking(() => 'thinking');
+    expect(animator.getCurrentState()).toBe('thinking');
+    // A phase-advancement timer should have been scheduled (not stuck forever
+    // on the first phase with no follow-up check).
+    expect(animator.timers.has('thinkingPhase')).toBe(true);
+  });
+
+  test('startThinking phases should progress thinking -> curious -> deep over time', () => {
+    // Regression test: the phase-selection loop used to scan backwards and
+    // compare `elapsed >= maxMs`, which (with maxMs: Infinity on the last
+    // phase) always resolved to the deep phase immediately, skipping
+    // thinking/curious entirely regardless of elapsed time.
+    jest.useFakeTimers();
+    try {
+      const tagPoolCalls = [];
+      const deepCalls = [];
+      animator._runTagPool = (tag) => tagPoolCalls.push(tag);
+      animator._runIndividualSequence = (name) => deepCalls.push(name);
+
+      animator.startThinking(() => 'thinking');
+      expect(tagPoolCalls).toEqual(['thinking']);
+
+      jest.advanceTimersByTime(20000); // 20s elapsed -> curious phase (15-30s)
+      expect(tagPoolCalls).toEqual(['thinking', 'curious']);
+
+      jest.advanceTimersByTime(15000); // 35s elapsed -> deep thinking phase (30s+)
+      expect(deepCalls).toEqual(['thinkingDeep']);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
 

@@ -183,10 +183,11 @@
           },
           idleSprites: null,
           /* Sequence: indices into idleSprites. Blink (7,8,9) runs fast (~50ms/frame); coat (3–6) slower. */
+          // Enriched calm idleSequence (base/resting from frame-catalog). Used only as last-resort fallback
+          // before catalog; real first-frame behavior comes from _getOrganicFramePool in app.js (deployed logic).
           idleSequence: [
-            [0, 0], [0, 0], [3, 0], [0, 0], 
-            [4, 0], [0, 0], [5, 1], [0, 0], 
-            [8, 0], [0, 0], [1, 0], [0, 0]
+            [0, 0], [0, 0], [3, 0], [0, 0], [4, 0], [5, 1], [0, 0], [8, 0], [3, 0], [0, 0],
+            [4, 0], [0, 0], [5, 1], [1, 0], [8, 0], [0, 0],
           ],
           idleBaseDelayMs: 5000,
           idleJitterMs: 3000,
@@ -233,8 +234,19 @@
           },
           holdFrames: { success: { index: 3, ms: 800 } },
           tagToSequences: {
+            // PRODUCTION sequences (used by _tryPlayStateSequence for success/laugh/error/surprised etc).
+            // These + catalog.sequences ensure we play the good sprites (thumbs, laugh, ta-da, coat micro etc)
+            // instead of single static frame. After seq, code returns to catalog-driven idle.
             laughing: [[2, 3], [3, 3], [2, 3], [3, 3]],
-            success: [[0, 1], [1, 1], [2, 1]],
+            success: [[0, 1], [1, 1], [2, 1], [6, 3]],
+            thinking: [[1,0],[2,0],[1,0],[5,0]],
+            processing: [[6,0],[7,0],[6,1],[7,1]],
+            surprised: [[9,0],[10,0]],
+            curious: [[5,2],[1,2]],
+            excited: [[2,1],[6,3],[7,3]],
+            worried: [[0,2],[4,2]],
+            presenting: [[6,3],[7,3],[2,1]],
+            error: [[0,2],[2,2],[3,2]],
             waving: [[7, 2]],
           },
           tagSequenceFrameMs: 350,
@@ -377,9 +389,13 @@
             confused: ["Huh?", "Wait, what?", "I'm lost", "Say again?"],
             excited: ["Wow!", "No way!", "Awesome!", "Nice!"],
             contemplative: ["Hmmm....", "Let me see...", "Thinking..."],
-            waving: ["Hey!", "Hi there", "Yo!"],
-            worried: ["Hmm...", "Not sure...", "Hope it's ok"],
-            presenting: ["Ta-da!", "There!", "Done!"],
+            waving: ["Hey!", "Hi there", "Yo!", "Hello!"],
+            worried: ["Hmm...", "Not sure...", "Hope it's ok", "Uh oh..."],
+            presenting: ["Ta-da!", "There!", "Done!", "Check this!"],
+            scared: ["Yikes!", "Oh no!", "Careful!", "Watch out!"],
+            confident: ["Easy!", "Got this!", "No problem", "Sure thing"],
+            wink: ["Between us...", "Psst...", "Hint hint", ";)"],
+            sad: ["Aww...", "That's too bad", "Sigh...", "Hmm..."],
           },
         },
         i18n: {
@@ -390,6 +406,16 @@
           laughing: "Haha!",
           surprised: "Woah!",
           contemplative: "Hmmm....",
+          curious: "Hmm?",
+          confused: "Huh?",
+          excited: "Nice!",
+          waving: "Hey!",
+          worried: "Hmm...",
+          presenting: "Ta-da!",
+          scared: "Yikes!",
+          confident: "Easy!",
+          wink: ";)",
+          sad: "Aww...",
           timeout: "Timeout",
           listenerTimeout: "Listener timeout",
           connectionError: "Connection error",
@@ -575,7 +601,7 @@
     </script>
     <script src="js/display-tools.js?v=20"></script>
     <script src="js/app-calibration.js?v=20"></script>
-    <script type="module" src="js/app.js?v=46"></script>
+    <script type="module" src="js/app.js?v=47"></script>
   </body>
   <div
     id="boot-black-overlay"

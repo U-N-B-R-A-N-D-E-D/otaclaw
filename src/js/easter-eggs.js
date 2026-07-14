@@ -731,49 +731,21 @@ export class EasterEggs {
     const halScreen = document.createElement('div');
     halScreen.className = 'codec-hal-screen';
     
-    // #region agent log
-    fetch('http://127.0.0.1:7700/ingest/24f79727-534b-403d-8eca-d5303286554b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ca17cc'},body:JSON.stringify({sessionId:'ca17cc',location:'easter-eggs.js:HAL_CLONE_START',message:'Starting HAL sprite clone',data:{otaclawExists:!!otaclawEl,halScreenCreated:!!halScreen},timestamp:Date.now(),runId:'sprite-debug',hypothesisId:'A,B'})}).catch(()=>{});
-    // #endregion
-    
     if (otaclawEl) {
       const spriteImg = otaclawEl.querySelector('img');
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7700/ingest/24f79727-534b-403d-8eca-d5303286554b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ca17cc'},body:JSON.stringify({sessionId:'ca17cc',location:'easter-eggs.js:SPRITE_FOUND',message:'Sprite element query result',data:{spriteImgExists:!!spriteImg,spriteSrc:spriteImg?.src||'null',spriteComplete:spriteImg?.complete,spriteNaturalWidth:spriteImg?.naturalWidth,spriteNaturalHeight:spriteImg?.naturalHeight},timestamp:Date.now(),runId:'sprite-debug',hypothesisId:'A,B'})}).catch(()=>{});
-      // #endregion
       
       if (spriteImg && spriteImg.src) {
         const img = document.createElement('img');
         img.src = spriteImg.src;
         img.className = 'hal-face-clone';
         
-        // #region agent log
-        fetch('http://127.0.0.1:7700/ingest/24f79727-534b-403d-8eca-d5303286554b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ca17cc'},body:JSON.stringify({sessionId:'ca17cc',location:'easter-eggs.js:CLONE_CREATED',message:'Clone img element created',data:{cloneSrc:img.src,cloneClassName:img.className,thumbSize:thumbSize,halScreenWidth:halScreen.style.width||'css-defined',halScreenHeight:halScreen.style.height||'css-defined'},timestamp:Date.now(),runId:'sprite-debug',hypothesisId:'B,C,D'})}).catch(()=>{});
-        // #endregion
-        
         halScreen.appendChild(img);
         
-        // #region agent log
-        fetch('http://127.0.0.1:7700/ingest/24f79727-534b-403d-8eca-d5303286554b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ca17cc'},body:JSON.stringify({sessionId:'ca17cc',location:'easter-eggs.js:CLONE_APPENDED',message:'Clone appended to halScreen',data:{halScreenChildCount:halScreen.children.length,firstChildTagName:halScreen.children[0]?.tagName,firstChildSrc:halScreen.children[0]?.src},timestamp:Date.now(),runId:'sprite-debug',hypothesisId:'B,E'})}).catch(()=>{});
-        // #endregion
-        
         console.log('> HAL face cloned for codec screen');
-      } else {
-        // #region agent log
-        fetch('http://127.0.0.1:7700/ingest/24f79727-534b-403d-8eca-d5303286554b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ca17cc'},body:JSON.stringify({sessionId:'ca17cc',location:'easter-eggs.js:CLONE_FAILED',message:'Failed to clone sprite',data:{reason:'spriteImg not found or no src',spriteImgExists:!!spriteImg,spriteSrc:spriteImg?.src||'null'},timestamp:Date.now(),runId:'sprite-debug',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
       }
-    } else {
-      // #region agent log
-      fetch('http://127.0.0.1:7700/ingest/24f79727-534b-403d-8eca-d5303286554b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ca17cc'},body:JSON.stringify({sessionId:'ca17cc',location:'easter-eggs.js:OTACLAW_NOT_FOUND',message:'otaclawEl not found',data:{},timestamp:Date.now(),runId:'sprite-debug',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
     }
     
     document.body.appendChild(halScreen);
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7700/ingest/24f79727-534b-403d-8eca-d5303286554b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ca17cc'},body:JSON.stringify({sessionId:'ca17cc',location:'easter-eggs.js:HALSCREEN_APPENDED',message:'halScreen appended to body',data:{halScreenInDOM:document.body.contains(halScreen),halScreenComputedStyle:{width:window.getComputedStyle(halScreen).width,height:window.getComputedStyle(halScreen).height,position:window.getComputedStyle(halScreen).position,zIndex:window.getComputedStyle(halScreen).zIndex}},timestamp:Date.now(),runId:'sprite-debug',hypothesisId:'C,D,E'})}).catch(()=>{});
-    // #endregion
     
     this.codecHalScreen = halScreen;
     

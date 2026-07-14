@@ -82,9 +82,10 @@
       "file": "otacon_sprite.png_0001_Sprite-2.png",
       "desc": "emotion: neutral, calm, idle, standby",
       "tags": [
-        "situation: waiting for player input",
-        "default state",
-        "character at rest. frame 2 of 12: early motion. pixel art sprite."
+        "neutral",
+        "calm",
+        "idle",
+        "resting"
       ]
     },
     {
@@ -106,9 +107,10 @@
       "file": "otacon_sprite.png_0003_Sprite-4.png",
       "desc": "emotion: neutral, calm, idle, standby",
       "tags": [
-        "situation: waiting for player input",
-        "default state",
-        "character at rest. frame 4 of 12: mid-anticipation. pixel art sprite."
+        "neutral",
+        "calm",
+        "idle",
+        "resting"
       ]
     },
     {
@@ -152,9 +154,10 @@
       "file": "otacon_sprite.png_0007_Sprite-8.png",
       "desc": "emotion: neutral, calm, idle, standby",
       "tags": [
-        "situation: waiting for player input",
-        "default state",
-        "character at rest. frame 8 of 12: winding down. pixel art sprite."
+        "neutral",
+        "calm",
+        "idle",
+        "resting"
       ]
     },
     {
@@ -176,9 +179,10 @@
       "file": "otacon_sprite.png_0009_Sprite-10.png",
       "desc": "emotion: neutral, calm, idle, standby",
       "tags": [
-        "situation: waiting for player input",
-        "default state",
-        "character at rest. frame 10 of 12: settling. pixel art sprite."
+        "neutral",
+        "calm",
+        "idle",
+        "resting"
       ]
     },
     {
@@ -188,9 +192,10 @@
       "file": "otacon_sprite.png_0010_Sprite-11.png",
       "desc": "emotion: neutral, calm, idle, standby",
       "tags": [
-        "situation: waiting for player input",
-        "default state",
-        "character at rest. frame 11 of 12: near end. pixel art sprite."
+        "neutral",
+        "calm",
+        "idle",
+        "resting"
       ]
     },
     {
@@ -251,9 +256,9 @@
       "file": "otacon_sprite.png_0015_Sprite-4a.png",
       "desc": "emotion: alert, attentive, focused",
       "tags": [
-        "situation: player approached",
-        "ready to interact",
-        "attention raised. frame 4 of 12: mid-anticipation. pixel art sprite."
+        "alert",
+        "attentive",
+        "focused"
       ]
     },
     {
@@ -289,9 +294,9 @@
       "file": "otacon_sprite.png_0018_Sprite-7a.png",
       "desc": "emotion: alert, attentive, focused",
       "tags": [
-        "situation: player approached",
-        "ready to interact",
-        "attention raised. frame 7 of 12: release begins. pixel art sprite."
+        "alert",
+        "attentive",
+        "focused"
       ]
     },
     {
@@ -313,9 +318,9 @@
       "file": "otacon_sprite.png_0020_Sprite-9a.png",
       "desc": "emotion: alert, attentive, focused",
       "tags": [
-        "situation: player approached",
-        "ready to interact",
-        "attention raised. frame 9 of 12: late release. pixel art sprite."
+        "alert",
+        "attentive",
+        "focused"
       ]
     },
     {
@@ -325,9 +330,9 @@
       "file": "otacon_sprite.png_0021_Sprite-10a.png",
       "desc": "emotion: alert, attentive, focused",
       "tags": [
-        "situation: player approached",
-        "ready to interact",
-        "attention raised. frame 10 of 12: settling. pixel art sprite."
+        "alert",
+        "attentive",
+        "focused"
       ]
     },
     {
@@ -349,10 +354,9 @@
       "file": "otacon_sprite.png_0023_Sprite-12a.png",
       "desc": "emotion: alert, attentive, focused",
       "tags": [
-        "situation: player approached",
-        "ready to interact",
-        "attention raised. frame 12 of 12: release",
-        "end of cycle. pixel art sprite."
+        "alert",
+        "attentive",
+        "focused"
       ]
     },
     {
@@ -424,10 +428,9 @@
       "file": "otacon_sprite.png_0029_Sprite-6b.png",
       "desc": "emotion: tired, subdued, low energy",
       "tags": [
-        "situation: after long activity",
-        "low stamina state",
-        "resting pose. frame 6 of 12: peak",
-        "fullest expression. pixel art sprite."
+        "tired",
+        "subdued",
+        "low-energy"
       ]
     },
     {
@@ -437,9 +440,9 @@
       "file": "otacon_sprite.png_0030_Sprite-7b.png",
       "desc": "emotion: tired, subdued, low energy",
       "tags": [
-        "situation: after long activity",
-        "low stamina state",
-        "resting pose. frame 7 of 12: release begins. pixel art sprite."
+        "tired",
+        "subdued",
+        "low-energy"
       ]
     },
     {
@@ -460,9 +463,9 @@
       "file": "otacon_sprite.png_0032_Sprite-9b.png",
       "desc": "emotion: tired, subdued, low energy",
       "tags": [
-        "situation: after long activity",
-        "low stamina state",
-        "resting pose. frame 9 of 12: late release. pixel art sprite."
+        "tired",
+        "subdued",
+        "low-energy"
       ],
       "skip": true
     },
@@ -473,9 +476,9 @@
       "file": "otacon_sprite.png_0033_Sprite-10b.png",
       "desc": "emotion: tired, subdued, low energy",
       "tags": [
-        "situation: after long activity",
-        "low stamina state",
-        "resting pose. frame 10 of 12: settling. pixel art sprite."
+        "tired",
+        "subdued",
+        "low-energy"
       ],
       "skip": true
     },
@@ -486,9 +489,9 @@
       "file": "otacon_sprite.png_0034_Sprite-11b.png",
       "desc": "emotion: tired, subdued, low energy",
       "tags": [
-        "situation: after long activity",
-        "low stamina state",
-        "resting pose. frame 11 of 12: near end. pixel art sprite."
+        "tired",
+        "subdued",
+        "low-energy"
       ],
       "skip": true
     },
@@ -499,10 +502,9 @@
       "file": "otacon_sprite.png_0035_Sprite-12b.png",
       "desc": "emotion: tired, subdued, low energy",
       "tags": [
-        "situation: after long activity",
-        "low stamina state",
-        "resting pose. frame 12 of 12: release",
-        "end of cycle. pixel art sprite."
+        "tired",
+        "subdued",
+        "low-energy"
       ],
       "skip": true
     },
@@ -524,8 +526,9 @@
       "file": "otacon_sprite.png_0037_Layer-2.png",
       "desc": "emotion: variation, alternate expression",
       "tags": [
-        "situation: alternative animation set",
-        "secondary pose cycle. frame 2 of 12: early motion. pixel art sprite."
+        "happy",
+        "laughing",
+        "playful"
       ]
     },
     {
@@ -535,8 +538,9 @@
       "file": "otacon_sprite.png_0038_Layer-3.png",
       "desc": "emotion: variation, alternate expression",
       "tags": [
-        "situation: alternative animation set",
-        "secondary pose cycle. frame 3 of 12: building. pixel art sprite."
+        "happy",
+        "laughing",
+        "playful"
       ]
     },
     {
@@ -584,8 +588,9 @@
       "file": "otacon_sprite.png_0042_Layer-7.png",
       "desc": "emotion: variation, alternate expression",
       "tags": [
-        "situation: alternative animation set",
-        "secondary pose cycle. frame 7 of 12: release begins. pixel art sprite."
+        "neutral",
+        "variant",
+        "alternate"
       ]
     },
     {
@@ -595,8 +600,9 @@
       "file": "otacon_sprite.png_0043_Layer-8.png",
       "desc": "emotion: variation, alternate expression",
       "tags": [
-        "situation: alternative animation set",
-        "secondary pose cycle. frame 8 of 12: winding down. pixel art sprite."
+        "neutral",
+        "variant",
+        "alternate"
       ]
     },
     {
@@ -606,8 +612,9 @@
       "file": "otacon_sprite.png_0044_Layer-9.png",
       "desc": "emotion: variation, alternate expression",
       "tags": [
-        "situation: alternative animation set",
-        "secondary pose cycle. frame 9 of 12: late release. pixel art sprite."
+        "neutral",
+        "variant",
+        "alternate"
       ]
     },
     {
@@ -617,8 +624,9 @@
       "file": "otacon_sprite.png_0045_Layer-10.png",
       "desc": "emotion: variation, alternate expression",
       "tags": [
-        "situation: alternative animation set",
-        "secondary pose cycle. frame 10 of 12: settling. pixel art sprite."
+        "neutral",
+        "variant",
+        "alternate"
       ]
     },
     {
@@ -641,9 +649,9 @@
       "file": "otacon_sprite.png_0047_Layer-12.png",
       "desc": "emotion: variation, alternate expression",
       "tags": [
-        "situation: alternative animation set",
-        "secondary pose cycle. frame 12 of 12: release",
-        "end of cycle. pixel art sprite."
+        "neutral",
+        "variant",
+        "alternate"
       ],
       "skip": true
     }

@@ -1,69 +1,457 @@
 {
   "sheet": "otaclock-original.png",
   "grid": { "cols": 12, "rows": 4 },
-  "overflow": [{"col": 4, "row": 1}],
-  "skip": [{"col": 9, "row": 2}, {"col": 10, "row": 2}, {"col": 11, "row": 2}, {"col": 11, "row": 3}],
+  "overflow": [{ "col": 4, "row": 1 }],
+  "skip": [
+    { "col": 9, "row": 2 },
+    { "col": 10, "row": 2 },
+    { "col": 11, "row": 2 },
+    { "col": 11, "row": 3 }
+  ],
+  "tagDoc": "v2 taxonomy: each frame has exactly ONE primary + ONE lane. Every cell is used (≥1 state). Lanes: idle (rest), work (task fidelity), react (terminals), social (life/celebrate — idle rare, laughing, success, greeting). Nothing is spam or quarantined.",
+  "tagLegend": {
+    "primary": [
+      "idle",
+      "thinking",
+      "talking",
+      "explaining",
+      "success",
+      "laughing",
+      "surprised",
+      "curious",
+      "confused",
+      "worried",
+      "sad",
+      "scared",
+      "confident",
+      "playful",
+      "greeting",
+      "presenting"
+    ],
+    "lane": ["idle", "work", "react", "social"],
+    "rules": [
+      "Never put worried/sad/scared primary on thinking/processing pools",
+      "Every frame appears in ≥1 organic pool",
+      "social = life/celebrate (idle rare + laughing/success/greeting), not work fidelity",
+      "confident = processing + success + idle ready",
+      "react lane for success/error/laugh/surprise terminals"
+    ]
+  },
   "sequences": {
-    "thinking": [[1, 0], [2, 0], [1, 0]],
-    "thinking1": [[4, 2], [11, 0], [4, 2]],
-    "thinking2": [[5, 0], [1, 2], [5, 0]],
-    "processing": [[6, 0], [7, 0], [6, 1], [7, 1]],
-    "success": [[0, 1], [1, 1], [2, 1]],
-    "laughing": [[2, 3], [3, 3]],
-    "error": [[0, 2], [2, 2], [3, 2]],
+    "thinking": [[1, 0], [11, 0], [2, 0], [4, 0]],
+    "thinking1": [[11, 0], [1, 0], [4, 0]],
+    "thinking2": [[1, 0], [11, 0], [2, 0]],
+    "processing": [[6, 0], [7, 0], [6, 1], [8, 1], [6, 2], [10, 1], [8, 2]],
+    "success": [[0, 1], [1, 1], [2, 1], [3, 1], [6, 3], [4, 3]],
+    "laughing": [[2, 3], [3, 3], [4, 3], [5, 3]],
+    "error": [[2, 2], [3, 2], [0, 2], [4, 2]],
     "surprised": [[9, 0], [10, 0]],
     "curious": [[5, 2], [1, 2]],
-    "confused": [[1, 2], [5, 0]],
-    "excited": [[2, 1], [6, 3], [7, 3]],
-    "worried": [[0, 2], [4, 2]],
+    "confused": [[5, 0], [1, 2], [5, 1], [4, 1]],
+    "excited": [[2, 1], [6, 3], [7, 3], [4, 3], [10, 1]],
+    "worried": [[0, 2], [4, 2], [9, 3]],
     "sad": [[2, 2], [3, 2]],
-    "scared": [[9, 0], [10, 0], [10, 3]],
-    "presenting": [[6, 3], [7, 3]]
+    "scared": [[10, 3], [9, 0]],
+    "presenting": [[6, 3], [7, 3], [6, 0], [10, 1]],
+    "greeting": [[7, 2], [4, 3], [5, 3], [0, 1]]
   },
   "frames": [
-    {"id": "0,0", "col": 0, "row": 0, "desc": "neutral, arms relaxed", "tags": ["neutral", "idle", "calm", "resting"]},
-    {"id": "1,0", "col": 1, "row": 0, "desc": "head left, arm across body", "tags": ["neutral", "thinking", "contemplative"]},
-    {"id": "2,0", "col": 2, "row": 0, "desc": "head right, arm across body", "tags": ["neutral", "thinking"]},
-    {"id": "3,0", "col": 3, "row": 0, "desc": "hand near chest, neutral", "tags": ["neutral", "calm"]},
-    {"id": "4,0", "col": 4, "row": 0, "desc": "hand near chest, neutral", "tags": ["neutral", "calm"]},
-    {"id": "5,0", "col": 5, "row": 0, "desc": "confused, thoughtful, hands near chest", "tags": ["thinking", "confused", "contemplative"]},
-    {"id": "6,0", "col": 6, "row": 0, "desc": "left arm out, right hand near waist", "tags": ["neutral", "explaining"]},
-    {"id": "7,0", "col": 7, "row": 0, "desc": "right arm out, left hand near waist", "tags": ["neutral", "explaining"]},
-    {"id": "8,0", "col": 8, "row": 0, "desc": "arms crossed", "tags": ["neutral", "closed", "waiting"]},
-    {"id": "9,0", "col": 9, "row": 0, "desc": "surprised, left hand on mouth", "tags": ["surprised", "shocked", "unpleasant", "scared", "alarmed"]},
-    {"id": "10,0", "col": 10, "row": 0, "desc": "surprised, right hand on mouth", "tags": ["surprised", "shocked", "unpleasant", "scared", "alarmed"]},
-    {"id": "11,0", "col": 11, "row": 0, "desc": "looking right, contemplative", "tags": ["contemplative", "thinking"]},
-    {"id": "0,1", "col": 0, "row": 1, "desc": "thumbs-up left", "tags": ["positive", "success", "approval", "happy"]},
-    {"id": "1,1", "col": 1, "row": 1, "desc": "thumbs-up right", "tags": ["positive", "success", "approval", "happy"]},
-    {"id": "2,1", "col": 2, "row": 1, "desc": "both thumbs-up", "tags": ["positive", "success", "approval", "happy", "excited"]},
-    {"id": "3,1", "col": 3, "row": 1, "desc": "shrugging, presenting, palms open", "tags": ["explaining", "unsure", "processing", "presenting"]},
-    {"id": "4,1", "col": 4, "row": 1, "desc": "arms wide open, expansive", "tags": ["processing", "explaining", "big", "open"], "overflow": true},
-    {"id": "5,1", "col": 5, "row": 1, "desc": "hands clasped in front", "tags": ["polite", "calm", "waiting"]},
-    {"id": "6,1", "col": 6, "row": 1, "desc": "right arm raised, pointing", "tags": ["asking", "explaining", "emphasis"]},
-    {"id": "7,1", "col": 7, "row": 1, "desc": "left arm raised, pointing", "tags": ["asking", "explaining", "emphasis"]},
-    {"id": "8,1", "col": 8, "row": 1, "desc": "right hand on hip, confident", "tags": ["confident", "assertive"]},
-    {"id": "9,1", "col": 9, "row": 1, "desc": "left hand on hip, confident", "tags": ["confident", "assertive"]},
-    {"id": "10,1", "col": 10, "row": 1, "desc": "both hands on hips", "tags": ["confident", "assertive", "ready"]},
-    {"id": "11,1", "col": 11, "row": 1, "desc": "arm out, hand on hip", "tags": ["dynamic", "confident"]},
-    {"id": "0,2", "col": 0, "row": 2, "desc": "leaning forward, worried", "tags": ["worried", "concerned", "unpleasant"]},
-    {"id": "1,2", "col": 1, "row": 2, "desc": "leaning back, puzzled", "tags": ["puzzled", "confused", "questioning"]},
-    {"id": "2,2", "col": 2, "row": 2, "desc": "sad, hands clasped", "tags": ["sad", "error", "disappointed", "unpleasant"]},
-    {"id": "3,2", "col": 3, "row": 2, "desc": "sad intense", "tags": ["sad", "error", "distressed", "unpleasant"]},
-    {"id": "4,2", "col": 4, "row": 2, "desc": "worried, hand near chin", "tags": ["worried", "thinking", "unpleasant"]},
-    {"id": "5,2", "col": 5, "row": 2, "desc": "curious, slight smile", "tags": ["curious", "interested", "positive"]},
-    {"id": "6,2", "col": 6, "row": 2, "desc": "phone to ear", "tags": ["talking", "listening"]},
-    {"id": "7,2", "col": 7, "row": 2, "desc": "waving", "tags": ["waving", "greeting"]},
-    {"id": "8,2", "col": 8, "row": 2, "desc": "pointing forward", "tags": ["pointing", "assertive", "emphasis"]},
-    {"id": "0,3", "col": 0, "row": 3, "desc": "facing left, arms out", "tags": ["dynamic", "movement"]},
-    {"id": "1,3", "col": 1, "row": 3, "desc": "facing right, arms out", "tags": ["dynamic", "movement"]},
-    {"id": "2,3", "col": 2, "row": 3, "desc": "laughing, hands near stomach", "tags": ["laughing", "happy", "funny", "positive"]},
-    {"id": "3,3", "col": 3, "row": 3, "desc": "laughing wide", "tags": ["laughing", "happy", "funny", "excited", "positive"]},
-    {"id": "4,3", "col": 4, "row": 3, "desc": "winking right", "tags": ["wink", "playful", "happy"]},
-    {"id": "5,3", "col": 5, "row": 3, "desc": "winking left", "tags": ["wink", "playful", "happy"]},
-    {"id": "6,3", "col": 6, "row": 3, "desc": "ta-da, confident presentation", "tags": ["success", "ta-da", "presenting", "positive"]},
-    {"id": "7,3", "col": 7, "row": 3, "desc": "ta-da left", "tags": ["success", "ta-da", "presenting", "positive"]},
-    {"id": "8,3", "col": 8, "row": 3, "desc": "arms crossed, smug", "tags": ["confident", "smug", "satisfied"]},
-    {"id": "9,3", "col": 9, "row": 3, "desc": "shivering, cold", "tags": ["cold", "uncomfortable", "unpleasant"]},
-    {"id": "10,3", "col": 10, "row": 3, "desc": "scared, holding object", "tags": ["scared", "frightened", "unpleasant", "alarmed"]}
+    {
+      "id": "0,0",
+      "col": 0,
+      "row": 0,
+      "desc": "neutral standing, arms at sides — true rest",
+      "primary": "idle",
+      "lane": "idle",
+      "tags": ["idle_base", "base", "calm", "resting"]
+    },
+    {
+      "id": "1,0",
+      "col": 1,
+      "row": 0,
+      "desc": "head left, arm across — mild think (work only, not idle)",
+      "primary": "thinking",
+      "lane": "work",
+      "tags": ["contemplative", "calm"]
+    },
+    {
+      "id": "2,0",
+      "col": 2,
+      "row": 0,
+      "desc": "head right, arm across — mild think (work only, not idle)",
+      "primary": "thinking",
+      "lane": "work",
+      "tags": ["contemplative", "calm"]
+    },
+    {
+      "id": "3,0",
+      "col": 3,
+      "row": 0,
+      "desc": "hands together at waist — calm waiting rest",
+      "primary": "idle",
+      "lane": "idle",
+      "tags": ["idle_base", "base", "calm", "resting", "waiting"]
+    },
+    {
+      "id": "4,0",
+      "col": 4,
+      "row": 0,
+      "desc": "hand to chin — contemplative think (not idle rest)",
+      "primary": "thinking",
+      "lane": "work",
+      "tags": ["contemplative", "calm"]
+    },
+    {
+      "id": "5,0",
+      "col": 5,
+      "row": 0,
+      "desc": "hands near chest, puzzled / unsure",
+      "primary": "confused",
+      "lane": "work",
+      "tags": ["puzzled", "questioning", "uncertain"]
+    },
+    {
+      "id": "6,0",
+      "col": 6,
+      "row": 0,
+      "desc": "left arm out — explaining / presenting point",
+      "primary": "explaining",
+      "lane": "work",
+      "tags": ["talking", "processing"]
+    },
+    {
+      "id": "7,0",
+      "col": 7,
+      "row": 0,
+      "desc": "right arm out — explaining (mirror)",
+      "primary": "explaining",
+      "lane": "work",
+      "tags": ["talking", "processing"]
+    },
+    {
+      "id": "8,0",
+      "col": 8,
+      "row": 0,
+      "desc": "arms crossed / hands in — closed calm waiting",
+      "primary": "idle",
+      "lane": "idle",
+      "tags": ["idle_base", "base", "closed", "waiting", "calm"]
+    },
+    {
+      "id": "9,0",
+      "col": 9,
+      "row": 0,
+      "desc": "hand to face — surprised / shocked (L)",
+      "primary": "surprised",
+      "lane": "react",
+      "tags": ["shocked", "amazed"]
+    },
+    {
+      "id": "10,0",
+      "col": 10,
+      "row": 0,
+      "desc": "hand to face — surprised / shocked (R)",
+      "primary": "surprised",
+      "lane": "react",
+      "tags": ["shocked", "amazed"]
+    },
+    {
+      "id": "11,0",
+      "col": 11,
+      "row": 0,
+      "desc": "looking aside, contemplative think",
+      "primary": "thinking",
+      "lane": "work",
+      "tags": ["contemplative", "calm"]
+    },
+    {
+      "id": "0,1",
+      "col": 0,
+      "row": 1,
+      "desc": "thumbs-up left — success",
+      "primary": "success",
+      "lane": "react",
+      "tags": ["approval", "happy", "positive"]
+    },
+    {
+      "id": "1,1",
+      "col": 1,
+      "row": 1,
+      "desc": "thumbs-up right — success",
+      "primary": "success",
+      "lane": "react",
+      "tags": ["approval", "happy", "positive"]
+    },
+    {
+      "id": "2,1",
+      "col": 2,
+      "row": 1,
+      "desc": "both thumbs-up — strong success / excited",
+      "primary": "success",
+      "lane": "react",
+      "tags": ["approval", "happy", "excited", "positive"]
+    },
+    {
+      "id": "3,1",
+      "col": 3,
+      "row": 1,
+      "desc": "thumbs-up + hip — success approval",
+      "primary": "success",
+      "lane": "react",
+      "tags": ["approval", "happy", "positive", "assertive"]
+    },
+    {
+      "id": "4,1",
+      "col": 4,
+      "row": 1,
+      "desc": "arms open palms up — unsure shrug (NOT idle)",
+      "primary": "confused",
+      "lane": "work",
+      "tags": ["puzzled", "uncertain", "questioning", "open", "shrug"],
+      "overflow": true
+    },
+    {
+      "id": "5,1",
+      "col": 5,
+      "row": 1,
+      "desc": "shrug open arms + worried face — doubt (NOT idle)",
+      "primary": "confused",
+      "lane": "work",
+      "tags": ["puzzled", "uncertain", "questioning", "open", "shrug"]
+    },
+    {
+      "id": "6,1",
+      "col": 6,
+      "row": 1,
+      "desc": "arm raised pointing — asking / emphasis",
+      "primary": "explaining",
+      "lane": "work",
+      "tags": ["talking", "asking", "emphasis"]
+    },
+    {
+      "id": "7,1",
+      "col": 7,
+      "row": 1,
+      "desc": "arm raised pointing (mirror)",
+      "primary": "explaining",
+      "lane": "work",
+      "tags": ["talking", "asking", "emphasis"]
+    },
+    {
+      "id": "8,1",
+      "col": 8,
+      "row": 1,
+      "desc": "hand on hip — confident",
+      "primary": "confident",
+      "lane": "work",
+      "tags": ["assertive"]
+    },
+    {
+      "id": "9,1",
+      "col": 9,
+      "row": 1,
+      "desc": "hand on hip (mirror) — confident",
+      "primary": "confident",
+      "lane": "work",
+      "tags": ["assertive"]
+    },
+    {
+      "id": "10,1",
+      "col": 10,
+      "row": 1,
+      "desc": "both hands on hips — ready / confident",
+      "primary": "confident",
+      "lane": "work",
+      "tags": ["assertive", "ready"]
+    },
+    {
+      "id": "11,1",
+      "col": 11,
+      "row": 1,
+      "desc": "arm out + hip — dynamic confident",
+      "primary": "confident",
+      "lane": "work",
+      "tags": ["assertive", "dynamic"]
+    },
+    {
+      "id": "0,2",
+      "col": 0,
+      "row": 2,
+      "desc": "lean forward grimace — WORRIED (pain face, never thinking)",
+      "primary": "worried",
+      "lane": "react",
+      "tags": ["concerned", "unpleasant", "strained"]
+    },
+    {
+      "id": "1,2",
+      "col": 1,
+      "row": 2,
+      "desc": "lean back — puzzled / questioning",
+      "primary": "confused",
+      "lane": "work",
+      "tags": ["puzzled", "questioning"]
+    },
+    {
+      "id": "2,2",
+      "col": 2,
+      "row": 2,
+      "desc": "sad, hands clasped — error / disappointment",
+      "primary": "sad",
+      "lane": "react",
+      "tags": ["error", "disappointed", "unpleasant"]
+    },
+    {
+      "id": "3,2",
+      "col": 3,
+      "row": 2,
+      "desc": "sad intense — hard error",
+      "primary": "sad",
+      "lane": "react",
+      "tags": ["error", "distressed", "unpleasant"]
+    },
+    {
+      "id": "4,2",
+      "col": 4,
+      "row": 2,
+      "desc": "hand near chin, strained — WORRIED (not thinking)",
+      "primary": "worried",
+      "lane": "react",
+      "tags": ["concerned", "unpleasant", "anxious"]
+    },
+    {
+      "id": "5,2",
+      "col": 5,
+      "row": 2,
+      "desc": "slight lean / interest — curious",
+      "primary": "curious",
+      "lane": "work",
+      "tags": ["interested", "positive"]
+    },
+    {
+      "id": "6,2",
+      "col": 6,
+      "row": 2,
+      "desc": "phone to ear — talking / listening",
+      "primary": "talking",
+      "lane": "work",
+      "tags": ["listening", "communication"]
+    },
+    {
+      "id": "7,2",
+      "col": 7,
+      "row": 2,
+      "desc": "waving — greeting only",
+      "primary": "greeting",
+      "lane": "social",
+      "tags": ["waving", "hello"]
+    },
+    {
+      "id": "8,2",
+      "col": 8,
+      "row": 2,
+      "desc": "pointing forward — emphasis",
+      "primary": "explaining",
+      "lane": "work",
+      "tags": ["pointing", "assertive", "emphasis"]
+    },
+    {
+      "id": "0,3",
+      "col": 0,
+      "row": 3,
+      "desc": "facing left, arms out — movement filler",
+      "primary": "talking",
+      "lane": "work",
+      "tags": ["dynamic", "movement"]
+    },
+    {
+      "id": "1,3",
+      "col": 1,
+      "row": 3,
+      "desc": "facing right, arms out — movement filler",
+      "primary": "talking",
+      "lane": "work",
+      "tags": ["dynamic", "movement"]
+    },
+    {
+      "id": "2,3",
+      "col": 2,
+      "row": 3,
+      "desc": "laughing",
+      "primary": "laughing",
+      "lane": "react",
+      "tags": ["happy", "funny", "positive"]
+    },
+    {
+      "id": "3,3",
+      "col": 3,
+      "row": 3,
+      "desc": "laughing wide",
+      "primary": "laughing",
+      "lane": "react",
+      "tags": ["happy", "funny", "excited", "positive"]
+    },
+    {
+      "id": "4,3",
+      "col": 4,
+      "row": 3,
+      "desc": "wink right — playful social only",
+      "primary": "playful",
+      "lane": "social",
+      "tags": ["wink", "happy"]
+    },
+    {
+      "id": "5,3",
+      "col": 5,
+      "row": 3,
+      "desc": "wink left — playful social only",
+      "primary": "playful",
+      "lane": "social",
+      "tags": ["wink", "happy"]
+    },
+    {
+      "id": "6,3",
+      "col": 6,
+      "row": 3,
+      "desc": "ta-da present — success flourish",
+      "primary": "presenting",
+      "lane": "react",
+      "tags": ["ta-da", "success", "positive"]
+    },
+    {
+      "id": "7,3",
+      "col": 7,
+      "row": 3,
+      "desc": "ta-da left — success flourish",
+      "primary": "presenting",
+      "lane": "react",
+      "tags": ["ta-da", "success", "positive"]
+    },
+    {
+      "id": "8,3",
+      "col": 8,
+      "row": 3,
+      "desc": "arms crossed smug — confident satisfied",
+      "primary": "confident",
+      "lane": "work",
+      "tags": ["smug", "satisfied"]
+    },
+    {
+      "id": "9,3",
+      "col": 9,
+      "row": 3,
+      "desc": "shivering cold — uncomfortable",
+      "primary": "worried",
+      "lane": "react",
+      "tags": ["cold", "uncomfortable", "unpleasant"]
+    },
+    {
+      "id": "10,3",
+      "col": 10,
+      "row": 3,
+      "desc": "scared + skull prop — fright / panic",
+      "primary": "scared",
+      "lane": "react",
+      "tags": ["frightened", "unpleasant", "alarmed"]
+    }
   ]
 }

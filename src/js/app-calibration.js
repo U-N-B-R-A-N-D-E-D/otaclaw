@@ -1,9 +1,44 @@
 /**
- * OtaClaw with Sprite Calibration Tool
- * Press C to enter calibration mode
- * Use arrows to adjust position
- * Press S to save coordinates
- * Press 0-9 to test different frames
+ * OtaClaw Sprite Engine + Calibration Studio (global / non-module)
+ *
+ * ## Role in the application
+ * This file is the **sprite-side runtime**. It MUST load before `app.js`
+ * because it installs the globals that `app.js` (the WebSocket / agent
+ * orchestrator) consumes:
+ *
+ *   - `window.otaclaw`              → sprite/state control API
+ *   - `window.runSleepSequence`     → idle → black-screen transition
+ *   - `window.runWakeSequence`      → black-screen → boot → idle transition
+ *   - `window.showWidgetConnectionMsg(Brief)?` → widget overlay messaging
+ *   - `window.__otaclawBootComplete`        → boot handshake flag
+ *   - `window.__otaclawOnBootComplete`      → boot completion callback
+ *   - `window.__otaclawFallbackIdleActive`  → idle-loop ownership flag
+ *
+ * Loaded by both entry points as a classic (non-module) script:
+ *   - `index.html`  → `<script src="js/app-calibration.js"></script>`
+ *   - `widget.html` → `<script src="js/app-calibration.js?v=20"></script>`
+ *
+ * Then `app.js` is loaded as an ES module and reuses these globals.
+ *
+ * ## Responsibilities (NOT just calibration despite the filename)
+ *   1. Sprite grid + catalog (`OTACON_GRID`, `SPRITE_CATALOG`)
+ *   2. Frame mapping parser / applier (`parseMapping`, `applyMapping`)
+ *   3. Boot splash + startup sequence (`runWakeSequence`, splash overlay)
+ *   4. Sleep / wake transitions (`runSleepSequence`)
+ *   5. State → sprite frame rendering (`setState`, `setFrame`, `setFrameByIndex`)
+ *   6. Idle animation fallback loop
+ *   7. Calibration Studio UI (the historical reason for the filename):
+ *        - Press D to pick a state, C to enter calibration
+ *        - Arrows / [ ] to adjust position, S to save (localStorage)
+ *        - Shift+S to clear, 0-9 to test frames
+ *
+ * ## Why this file is "global" and not an ES module
+ * It predates the module-based refactor of `app.js`. Migrating it to ESM
+ * is a substantial change (every `window.*` consumer in `app.js` would
+ * need to be rewritten). Until that work is funded, this file stays as
+ * a classic script and `app.js` consumes it via globals.
+ *
+ * See `docs/SPRITE-MAPPING.md` for the sprite grid reference.
  */
 
 /**
@@ -279,6 +314,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (isDebug()) console.log("[OtaClaw] Using individual sprites:", cat.sprites.length);
     }
   } catch {}
+  // Also kick frame-catalog early for widget so app.js startWaiting/startIdle get organic pools from t=0
+  if (isWidget) {
+    fetch("data/frame-catalog.json?cal=" + Date.now())
+      .then((r) => (r.ok ? r.json() : null))
+      .then((fc) => { if (fc && !window.__otaclawEarlyCatalog) window.__otaclawEarlyCatalog = fc; })
+      .catch(() => {});
+  }
   if (!isWidget) {
     showConnectionOverlay();
     setState("idle");
@@ -680,10 +722,11 @@ function startWidgetFrameCycler(opts = {}) {
               } else {
                 /* Fallback: run idle cycle when app not ready – cycle through idle sprites */
                 window.__otaclawFallbackIdleActive = true;
-                const idleSeq = cfg?.sprites?.idleSequence || [
-                  0, 0, 1, 7, 8, 9, 3, 0, 4, 1, 7, 8, 9, 0, 5, 0, 2, 6, 0, 1, 7,
-                  8, 9, 0,
-                ];
+                // For the early boot fallback, prefer a simple scalar sequence of calm columns (row 0).
+                // PRODUCTION early fallback (pre catalog/app takeover): expanded calm variety from frame-catalog
+                // idle_base/base tags. Once app.js startsWaiting/startIdle, _getOrganicFramePool + context wins.
+                // Note: if config.idleSequence is pairs, this legacy path falls to the number default below.
+                const idleSeq = cfg?.sprites?.idleSequence || [0, 3, 4, 0, 5, 1, 8, 0, 3, 4, 0, 0, 5, 1, 3, 8, 0, 4]; // enriched legacy calm bases (row0 + polite)
                 const blinkIdx = [7, 8, 9];
                 let fallbackIdx = 0;
                 const runFallbackIdle = () => {
@@ -737,17 +780,17 @@ function startWidgetFrameCycler(opts = {}) {
         };
         schedule();
       }, 0);
-      /* Re-show bubble every 12s while connecting – user sees it more than once */
-      if (_widgetBubbleRepeatId) clearInterval(_widgetBubbleRepeatId);
-      _widgetBubbleRepeatId = setInterval(() => {
-        if (!document.body.classList.contains("widget-waiting")) return;
-        const txt =
-          (typeof window !== "undefined" && window.otaclawWaitingMsg) ||
-          (typeof window !== "undefined" &&
-            window.OTACLAW_CONFIG?.i18n?.connecting) ||
-          "Connecting...";
-        showWidgetConnectionMsgBrief(txt, 5000);
-      }, 12000);
+      /* Connection bubble: once only while waiting — no 12s repeat (felt like spam). */
+      if (_widgetBubbleRepeatId) {
+        clearInterval(_widgetBubbleRepeatId);
+        _widgetBubbleRepeatId = null;
+      }
+      const connectTxt =
+        (typeof window !== "undefined" && window.otaclawWaitingMsg) ||
+        (typeof window !== "undefined" &&
+          window.OTACLAW_CONFIG?.i18n?.connecting) ||
+        "Connecting...";
+      showWidgetConnectionMsgBrief(connectTxt, 4000);
     }
 
     /* Phase 0: splash (OtIcon) on black, then run boot sequence. Wake: skip splash, light already on. */
@@ -1310,9 +1353,13 @@ function setFrame(col, row, options = {}) {
     stateBadge.textContent = options.badge ?? `frame ${col},${row}`;
     stateBadge.setAttribute("data-state", options.badge ?? "_frame");
   }
-  if (speechText) speechText.textContent = options.speech ?? "";
-  if (speechBubble)
-    speechBubble.classList.toggle("has-text", !!(options.speech ?? ""));
+  // Only touch the bubble when speech is explicitly provided.
+  // Animation ticks pass no speech key so the bubble doesn't flash every frame.
+  if (Object.prototype.hasOwnProperty.call(options, "speech")) {
+    if (speechText) speechText.textContent = options.speech ?? "";
+    if (speechBubble)
+      speechBubble.classList.toggle("has-text", !!(options.speech ?? ""));
+  }
 
   currentState = "_frame";
 }
