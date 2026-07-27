@@ -8,8 +8,10 @@
 #   --host=HOST         Target host (default: auto-detect or localhost)
 #   --user=USER         SSH user (default: admin or pi)
 #   --port=PORT         SSH port (default: 22)
-#   --canvas-path=PATH  Canvas directory (default: ~/.openclaw/canvas/)
-#   --local             Install locally (no SSH) into $HOME/.openclaw/canvas/otaclaw/
+#   --canvas-path=PATH  Parent directory holding the otaclaw/ deploy target (default: ~/ )
+#                       Remote default deploys to ~/otaclaw/ (the live path the kiosk serves).
+#                       Pass --canvas-path=~/.openclaw/canvas/ for the legacy OpenClaw canvas layout.
+#   --local             Install locally (no SSH) into $HOME/otaclaw/ (full-repo layout: src/ + config/)
 #   --restart-kiosk     Restart otaclaw-kiosk service after deploy (remote only)
 #   --setup-buzzer     Enable Pi GPIO buzzer for tickle (only when buzzerTickleUrl is null)
 #   --fresh             Remove existing install first (clean install, like "git clone")
@@ -95,7 +97,7 @@ parse_args() {
             --local)
                 LOCAL_INSTALL=true
                 HOST="localhost"
-                CANVAS_PATH="${CANVAS_PATH:-$HOME/.openclaw/canvas/}"
+                CANVAS_PATH="${CANVAS_PATH:-$HOME}"
                 shift
                 ;;
             --restart-kiosk)
@@ -125,11 +127,15 @@ parse_args() {
     done
 }
 
-# Set default canvas path (use ~ for remote so it expands on target)
+# Set default canvas path (use ~ for remote so it expands on target).
+# REMOTE_DIR is the full deploy destination = ${CANVAS_PATH}/otaclaw (default ~/otaclaw).
+# The kiosk serves the full-repo layout: ${REMOTE_DIR}/src/widget.html via `npx serve .`
+# and reads ${REMOTE_DIR}/config/config.js for the gateway host.
 set_canvas_path() {
     if [[ -z "$CANVAS_PATH" ]]; then
-        [[ "$LOCAL_INSTALL" == "true" ]] && CANVAS_PATH="$HOME/.openclaw/canvas/" || CANVAS_PATH="~/.openclaw/canvas/"
+        [[ "$LOCAL_INSTALL" == "true" ]] && CANVAS_PATH="$HOME" || CANVAS_PATH="~/"
     fi
+    REMOTE_DIR="${CANVAS_PATH%/}/otaclaw"
 }
 
 # Detect target host
@@ -212,14 +218,14 @@ fresh_install() {
     fi
     set_canvas_path
     if [[ "$LOCAL_INSTALL" == "true" ]]; then
-        local dest="${CANVAS_PATH%/}/otaclaw"
+        local dest="${REMOTE_DIR}"
         if [[ -d "$dest" ]]; then
             log_info "Fresh install: removing $dest"
             rm -rf "$dest"
         fi
     else
         log_info "Fresh install: removing existing OtaClaw on ${HOST}..."
-        ssh "${USER}@${HOST}" -p "$PORT" "rm -rf ${CANVAS_PATH}/otaclaw" || true
+        ssh "${USER}@${HOST}" -p "$PORT" "rm -rf ${REMOTE_DIR}" || true
         log_success "Cleaned"
     fi
 }
@@ -228,26 +234,25 @@ fresh_install() {
 verify_openclaw() {
     if [[ "$LOCAL_INSTALL" == "true" ]]; then
         set_canvas_path
-        local dest="${CANVAS_PATH%/}/otaclaw"
-        log_info "Creating local canvas directory: $dest"
+        local dest="${REMOTE_DIR}"
+        log_info "Creating local deploy directory: $dest"
         mkdir -p "$dest"
         log_success "Local install path: $dest"
         return 0
     fi
     set_canvas_path
-    log_info "Verifying OpenClaw installation on ${HOST}..."
+    log_info "Verifying target on ${HOST}..."
     if ! ssh -o ConnectTimeout=10 "${USER}@${HOST}" -p "$PORT" "echo ok"; then
         log_error "Cannot connect to ${USER}@${HOST}:${PORT}"
         log_error "  - Use --host=YOUR_OPENCLAW_HOST --user=YOUR_USER"
         log_error "  - Verify: ssh ${USER}@${HOST}"
         exit 1
     fi
-    if ! ssh "${USER}@${HOST}" -p "$PORT" "test -d ~/.openclaw || test -d ~/.config/openclaw"; then
-        log_warn "OpenClaw directory not found, creating..."
-        ssh "${USER}@${HOST}" -p "$PORT" "mkdir -p ${CANVAS_PATH}/otaclaw" || { log_error "Failed to create directory"; exit 1; }
-    else
-        log_success "OpenClaw installation verified"
+    if ! ssh "${USER}@${HOST}" -p "$PORT" "test -d ~ || true"; then
+        log_warn "Home directory not found, creating..."
     fi
+    ssh "${USER}@${HOST}" -p "$PORT" "mkdir -p ${REMOTE_DIR}" || { log_error "Failed to create directory"; exit 1; }
+    log_success "Deploy target verified: ${REMOTE_DIR}"
 }
 
 # Build file list for deployment
@@ -297,21 +302,21 @@ build_file_list() {
 # Deploy files locally (--local)
 deploy_local() {
     set_canvas_path
-    local dest="${CANVAS_PATH%/}/otaclaw"
-    log_info "Installing OtaClaw locally to $dest"
+    local dest="${REMOTE_DIR}"
+    log_info "Installing OtaClaw locally to $dest (full-repo layout: src/ + config/)"
 
     if [[ "$DRY_RUN" == "true" ]]; then
         log_info "Dry run - would copy to $dest"
         return 0
     fi
 
-    mkdir -p "$dest"/{css,js,assets/sprites,data}
-    cp -r "${SOURCE_DIR}"/* "$dest/"
+    mkdir -p "$dest/src"/{css,js,assets/sprites,data} "$dest/config"
+    cp -r "${SOURCE_DIR}"/* "$dest/src/"
     if [[ "$FRESH_INSTALL" != "true" ]] && [[ -f "${CONFIG_DIR}/config.js" ]]; then
-        cp "${CONFIG_DIR}/config.js" "$dest/js/"
+        cp "${CONFIG_DIR}/config.js" "$dest/config/"
     else
-        cp "${CONFIG_DIR}/config.example.js" "$dest/js/config.js"
-        [[ "$FRESH_INSTALL" != "true" ]] && log_warn "Using example config. Customize $dest/js/config.js for production."
+        cp "${CONFIG_DIR}/config.example.js" "$dest/config/config.js"
+        [[ "$FRESH_INSTALL" != "true" ]] && log_warn "Using example config. Customize $dest/config/config.js for production."
     fi
 
     log_success "Local installation complete"
@@ -323,7 +328,7 @@ deploy_files() {
         deploy_local
         return 0
     fi
-    log_info "Preparing deployment to ${USER}@${HOST}:${CANVAS_PATH}/otaclaw/"
+    log_info "Preparing deployment to ${USER}@${HOST}:${REMOTE_DIR}/ (full-repo layout: src/ + config/)"
     
     local files
     files=$(build_file_list)
@@ -343,42 +348,45 @@ deploy_files() {
         return 0
     fi
     
-    # Create remote directory
+    # Create remote directory (full-repo layout: src/ holds the web app, config/ holds config.js)
     log_info "Creating remote directory..."
-    ssh "${USER}@${HOST}" -p "$PORT" "mkdir -p ${CANVAS_PATH}/otaclaw/{css,js,assets/sprites,data}" || {
+    ssh "${USER}@${HOST}" -p "$PORT" "mkdir -p ${REMOTE_DIR}/src/{css,js,assets/sprites,data} ${REMOTE_DIR}/config" || {
         log_error "Failed to create remote directories"
         exit 1
     }
-    
-    # Deploy files using rsync if available, otherwise scp
+
+    # Deploy files using rsync if available, otherwise scp.
+    # Protect on-Pi backups (*.bak.*) from --delete so deploys don't wipe recent fix backups.
     if command -v rsync &>/dev/null; then
         log_info "Using rsync for deployment..."
-        
-        # Sync all files including assets/sprites (sprites are in repo)
-        rsync -avz --delete -e "ssh -p ${PORT}" \
+
+        # Sync src/ (web app) into ${REMOTE_DIR}/src/
+        rsync -avz --delete \
+            --filter='- *.bak.*' \
+            -e "ssh -p ${PORT}" \
             "${SOURCE_DIR}/" \
-            "${USER}@${HOST}:${CANVAS_PATH}/otaclaw/" || {
+            "${USER}@${HOST}:${REMOTE_DIR}/src/" || {
             log_error "Rsync deployment failed"
             exit 1
         }
-        
+
         # Config: --fresh uses example. Else use config.js if present.
         if [[ "$FRESH_INSTALL" == "true" ]] || [[ ! -f "${CONFIG_DIR}/config.js" ]]; then
-            scp -P "$PORT" "${CONFIG_DIR}/config.example.js" "${USER}@${HOST}:${CANVAS_PATH}/otaclaw/js/config.js"
+            scp -P "$PORT" "${CONFIG_DIR}/config.example.js" "${USER}@${HOST}:${REMOTE_DIR}/config/config.js"
         else
-            scp -P "$PORT" "${CONFIG_DIR}/config.js" "${USER}@${HOST}:${CANVAS_PATH}/otaclaw/js/" || {
+            scp -P "$PORT" "${CONFIG_DIR}/config.js" "${USER}@${HOST}:${REMOTE_DIR}/config/" || {
                 log_warn "Could not copy custom config, using example"
-                scp -P "$PORT" "${CONFIG_DIR}/config.example.js" "${USER}@${HOST}:${CANVAS_PATH}/otaclaw/js/config.js"
+                scp -P "$PORT" "${CONFIG_DIR}/config.example.js" "${USER}@${HOST}:${REMOTE_DIR}/config/config.js"
             }
         fi
     else
         log_info "Using scp for deployment..."
-        
+
         local scp_port=(-P "$PORT")
         echo "$files" | while read -r file; do
             if [[ -f "$file" ]]; then
                 local rel_path="${file#$SOURCE_DIR/}"
-                local target_dir="$(dirname "${CANVAS_PATH}/otaclaw/${rel_path}")"
+                local target_dir="$(dirname "${REMOTE_DIR}/src/${rel_path}")"
                 scp "${scp_port[@]}" "$file" "${USER}@${HOST}:${target_dir}/" || log_error "Failed: $rel_path"
             fi
         done
@@ -397,7 +405,7 @@ verify_deployment() {
             return 0
         fi
         set_canvas_path
-        local index_file="${CANVAS_PATH%/}/otaclaw/index.html"
+        local index_file="${REMOTE_DIR}/src/index.html"
         if [[ -f "$index_file" ]]; then
             log_success "Local deployment verified"
         else
@@ -408,7 +416,7 @@ verify_deployment() {
     fi
 
     local result
-    result=$(ssh "${USER}@${HOST}" -p "$PORT" "test -f ${CANVAS_PATH}/otaclaw/index.html && echo 'ok' || echo 'missing'")
+    result=$(ssh "${USER}@${HOST}" -p "$PORT" "test -f ${REMOTE_DIR}/src/index.html && echo 'ok' || echo 'missing'")
     
     if [[ "$result" == "ok" ]]; then
         log_success "Deployment verified"
@@ -437,9 +445,9 @@ configure_settings() {
             read -p "Enter your Discord Channel ID (leave blank to keep default/null): " discord_channel
             if [[ -n "$discord_channel" ]]; then
                 log_info "Setting tickleDiscordChannel to $discord_channel..."
-                # Update widget.html and config.js
-                ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's/tickleDiscordChannel: null/tickleDiscordChannel: \"$discord_channel\"/' ${CANVAS_PATH%/}/otaclaw/js/config.js 2>/dev/null || true"
-                ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's/tickleDiscordChannel: null/tickleDiscordChannel: \"$discord_channel\"/' ${CANVAS_PATH%/}/otaclaw/widget.html 2>/dev/null || true"
+                # Update config/config.js (read by start-kiosk.sh) and src/widget.html (the served UI)
+                ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's/tickleDiscordChannel: null/tickleDiscordChannel: \"$discord_channel\"/' ${REMOTE_DIR}/config/config.js 2>/dev/null || true"
+                ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's/tickleDiscordChannel: null/tickleDiscordChannel: \"$discord_channel\"/' ${REMOTE_DIR}/src/widget.html 2>/dev/null || true"
             fi
             
             echo
@@ -540,7 +548,7 @@ print_access_info() {
     fi
     echo
     echo -e "${BLUE}Configuration:${NC}"
-    echo "  Edit config at: ${CANVAS_PATH%/}/otaclaw/js/config.js"
+    echo "  Edit config at: ${REMOTE_DIR}/config/config.js"
     echo "  Or locally at:  ${CONFIG_DIR}/config.js"
     if [[ "$LOCAL_INSTALL" == "true" ]]; then
         echo
@@ -550,8 +558,8 @@ print_access_info() {
         echo
         echo -e "${YELLOW}Note:${NC} If you see 'Configuration Required' page:"
         echo "  1. SSH: ssh ${USER}@${HOST}"
-        echo "  2. Edit: nano ${CANVAS_PATH%/}/otaclaw/js/config.js"
-        echo "  3. Set OpenClaw host and restart"
+        echo "  2. Edit: nano ${REMOTE_DIR}/config/config.js"
+        echo "  3. Set gateway host and restart kiosk: systemctl --user restart otaclaw-kiosk"
     fi
     echo
 }
@@ -663,7 +671,7 @@ verify_deployment() {
 
     # Check 1: Files deployed
     if [[ "$LOCAL_INSTALL" != "true" ]]; then
-        if ssh -o ConnectTimeout=5 "${verify_user}@${verify_host}" "test -f ${CANVAS_PATH%/}/otaclaw/index.html" &>/dev/null; then
+        if ssh -o ConnectTimeout=5 "${verify_user}@${verify_host}" "test -f ${REMOTE_DIR}/src/index.html" &>/dev/null; then
             log_success "Files deployed successfully"
         else
             log_error "Deployment verification failed - files not found"
@@ -682,14 +690,18 @@ verify_deployment() {
     fi
 
     # Check 3: Service accessibility
-    local service_url="http://${verify_host}:18789/__openclaw__/canvas/otaclaw/"
-    log_info "OtaClaw should be available at:"
+    # The pi-claw kiosk serves the full-repo layout via `npx serve . -p 8080` from ${REMOTE_DIR}.
+    local service_url="http://${verify_host}:8080/src/widget.html"
+    local canvas_url="http://${verify_host}:18789/__openclaw__/canvas/otaclaw/widget.html"
+    log_info "OtaClaw kiosk URL (npx serve, primary):"
     log_info "  ${service_url}"
+    log_info "OpenClaw canvas URL (if gateway mounted the canvas):"
+    log_info "  ${canvas_url}"
 
     # Check 4: Browser test suggestion
     log_info ""
     log_info "Health check: Open ${service_url} in a browser"
-    log_info "Expected: OtaClaw loads and connects to OpenClaw"
+    log_info "Expected: OtaClaw loads and connects to the configured gateway"
 
     return 0
 }
@@ -734,8 +746,8 @@ main() {
                 log_info "Setting up Pi buzzer..."
                 scp -P "$PORT" "${REPO_ROOT}/scripts/pi-buzzer-tickle.py" "${USER}@${HOST}:~/"
                 # Only set buzzerTickleUrl when it is currently null
-                if ssh "${USER}@${HOST}" -p "$PORT" "grep -q 'buzzerTickleUrl: null' ~/.openclaw/canvas/otaclaw/js/config.js 2>/dev/null"; then
-                    ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's|buzzerTickleUrl: null|buzzerTickleUrl: \"http://127.0.0.1:18790/tickle\"|' ~/.openclaw/canvas/otaclaw/js/config.js"
+                if ssh "${USER}@${HOST}" -p "$PORT" "grep -q 'buzzerTickleUrl: null' ${REMOTE_DIR}/config/config.js 2>/dev/null"; then
+                    ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's|buzzerTickleUrl: null|buzzerTickleUrl: \"http://127.0.0.1:18790/tickle\"|' ${REMOTE_DIR}/config/config.js"
                 fi
                 ssh "${USER}@${HOST}" -p "$PORT" 'pgrep -f pi-buzzer-tickle >/dev/null || (nohup python3 ~/pi-buzzer-tickle.py --audio >> /tmp/buzzer-tickle.log 2>&1 &)'
                 log_success "Pi buzzer configured"

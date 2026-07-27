@@ -18,7 +18,7 @@ cd otaclaw
 open http://localhost:18789/__openclaw__/canvas/otaclaw/
 ```
 
-Config: `~/.openclaw/canvas/otaclaw/js/config.js` — host should be `localhost`.
+Config: `~/otaclaw/config/config.js` — host should be `localhost`.
 
 ---
 
@@ -47,7 +47,7 @@ open http://YOUR_OPENCLAW_HOST:18789/__openclaw__/canvas/otaclaw/
 
 Edit config if needed:
 ```bash
-ssh YOUR_USER@YOUR_OPENCLAW_HOST 'nano ~/.openclaw/canvas/otaclaw/js/config.js'
+ssh YOUR_USER@YOUR_OPENCLAW_HOST 'nano ~/otaclaw/config/config.js'
 ```
 
 ---

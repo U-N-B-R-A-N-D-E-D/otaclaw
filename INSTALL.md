@@ -57,7 +57,7 @@ Then open `http://YOUR_HOST:18789/__openclaw__/canvas/otaclaw/widget.html`
 | Context | Config path |
 |---------|-------------|
 | **Development** (from repo, `npm start`) | `config/config.js` (copy from `config/config.example.js`) |
-| **Deployed** (OpenClaw canvas) | `~/.openclaw/canvas/otaclaw/js/config.js` |
+| **Deployed** (pi-claw kiosk, `~/otaclaw/`) | `~/otaclaw/config/config.js` |
 
 Edit the config for your setup (host, port, states, sprites). See [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md).
 
