@@ -36,7 +36,7 @@ fi
 echo ""
 echo "=== 1. Ensure OtaClaw config (host for local display) ==="
 ssh -o ConnectTimeout=10 "${USER}@${HOST}" "
-cfg=~/.openclaw/canvas/otaclaw/js/config.js
+cfg=~/otaclaw/config/config.js
 if [[ -f \$cfg ]]; then
   if grep -q \"host: 'auto'\" \$cfg || grep -q 'host: \"auto\"' \$cfg; then
     echo 'Config already has host auto'
