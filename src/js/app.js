@@ -837,6 +837,42 @@ class OtaClawApp {
       showStockagentBubble("curious", speech, "stockagent.analysis");
     });
 
+    // StockAgent alert events — critical/warning hold longer than the 8s cap
+    // so the operator has time to read them. Each handler overrides the timer
+    // that showStockagentBubble sets (which caps at 8s) with a longer hold.
+    this.wsClient.on("stockagent.alert.critical", (data) => {
+      const speech = data?.speech || data?.data?.speech || data?.message || data?.data?.message || "Critical alert!";
+      this._setLastContext({ category: 'risky', kind: 'alert', level: 'critical' });
+      showStockagentBubble("error", speech, "stockagent.alert.critical");
+      clearTimeout(this._stockagentBubbleTimer);
+      this._stockagentBubbleTimer = setTimeout(() => {
+        this.otaclaw.setState("idle", { trigger: "alert.timeout" });
+        this._updateSpeechBubble("", { force: true });
+      }, 20000);
+    });
+
+    this.wsClient.on("stockagent.alert.warning", (data) => {
+      const speech = data?.speech || data?.data?.speech || data?.message || data?.data?.message || "Warning!";
+      this._setLastContext({ category: 'risky', kind: 'alert', level: 'warning' });
+      showStockagentBubble("worried", speech, "stockagent.alert.warning");
+      clearTimeout(this._stockagentBubbleTimer);
+      this._stockagentBubbleTimer = setTimeout(() => {
+        this.otaclaw.setState("idle", { trigger: "alert.timeout" });
+        this._updateSpeechBubble("", { force: true });
+      }, 15000);
+    });
+
+    this.wsClient.on("stockagent.alert.info", (data) => {
+      const speech = data?.speech || data?.data?.speech || data?.message || data?.data?.message || "Info";
+      this._setLastContext({ category: 'analytical', kind: 'alert', level: 'info' });
+      showStockagentBubble("curious", speech, "stockagent.alert.info");
+      clearTimeout(this._stockagentBubbleTimer);
+      this._stockagentBubbleTimer = setTimeout(() => {
+        this.otaclaw.setState("idle", { trigger: "alert.timeout" });
+        this._updateSpeechBubble("", { force: true });
+      }, 10000);
+    });
+
     // Direct frame (Clawdbot semantic selection). Supports { col, row }, { tag }, { speech }.
     this.wsClient.on("otaclaw.frame", (data) => {
       const payload = data.data ?? data;
@@ -871,6 +907,30 @@ class OtaClawApp {
 
     this.otaclaw.on("stateChange", (data) => {
       this._lastActivityTime = Date.now();
+
+      /* Fix 2: Wake from sleep on ANY state change, not just eventMap-resolved wsClient events.
+       * Unmapped events (e.g. stockagent.* before eventMap sync, or state changes from non-WS
+       * sources) bypass the wsClient.on("stateChange") wake check at L608, leaving the widget
+       * asleep while the Otaclaw state cycles underneath the overlay. Synchronously clear the
+       * sleep overlay here so the new state's sprite is visible immediately. The wsClient path
+       * still runs the full boot animation; this is a quick-wake fallback for state changes
+       * that don't go through it. runWakeSequence removes `widget-asleep` synchronously, so
+       * when the wsClient path already woke us, this check is a no-op (no double-wake, no flicker). */
+      if (
+        document.body.classList.contains("otaclaw-widget") &&
+        document.body.classList.contains("widget-asleep") &&
+        data.state !== "idle" &&
+        data.state !== "sleeping"
+      ) {
+        document.body.classList.remove("widget-asleep");
+        document.body.classList.remove("widget-waiting");
+        const bootOv = document.getElementById("boot-black-overlay");
+        const widgetOv = document.getElementById("widget-sprite-overlay");
+        if (bootOv) bootOv.style.display = "none";
+        if (widgetOv) widgetOv.style.display = "none";
+        this._cancelSleep();
+      }
+
       this.updateStateBadge(data.state);
       if (document.body.classList.contains("otaclaw-widget")) {
         if (data.state === "idle") {
