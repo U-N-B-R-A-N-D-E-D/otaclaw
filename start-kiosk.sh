@@ -86,6 +86,8 @@ if [ "$OS" = "Linux" ]; then
     --no-first-run \
     --noerrdialogs \
     --disable-infobars \
+    --remote-debugging-port=9222 \
+    --remote-debugging-address=0.0.0.0 \
     --start-fullscreen \
     "http://localhost:8080/src/widget.html?kiosk=1&host=${OPENCLAW_HOST}&port=${OPENCLAW_PORT}&hal_ws=ws://${OPENCLAW_HOST}:${OPENCLAW_PORT}/ws&${CB}" \
     > /tmp/otaclaw-chromium.log 2>&1

@@ -1,8 +1,6 @@
 /**
  * Otacon Sprite Sheet
  * Default sprite sheet (otaclock-original.png – source: sethen/otaclock, Konami OtaClock)
- * laugh/surprised: thumbs-up poses (sethen/xythobuz) - sprite sheet alignment
- * Alt: xythobuz - add class .use-xythobuz to body
  */
 
 .sprite-sheet-container {
@@ -209,11 +207,14 @@ body.use-otacon-sprite .state-frame .otacon-frame {
     calc(var(--otacon-frame-y, 0) * 1px);
 }
 
-/* Individual sprites — each frame is a separate PNG, no sheet */
-body.use-individual-sprites {
+/* Individual sprites — each frame is a separate PNG, no sheet.
+   Non-widget calibration uses this to fill the frame viewport.
+   In the widget, individual-sprite sizing is set inline by _setFrameFromSprite()
+   so sheet-crop frames are not forced to contain the whole sheet. */
+body.use-individual-sprites:not(.otaclaw-widget) {
   --otacon-scale: 1;
 }
-body.use-individual-sprites .otacon-frame {
+body.use-individual-sprites:not(.otaclaw-widget) .otacon-frame {
   background-size: contain !important;
   -webkit-background-size: contain !important;
   background-position: center !important;
@@ -232,91 +233,6 @@ body.use-individual-sprites .otacon-frame {
   animation: none !important;
 }
 
-/* ============================================
-   XYTHOBUZ (optional) - add class .use-xythobuz to body
-   Source: xythobuz/OtaClock (Konami OtaClock port)
-   ============================================ */
-
-body.use-xythobuz:not(.use-otacon-sprite) .otacon-frame {
-  background-image: url("../assets/sprites/otaclock-xythobuz/otacon.png");
-  background-size: contain;
-  transform: scale(3.5);
-  width: 29px;
-  height: 64px;
-  background-position: center;
-}
-
-body.use-xythobuz:not(.use-otacon-sprite) .state-idle .otacon-frame,
-body.use-xythobuz:not(.use-otacon-sprite) .state-thinking .otacon-frame,
-body.use-xythobuz:not(.use-otacon-sprite) .state-error .otacon-frame {
-  background-image: url("../assets/sprites/otaclock-xythobuz/otacon.png");
-}
-
-body.use-xythobuz:not(.use-otacon-sprite) .state-processing .otacon-frame {
-  width: 34px;
-  height: 64px;
-  background-image: url("../assets/sprites/otaclock-xythobuz/otacon_2.png");
-}
-
-body.use-xythobuz:not(.use-otacon-sprite) .state-success .otacon-frame {
-  width: 34px;
-  height: 64px;
-  background-image: url("../assets/sprites/otaclock-xythobuz/otacon_3.png");
-}
-
-body.use-xythobuz:not(.use-otacon-sprite) .state-laughing .otacon-frame {
-  width: 29px;
-  height: 64px;
-  background-image: url("../assets/sprites/otaclock-xythobuz/otacon_1.png");
-}
-
-body.use-xythobuz:not(.use-otacon-sprite) .state-surprised .otacon-frame {
-  width: 34px;
-  height: 64px;
-  background-image: url("../assets/sprites/otaclock-xythobuz/otacon_3.png");
-  background-size: contain;
-  transform: scale(3.5);
-}
-
-body.use-xythobuz .connecting .otacon-frame {
-  background-image: url("../assets/sprites/otaclock-xythobuz/otacon.png");
-}
-
-/* Eyes overlay - from xythobuz Render.m: EYE_X_OFFSET 60, EYE_Y_OFFSET 45, otacon at (57,0)
-   Relative to 29x64 otacon: left 3px (10%), from top 13px (eyes 6px, y=45 in CG = 13 from top) */
-.eyes-layer {
-  display: none;
-  position: absolute;
-  top: 13px;
-  left: 3px;
-  width: 15px;
-  height: 6px;
-  background-repeat: no-repeat;
-  background-position: 0 0;
-  background-size: 15px 6px;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-  pointer-events: none;
-  z-index: 10;
-  transition: opacity 0.08s ease;
-}
-
-body.use-xythobuz .otacon-frame {
-  position: relative;
-}
-
-body.use-xythobuz:not(.use-otacon-sprite) .eyes-layer {
-  display: block;
-}
-
-/* Hide eyes on thumbs-up states (different face angle) */
-body.use-xythobuz .state-processing .eyes-layer,
-body.use-xythobuz .state-success .eyes-layer,
-body.use-xythobuz .state-surprised .eyes-layer,
-body.use-xythobuz .state-laughing .eyes-layer {
-  display: none;
-}
-
 /* Natural breathe – subtle, no rotation. 4s cycle. */
 @keyframes sprite-breathe {
   0%,
@@ -325,16 +241,6 @@ body.use-xythobuz .state-laughing .eyes-layer {
   }
   50% {
     transform: scale(0.5) translateY(-2px);
-  }
-}
-
-@keyframes sprite-breathe-xythobuz {
-  0%,
-  100% {
-    transform: scale(3.5) translateY(0);
-  }
-  50% {
-    transform: scale(3.5) translateY(-2px);
   }
 }
 
@@ -357,20 +263,10 @@ body.use-xythobuz .state-laughing .eyes-layer {
     sprite-fade-in 0.4s ease-out,
     sprite-breathe 6s ease-in-out infinite;
 }
-body.use-xythobuz .state-transition-in .otacon-frame {
-  animation:
-    sprite-fade-in 0.4s ease-out,
-    sprite-breathe-xythobuz 6s ease-in-out infinite;
-}
 body.use-otacon-sprite .state-transition-in .otacon-frame {
   animation:
     sprite-fade-in 0.4s ease-out,
     sprite-breathe-otacon 6s ease-in-out infinite;
-}
-
-body.use-xythobuz .state-idle .otacon-frame,
-body.use-xythobuz .state-thinking .otacon-frame {
-  animation: sprite-breathe-xythobuz 6s ease-in-out infinite;
 }
 
 /* Processing - subtle pulse */
@@ -384,22 +280,8 @@ body.use-xythobuz .state-thinking .otacon-frame {
   }
 }
 
-@keyframes sprite-pulse-xythobuz {
-  0%,
-  100% {
-    transform: scale(3.5);
-  }
-  50% {
-    transform: scale(3.6);
-  }
-}
-
 .state-processing .otacon-frame {
   animation: sprite-pulse 1.4s ease-in-out infinite;
-}
-
-body.use-xythobuz .state-processing .otacon-frame {
-  animation: sprite-pulse-xythobuz 1.4s ease-in-out infinite;
 }
 
 /* Success - one bounce */
@@ -413,22 +295,8 @@ body.use-xythobuz .state-processing .otacon-frame {
   }
 }
 
-@keyframes sprite-bounce-xythobuz {
-  0%,
-  100% {
-    transform: scale(3.5);
-  }
-  50% {
-    transform: scale(3.9);
-  }
-}
-
 .state-success .otacon-frame {
   animation: sprite-bounce 0.4s ease-out;
-}
-
-body.use-xythobuz .state-success .otacon-frame {
-  animation: sprite-bounce-xythobuz 0.4s ease-out;
 }
 
 /* Okitanoniisan: natural breathe, no rotation */
@@ -513,9 +381,6 @@ body.use-otacon-sprite .state-success .otacon-frame {
   .otacon-frame {
     transform: scale(0.35);
   }
-  body.use-xythobuz:not(.use-individual-sprites) .otacon-frame {
-    transform: scale(2.5);
-  }
   .state-laughing .otacon-frame,
   .state-surprised .otacon-frame {
     transform: scale(1.3);
@@ -532,9 +397,6 @@ body.use-otacon-sprite .state-success .otacon-frame {
 @media (min-width: 1024px) {
   .otacon-frame {
     transform: scale(0.6);
-  }
-  body.use-xythobuz:not(.use-individual-sprites) .otacon-frame {
-    transform: scale(4);
   }
   .state-laughing .otacon-frame,
   .state-surprised .otacon-frame {

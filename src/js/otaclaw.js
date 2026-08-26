@@ -26,7 +26,6 @@ export class OtaClawEngine {
     this.setState = this.setState.bind(this);
     this.getState = this.getState.bind(this);
     this.getPreviousState = this.getPreviousState.bind(this);
-    this.transitionTo = this.transitionTo.bind(this);
     this.on = this.on.bind(this);
     this.off = this.off.bind(this);
     this.emit = this.emit.bind(this);
@@ -572,24 +571,6 @@ export class OtaClawEngine {
   }
 
   /**
-   * Transition to new state with animation
-   */
-  transitionTo(newState, transitionDuration = 300) {
-    if (!this.spriteElement) return;
-
-    this.spriteElement.classList.add("state-transition");
-    this.spriteElement.style.opacity = "0.5";
-
-    setTimeout(() => {
-      this.setState(newState, { force: true });
-      this.spriteElement.style.opacity = "1";
-      setTimeout(() => {
-        this.spriteElement.classList.remove("state-transition");
-      }, transitionDuration);
-    }, transitionDuration);
-  }
-
-  /**
    * Add entry to state history
    */
   addToHistory(entry) {
@@ -781,8 +762,5 @@ export class OtaClawEngine {
   }
 }
 
-// Export singleton instance
-export const otaclaw = new OtaClawEngine();
-
-// Also export class for custom instances
+// Export class for custom instances
 export default OtaClawEngine;

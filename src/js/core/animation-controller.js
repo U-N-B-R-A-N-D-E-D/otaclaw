@@ -38,6 +38,9 @@ export class AnimationController {
     this._frameCatalog = null;
     this._loadFrameCatalog();
 
+    // Sprite catalog (loaded asynchronously by app-calibration.js)
+    this._spriteCatalog = null;
+
     // Current animation tracking
     this._currentState = 'idle';
     this._currentToken = null;
@@ -46,6 +49,7 @@ export class AnimationController {
     this._context = null;
     this._lastFrameKey = null;
     this._poolCycleIndex = {};
+    this._recentFrameKeys = {}; // state -> Set of recent frame keys for anti-repeat
 
     // Callback for frame updates
     this._frameCallback = null;
@@ -151,13 +155,34 @@ export class AnimationController {
   }
 
   /**
-   * Build individual sprite sequences configuration
-   * Maps emotion states to individual sprite sequences for expressive animations
+   * Set the sprite catalog (loaded asynchronously by app-calibration.js).
+   * Rebuilds individual sequences so catalog references are resolved.
+   */
+  setSpriteCatalog(catalog) {
+    this._spriteCatalog = catalog;
+    this._individualSequences = this._buildIndividualSequences();
+  }
+
+  /**
+   * Resolve a sequence reference from the sprite catalog.
+   * @private
+   */
+  _resolveCatalogSequence(name) {
+    const seq = this._spriteCatalog?.sequences?.find((s) => s.name === name);
+    if (!seq || !Array.isArray(seq.sprites) || seq.sprites.length === 0) return null;
+    return seq;
+  }
+
+  /**
+   * Build individual sprite sequences configuration.
+   * Uses config.sprites.individualSequences as the single source of truth;
+   * falls back to hardcoded defaults for any missing sequence.
+   * Config entries may reference a sprite-catalog sequence by name via `catalog`.
    */
   _buildIndividualSequences() {
     const basePath = (this.config?.sprites?.basePath || 'assets/sprites/').replace(/\/$/, '');
 
-    return {
+    const defaults = {
       // Success: thumbs-up celebration (7 frames)
       success: {
         sprites: [
@@ -234,15 +259,61 @@ export class AnimationController {
         returnToSheet: true,
       },
     };
+
+    const configured = this.config?.sprites?.individualSequences || {};
+    return this._mergeIndividualSequences(defaults, configured, basePath);
   }
 
   /**
-   * Overlay effects configuration
+   * Merge configured individual sequences over hardcoded defaults.
+   * Configured sprites are resolved against basePath unless already absolute or protocol-relative.
+   */
+  _mergeIndividualSequences(defaults, configured, basePath) {
+    const out = { ...defaults };
+    for (const key of Object.keys(configured)) {
+      const cfg = configured[key];
+      if (!cfg || typeof cfg !== 'object') continue;
+      const base = defaults[key] || {};
+      let sprites;
+      let merged = { ...base, ...cfg };
+
+      if (typeof cfg.catalog === 'string') {
+        const catSeq = this._resolveCatalogSequence(cfg.catalog);
+        if (catSeq && catSeq.sprites.length) {
+          sprites = catSeq.sprites.map((s) => this._resolveSpritePath(s, basePath));
+          merged = { ...base, ...catSeq, ...cfg, sprites };
+        } else {
+          sprites = base.sprites;
+        }
+      } else if (Array.isArray(cfg.sprites)) {
+        sprites = cfg.sprites.map((s) => this._resolveSpritePath(s, basePath));
+      } else {
+        sprites = base.sprites;
+      }
+
+      out[key] = { ...merged, sprites };
+    }
+    return out;
+  }
+
+  /**
+   * Resolve a sprite path against basePath unless it is already a URL.
+   */
+  _resolveSpritePath(path, basePath) {
+    if (!path || typeof path !== 'string') return path;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(path) || path.startsWith('//')) return path;
+    return `${basePath}/${path.replace(/^\//, '')}`;
+  }
+
+  /**
+   * Overlay effects configuration.
+   * Uses config.sprites.overlayEffects as the single source of truth;
+   * falls back to hardcoded defaults for any missing effect.
    */
   _getOverlayConfig() {
     const basePath = (this.config?.sprites?.basePath || 'assets/sprites/').replace(/\/$/, '');
 
-    return {
+    const defaults = {
       // Blink: natural blinking (3 frames)
       blink: {
         sprites: [
@@ -266,6 +337,22 @@ export class AnimationController {
         holdLast: 2000,
       },
     };
+
+    const configured = this.config?.sprites?.overlayEffects || {};
+    const out = {};
+    for (const key of new Set([...Object.keys(defaults), ...Object.keys(configured)])) {
+      const base = defaults[key] || {};
+      const cfg = configured[key] || {};
+      const resolved = Array.isArray(cfg.sprites)
+        ? cfg.sprites.map((s) => this._resolveSpritePath(s, basePath))
+        : base.sprites;
+      out[key] = {
+        ...base,
+        ...cfg,
+        sprites: resolved,
+      };
+    }
+    return out;
   }
 
   /**
@@ -292,6 +379,7 @@ export class AnimationController {
     this.timers.clearAll();
     this._stopOverlay();
     this._blinkEnabled = false;
+    this._recentFrameKeys = {};
 
     // Cancel pending RAF and clear frame buffer
     if (this._rafId) {
@@ -417,8 +505,10 @@ export class AnimationController {
       clearTimeout(this._overlayTimer);
       this._overlayTimer = null;
     }
+    // Capture type before clearing so the hide event knows which overlay closed.
+    const closingType = this._activeOverlay;
     this._activeOverlay = null;
-    this._clearOverlaySprite();
+    this._clearOverlaySprite(closingType);
   }
 
   /**
@@ -429,7 +519,7 @@ export class AnimationController {
     // Dispatch custom event for overlay
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('otaclaw-overlay', {
-        detail: { type: 'show', url: spriteUrl }
+        detail: { type: 'show', url: spriteUrl, overlayType: this._activeOverlay }
       }));
     }
   }
@@ -438,10 +528,10 @@ export class AnimationController {
    * Clear overlay sprite
    * @private
    */
-  _clearOverlaySprite() {
+  _clearOverlaySprite(closingType = null) {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('otaclaw-overlay', {
-        detail: { type: 'hide' }
+        detail: { type: 'hide', overlayType: closingType }
       }));
     }
   }
@@ -745,10 +835,11 @@ export class AnimationController {
     }
 
     const c = context || this._context || {};
-    if (c.category === 'creative') tags = [...tags, 'presenting', 'confident'];
-    else if (c.category === 'search' || c.category === 'analytical') tags = [...tags, 'curious', 'thinking'];
+    if (c.category === 'creative') tags = [...tags, 'excited', 'presenting', 'ta-da'];
+    else if (c.category === 'search') tags = [...tags, 'curious', 'listening', 'phone'];
+    else if (c.category === 'analytical') tags = [...tags, 'thinking', 'confident', 'contemplative'];
+    else if (c.category === 'communication') tags = [...tags, 'talking', 'presenting', 'dynamic'];
     else if (c.category === 'risky') tags = [...tags, 'worried', 'concerned'];
-    else if (c.category === 'communication') tags = [...tags, 'talking', 'greeting', 'dynamic'];
 
     return [...new Set(tags.filter((t) => t !== 'neutral'))];
   }
@@ -759,13 +850,30 @@ export class AnimationController {
    */
   _frameEligibleForState(frame, stateName, excludedTags) {
     const tags = Array.isArray(frame.tags) ? frame.tags : [];
+
+    if (stateName === 'idle') {
+      // Exception: safe exotic spice frames (wink) are allowed as a rare ~5% sparkle,
+      // even though they normally read as laugh. They must pass the taxonomy gate.
+      const spiceSet = new Set(['4,3', '5,3', '0,3', '1,3']);
+      if (spiceSet.has(`${frame.col},${frame.row}`) && (frame.mood === 'calm' || frame.mood === 'social')) {
+        return true;
+      }
+    }
+
     if (tags.some((t) => excludedTags.includes(t))) return false;
+
+    // Hard taxonomy quarantine: pain/fear moods never enter calm/work pools.
+    const mood = frame.mood;
+    const quarantineStates = ['idle', 'thinking', 'waiting', 'processing', 'curious', 'confident', 'presenting'];
+    if ((mood === 'pain' || mood === 'fear') && quarantineStates.includes(stateName)) {
+      return false;
+    }
 
     const allowedPrimaries = this._getAllowedPrimaries(stateName);
     const allowedLanes = this._getAllowedLanes(stateName);
 
     if (stateName === 'idle') {
-      // Organic rest: true idle bases, plus rare wave only (no wink — looks like laugh)
+      // Organic rest: true idle bases, plus rare wave only (no wink)
       if (frame.primary === 'idle' && frame.lane === 'idle') return true;
       if (frame.primary === 'greeting' && frame.lane === 'social') return true;
       if (!frame.primary) {
@@ -797,11 +905,25 @@ export class AnimationController {
     const isWork = this._isWorkState(stateName);
 
     let boost = [];
-    if (isWork || stateName === 'success' || stateName === 'excited') {
-      if (ctx.category === 'creative') boost = ['presenting', 'confident', 'positive'];
-      else if (ctx.category === 'search' || ctx.category === 'analytical') boost = ['curious', 'contemplative'];
+    const widen = this.config?.sprites?.toolCategoryWidening !== false;
+    if (widen && (isWork || stateName === 'success' || stateName === 'excited')) {
+      if (ctx.category === 'creative') boost = ['excited', 'presenting', 'ta-da', 'positive'];
+      else if (ctx.category === 'search') boost = ['curious', 'listening', 'talking', 'phone'];
+      else if (ctx.category === 'analytical') boost = ['thinking', 'confident', 'contemplative'];
+      else if (ctx.category === 'communication') boost = ['talking', 'presenting', 'dynamic'];
       else if (ctx.category === 'risky') boost = ['worried', 'concerned'];
-      else if (ctx.category === 'communication') boost = ['talking', 'greeting', 'dynamic'];
+    }
+
+    // Time-of-day mood tint: taxonomy-safe tag boosts only.
+    if (this.config?.sprites?.timeOfDayMood !== false) {
+      const hour = new Date().getHours();
+      if (hour < 8) {
+        boost.push('tired', 'subdued', 'low-energy');
+      } else if (hour >= 7 && hour < 10) {
+        boost.push('ready', 'alert', 'focused', 'assertive');
+      } else if (hour >= 22) {
+        boost.push('calm', 'closed', 'resting', 'waiting');
+      }
     }
 
     const fallbacks = {
@@ -880,9 +1002,21 @@ export class AnimationController {
       }
     }
 
-    if (this._lastFrameKey && pool.length > 1) {
-      const filtered = pool.filter((f) => `${f.col},${f.row}` !== this._lastFrameKey);
-      if (filtered.length) pool = filtered;
+    // Anti-repeat memory: don't offer the same frame within the configured window.
+    const windowSize = Math.max(0, Number(this.config?.sprites?.antiRepeatWindow) || 0);
+    if (windowSize > 0 && pool.length > windowSize) {
+      let recent = this._recentFrameKeys[stateName] || new Set();
+      while (recent.size > 0) {
+        const filtered = pool.filter((f) => !recent.has(`${f.col},${f.row}`));
+        if (filtered.length) {
+          pool = filtered;
+          break;
+        }
+        // All frames are recent; drop the oldest one and try again.
+        const oldest = Array.from(recent)[0];
+        recent = new Set(Array.from(recent).filter((k) => k !== oldest));
+        this._recentFrameKeys[stateName] = recent;
+      }
     }
 
     return pool;
@@ -903,11 +1037,21 @@ export class AnimationController {
       frame = pool[idx % pool.length];
       this._poolCycleIndex[cycleKey] = idx + 1;
     } else if (stateName === 'idle' && pool.length > 1) {
-      // Organic rest: ~90% calm base, ~10% rare wave
+      // Organic rest: ~90% calm base, ~5% safe exotic spice, remainder rare wave
       const baseKeys = new Set(['0,0', '3,0', '8,0']);
       const bases = pool.filter((f) => baseKeys.has(`${f.col},${f.row}`));
-      const sparkle = pool.filter((f) => !baseKeys.has(`${f.col},${f.row}`));
-      if (bases.length && Math.random() < 0.9) {
+      const spiceSet = new Set(['4,3', '5,3', '0,3', '1,3']);
+      const spiceFrames = pool.filter((f) => {
+        if (!spiceSet.has(`${f.col},${f.row}`)) return false;
+        const frame = this._frameCatalog?.frames?.find((fr) => fr.col === f.col && fr.row === f.row);
+        return frame && (frame.mood === 'calm' || frame.mood === 'social');
+      });
+      const spiceChance = this.config?.sprites?.idleSpiceChance ?? 0.05;
+      const sparkle = pool.filter((f) => !baseKeys.has(`${f.col},${f.row}`) && !spiceSet.has(`${f.col},${f.row}`));
+      const roll = Math.random();
+      if (spiceFrames.length && roll < spiceChance) {
+        frame = spiceFrames[Math.floor(Math.random() * spiceFrames.length)];
+      } else if (bases.length && roll < 0.9) {
         frame = bases[Math.floor(Math.random() * bases.length)];
       } else if (sparkle.length && Math.random() < 0.35) {
         frame = sparkle[Math.floor(Math.random() * sparkle.length)];
@@ -921,6 +1065,18 @@ export class AnimationController {
     }
 
     this._lastFrameKey = `${frame.col},${frame.row}`;
+
+    // Update anti-repeat window for this state.
+    const windowSize = Math.max(0, Number(this.config?.sprites?.antiRepeatWindow) || 0);
+    if (windowSize > 0) {
+      if (!this._recentFrameKeys[stateName]) this._recentFrameKeys[stateName] = new Set();
+      this._recentFrameKeys[stateName].add(this._lastFrameKey);
+      const all = Array.from(this._recentFrameKeys[stateName]);
+      if (all.length > windowSize) {
+        this._recentFrameKeys[stateName] = new Set(all.slice(all.length - windowSize));
+      }
+    }
+
     return frame;
   }
 
@@ -1137,9 +1293,9 @@ export class AnimationController {
     this._currentToken = token;
 
     const phases = [
-      { tag: 'thinking', speech: this._t('thinking'), maxMs: 15000 },
-      { tag: 'curious', speech: this._t('curious') || 'Hmm?', maxMs: 30000 },
-      // Deep thinking phase uses individual think sprites
+      { tag: 'thinking', speech: this._t('thinking'), maxMs: 8000 },
+      { tag: 'curious', speech: this._t('curious') || 'Hmm?', maxMs: 10000 },
+      // Deep thinking phase uses individual think sprites (kicks in ~10s)
       { type: 'deep', tag: 'thinking', speech: 'Let me think...', maxMs: Infinity },
     ];
 
