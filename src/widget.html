@@ -176,6 +176,13 @@
           error: 5000,
           laughing: 4000,
           surprised: 2500,
+          // synced from config/config.js — source of truth (2026-08-26: missing entries here
+          // were the real cause of "excited" state reverting to idle almost instantly instead
+          // of holding 15s, since the engine falls back to a short default for any state
+          // without an explicit duration — see StockAgent trade notifications in eventMap above)
+          curious: 3000,
+          confused: 3000,
+          excited: 15000,
         },
         sprites: {
           useCSS: true,
