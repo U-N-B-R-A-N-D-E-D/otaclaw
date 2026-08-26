@@ -22,6 +22,10 @@ build/
 config/config.js
 !config/config.example.js
 
+# Private ops notes (LAN IPs, hostnames, personal deployment decisions —
+# not useful to someone cloning this for their own local setup)
+/DEPLOY.md
+
 # Local development / testing files
 start-kiosko-pi.sh
 canvas-debug.html

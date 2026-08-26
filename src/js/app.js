@@ -30,6 +30,7 @@ import { detectEmotion, RECENT_WINDOW } from "./core/emotion-patterns.js";
 import { AnimationController } from "./core/animation-controller.js";
 import { TimerManager } from "./core/timer-manager.js";
 import { normalizeGatewayConfig } from "./core/config-validator.js";
+import { EasterEggs } from "./easter-eggs.js";
 
 // Early preload so catalog is ready before boot/waiting/idle start.
 if (typeof window !== "undefined" && typeof fetch === "function") {
@@ -52,14 +53,19 @@ class OtaClawApp {
     this.debugMode = false;
     this.isOfflineMode = false;
     this._lastFrame = null;
+    this._overlaySavedFrame = null;
+    this._frameGeneration = 0;
     this._blinkOverlayHandle = null;
     this._blinkRestoreTimer = null;
+    this._blinkResolve = null;
 
     // For organic, context-aware sprite selection (category from tools, emotion lock, etc.)
     this._lastContext = null;
     this._lastFrameKey = null;
     this._activeWorkUntil = 0;
     this._poolCycleIndex = {};
+    this._lastDisconnectAt = 0;
+    this._lastGreetingAt = 0;
     this.animator = null;
     this._timers = null;
     this._lastSpokenText = "";
@@ -80,7 +86,6 @@ class OtaClawApp {
     this.init = this.init.bind(this);
     this.start = this.start.bind(this);
     this.stop = this.stop.bind(this);
-    this.handleWebSocketEvent = this.handleWebSocketEvent.bind(this);
     this.updateConnectionUI = this.updateConnectionUI.bind(this);
     this.enableOfflineMode = this.enableOfflineMode.bind(this);
     this.getSpriteSheetUrl = this.getSpriteSheetUrl.bind(this);
@@ -233,15 +238,43 @@ class OtaClawApp {
       // Expose monitor for debug panel and console inspection
       window.otaclawMonitor = monitor;
 
+      // Wire the sprite catalog into the animator so config catalog references resolve.
+      this._adoptSpriteCatalog();
+
+      // Wire Easter eggs (Konami / Gray Fox / Panic / Codec)
+      this.easterEggs = new EasterEggs(this.otaclaw, null, {
+        enabled: this.config?.easterEggs?.enabled !== false,
+        debug: this.config?.easterEggs?.debug || this.debugMode,
+      });
+      this.easterEggs.init();
+      this.wsClient.on("easter.konami", () => this.easterEggs?.toggleCodecMode());
+      this.wsClient.on("easter.grayfox", () => this.easterEggs?.enableGrayFox());
+      this.wsClient.on("easter.panic", () => this.easterEggs?.triggerPanic());
+      this.wsClient.on("codecCommand", () => this.easterEggs?.toggleCodecMode());
+
       // Setup UI interactions
       this.setupUIInteractions();
 
       // Preload critical images to prevent them from disappearing or flashing
       const sheetUrl = this.getSpriteSheetUrl();
       const basePath = (this.config?.sprites?.basePath || "assets/sprites/").replace(/\/$/, "");
-      const blinkUrl = `${basePath}/otacon_sprite_blink_00.png`;
-      
-      const preloadUrls = [sheetUrl, blinkUrl];
+
+      const individualSprites = [];
+      const addIndividual = (prefix, count) => {
+        for (let i = 0; i <= count; i++) {
+          const idx = String(i).padStart(2, "0");
+          individualSprites.push(`${basePath}/otacon_sprite_${prefix}_${idx}.png`);
+        }
+      };
+      addIndividual("boot", 4);
+      addIndividual("thumbs", 6);
+      addIndividual("laugh", 2);
+      addIndividual("shrug", 1);
+      addIndividual("frustration", 1);
+      addIndividual("coat", 3);
+      addIndividual("blink", 2);
+
+      const preloadUrls = [sheetUrl, ...individualSprites];
       preloadUrls.forEach(url => {
           const img = new Image();
           img.src = typeof window.otaclawAssetUrl === "function" ? window.otaclawAssetUrl(url) : url;
@@ -317,45 +350,72 @@ class OtaClawApp {
 
   /**
    * Load configuration file
-   * Prefers window.OTACLAW_CONFIG (inline in HTML) when gateway serves wrong MIME types
+   * Deep-merges inline window.OTACLAW_CONFIG (widget defaults) with config.js.
+   * config.js wins on keys it defines; inline values provide the base layer.
    */
   async loadConfig() {
-    if (typeof window !== "undefined" && window.OTACLAW_CONFIG) {
-      this.config = window.OTACLAW_CONFIG;
-      normalizeGatewayConfig(this.config);
-      this.debugMode = this.config.behavior?.debug || false;
-      monitor.configure(this.config);
-      this._applyProfile();
-      this._applyPersonality();
-      return;
-    }
+    const inlineConfig =
+      typeof window !== "undefined" && window.OTACLAW_CONFIG
+        ? { ...window.OTACLAW_CONFIG }
+        : {};
+
+    let fileConfig = {};
     try {
       const configModule = await import("./config.js?v=20");
-      this.config = configModule.OTACLAW_CONFIG || configModule.default;
-
-      if (!this.config) {
-        throw new Error("Configuration not found");
-      }
-
-      normalizeGatewayConfig(this.config);
-
-      // Enable debug mode if configured
-      this.debugMode = this.config.behavior?.debug || false;
-
-      // Apply monitor configuration now that real config is available
-      monitor.configure(this.config);
-
-      // Apply behavior profile (minimal, expressive, etc.)
-      this._applyProfile();
-      this._applyPersonality();
+      fileConfig = configModule.OTACLAW_CONFIG || configModule.default || {};
     } catch (error) {
-      monitor.error("config.load.failed", { error: String(error) });
-      console.error("[OtaClaw] Failed to load configuration:", error);
-      throw new Error(
-        this.config?.i18n?.configError ??
-          "Configuration error: Copy config.example.js to config.js",
-      );
+      // If there is no inline fallback, the config.js failure is fatal.
+      if (!inlineConfig || Object.keys(inlineConfig).length === 0) {
+        monitor.error("config.load.failed", { error: String(error) });
+        console.error("[OtaClaw] Failed to load configuration:", error);
+        throw new Error(
+          this.config?.i18n?.configError ??
+            "Configuration error: Copy config.example.js to config.js",
+        );
+      }
     }
+
+    this.config = this._deepMerge(inlineConfig, fileConfig);
+
+    if (!this.config || Object.keys(this.config).length === 0) {
+      throw new Error("Configuration not found");
+    }
+
+    normalizeGatewayConfig(this.config);
+
+    // Enable debug mode if configured
+    this.debugMode = this.config.behavior?.debug || false;
+
+    // Apply monitor configuration now that real config is available
+    monitor.configure(this.config);
+
+    // Apply behavior profile (minimal, expressive, etc.)
+    this._applyProfile();
+    this._applyPersonality();
+  }
+
+  /**
+   * Deep merge two plain objects. `override` wins on keys it defines.
+   * Arrays are replaced, not concatenated. Null values clear the target key.
+   */
+  _deepMerge(base, override) {
+    if (!override || typeof override !== "object") return base;
+    if (!base || typeof base !== "object") return { ...override };
+
+    const result = { ...base };
+    for (const key of Object.keys(override)) {
+      const val = override[key];
+      if (val === null) {
+        delete result[key];
+      } else if (Array.isArray(val)) {
+        result[key] = [...val];
+      } else if (typeof val === "object" && typeof result[key] === "object") {
+        result[key] = this._deepMerge(result[key], val);
+      } else {
+        result[key] = val;
+      }
+    }
+    return result;
   }
 
   /**
@@ -399,6 +459,7 @@ class OtaClawApp {
             if (typeof window.showWidgetConnectionMsg === "function")
               window.showWidgetConnectionMsg("");
             this.otaclaw.setState("idle", { speech: "" });
+            this._playGreetingIfDue();
             this.startIdleAnimation();
             this.startBlinkOverlay();
             this._scheduleSleep();
@@ -440,6 +501,7 @@ class OtaClawApp {
 
     this.wsClient.on("disconnected", (data = {}) => {
       monitor.log("websocket.disconnected", { code: data.code, reason: data.reason });
+      this._lastDisconnectAt = Date.now();
       document.body.classList.add("widget-waiting");
       this.updateConnectionUI("disconnected");
       if (document.body.classList.contains("otaclaw-widget")) {
@@ -793,8 +855,26 @@ class OtaClawApp {
     });
 
     this.wsClient.on("gatewayIdle", () => {
+      if (this.config?.sprites?.eventReactionCoverage === false) return;
       this.otaclaw.setState("idle", { trigger: "gateway.idle", speech: "" });
       this._updateSpeechBubble("", { force: true });
+    });
+
+    this.wsClient.on("gateway.ready", () => {
+      if (this.config?.sprites?.eventReactionCoverage === false) return;
+      this._tryPlayStateSequence("greeting", this._t("greeting") || "Hello!");
+    });
+
+    this.wsClient.on("session.start", () => {
+      if (this.config?.sprites?.eventReactionCoverage === false) return;
+      this.otaclaw.setState("curious", { trigger: "session.start", speech: "" });
+      this.startCuriousAnimation?.();
+    });
+
+    this.wsClient.on("channel.connected", () => {
+      if (this.config?.sprites?.eventReactionCoverage === false) return;
+      // Wave frame 7,2 as a quick social acknowledgment
+      this._setFrameDirect(7, 2, this._t("greeting") || "Hi!");
     });
 
     const stockagentBubbleMs = Math.max(
@@ -950,7 +1030,11 @@ class OtaClawApp {
             this.stopErrorAnimation();
             this.stopLaughingAnimation();
             this.stopSurprisedAnimation();
-            this.startThinkingAnimation();
+            if (data.state === "processing") {
+              this.startProcessingAnimation();
+            } else {
+              this.startThinkingAnimation();
+            }
           } else if (data.state === "success") {
             this.stopIdleAnimation();
             this.stopThinkingAnimation();
@@ -1100,6 +1184,18 @@ class OtaClawApp {
    * Setup UI interactions
    */
   setupUIInteractions() {
+    // Listen for overlay effects from AnimationController (blush, etc.)
+    // Render them by swapping the frame through the same path as the base pose
+    // so overlay sprites never render at a different size/position than the character.
+    window.addEventListener("otaclaw-overlay", (e) => {
+      const detail = e?.detail || {};
+      if (detail.type === "show" && detail.url) {
+        this._applyOverlayFrame(detail.url);
+      } else if (detail.type === "hide") {
+        this._restoreOverlayFrame();
+      }
+    });
+
     // Retry connection button
     const retryBtn = document.getElementById("retry-connection");
     if (retryBtn) {
@@ -1424,7 +1520,7 @@ class OtaClawApp {
   }
 
   /** Set frame from individual sprite file (idle mini-sequence). */
-  _setFrameFromSprite(filename, speech = "") {
+  _setFrameFromSprite(filename, speech = "", { isOverlay = false } = {}) {
     if (
       document.body.classList.contains("otaclaw-widget") &&
       !window.__otaclawBootComplete
@@ -1441,7 +1537,8 @@ class OtaClawApp {
       typeof window.otaclawAssetUrl === "function"
         ? window.otaclawAssetUrl(rawUrl)
         : rawUrl;
-    /* Widget: use main sprite (gray view + bubble) – overlay hidden after boot */
+    /* Widget: use main sprite (gray view + bubble) – overlay hidden after boot.
+       Fill the viewport and force scale 1 so the sprite isn't magnified 4.5x. */
     frameEl.style.setProperty(
       "background-image",
       `url('${url}')`,
@@ -1449,6 +1546,9 @@ class OtaClawApp {
     );
     frameEl.style.setProperty("background-size", "contain", "important");
     frameEl.style.setProperty("background-position", "center", "important");
+    frameEl.style.setProperty("width", "100%", "important");
+    frameEl.style.setProperty("height", "100%", "important");
+    frameEl.style.setProperty("--otacon-scale", "1", "important");
     const isIdle = this.otaclaw?.getState?.() === "idle";
     Array.from(sprite.classList)
       .filter((c) => c.startsWith("state-"))
@@ -1456,7 +1556,8 @@ class OtaClawApp {
     sprite.classList.add("state-frame");
     if (isIdle) sprite.classList.add("state-idle");
     sprite.dataset.frame = filename;
-    this._lastFrame = { type: "sprite", file: filename, speech };
+    this._lastFrame = { type: "sprite", file: filename, speech, renderMode: "individual" };
+    if (!isOverlay) this._frameGeneration++;
     if (speech !== undefined) {
       const st = document.getElementById("speech-text");
       const sb = document.getElementById("speech-bubble");
@@ -1469,23 +1570,30 @@ class OtaClawApp {
    * Direct frame update. Prefer calibration setFrame (uses individual sprites from catalog).
    * Pass `speech === undefined` to change pose without touching the bubble.
    */
-  _setFrameDirect(col, row, speech) {
+  _setFrameDirect(col, row, speech, { isOverlay = false } = {}) {
     if (
       document.body.classList.contains("otaclaw-widget") &&
       !window.__otaclawBootComplete
     )
       return;
+    // Clear individual-sprite viewport sizing/scale so sheet-crop CSS variables win.
+    const spriteEl = document.getElementById("sprite");
+    const frameEl = spriteEl?.querySelector(".otacon-frame");
+    if (frameEl) {
+      frameEl.style.width = "";
+      frameEl.style.height = "";
+      frameEl.style.setProperty("--otacon-scale", "");
+    }
     const cal = window.otaclaw;
     if (cal?.setFrame) {
       const opts = speech === undefined ? {} : { speech: speech || "" };
       cal.setFrame(col, row, opts);
-      this._lastFrame = { type: "direct", col, row, speech };
+      this._lastFrame = { type: "direct", col, row, speech, renderMode: "sheet" };
+      if (!isOverlay) this._frameGeneration++;
       return;
     }
     const root = document.documentElement;
-    const sprite = document.getElementById("sprite");
-    const frameEl = sprite?.querySelector(".otacon-frame");
-    if (!sprite || !frameEl) return;
+    if (!spriteEl || !frameEl) return;
     const {
       frameW: fw,
       frameH: fh,
@@ -1516,12 +1624,13 @@ class OtaClawApp {
       `${-col * fw}px ${-row * fh}px`,
       "important",
     );
-    Array.from(sprite.classList)
+    Array.from(spriteEl.classList)
       .filter((c) => c.startsWith("state-"))
-      .forEach((c) => sprite.classList.remove(c));
-    sprite.classList.add("state-frame");
-    sprite.dataset.frame = `${col},${row}`;
-    this._lastFrame = { type: "direct", col, row, speech };
+      .forEach((c) => spriteEl.classList.remove(c));
+    spriteEl.classList.add("state-frame");
+    spriteEl.dataset.frame = `${col},${row}`;
+    this._lastFrame = { type: "direct", col, row, speech, renderMode: "sheet" };
+    if (!isOverlay) this._frameGeneration++;
     if (speech !== undefined) {
       const st = document.getElementById("speech-text");
       const sb = document.getElementById("speech-bubble");
@@ -1573,18 +1682,6 @@ class OtaClawApp {
     cleaned = cleaned.trim();
 
     return cleaned;
-  }
-
-  /**
-   * Get short Otacon-style expression based on accumulated text
-   * DEPRECATED: Use CharacterExpressionEngine directly
-   * Kept for backward compatibility, delegates to expression engine
-   */
-  _getOtaconExpression(text) {
-    return this._expressionEngine.getExpression({
-      state: this.otaclaw?.getState?.() || 'processing',
-      activity: this._expressionEngine.detectActivity(text),
-    });
   }
 
   /**
@@ -1646,19 +1743,213 @@ class OtaClawApp {
     }
   }
 
-  /** Blink overlay: disabled. We rely on organic sprite variety instead. */
+  /**
+   * Set an overlay frame while preserving a sheet-crop base's character scale.
+   * The sheet cell is 47x70 with internal padding; the overlay sprite is a tight
+   * 29x64 crop. We resize the frame element to 29x64 and keep the same CSS
+   * transform scale so the overlay character renders at exactly the same pixel
+   * scale as the base character (not stretched to fill the 47x70 box).
+   * @private
+   * @param {string} filename - Sprite filename relative to sprites basePath.
+   */
+  _setSheetOverlayFrame(filename) {
+    const sprite = document.getElementById("sprite");
+    const frameEl = sprite?.querySelector(".otacon-frame");
+    if (!frameEl) return;
+    const basePath = (
+      this.config?.sprites?.basePath || "assets/sprites/"
+    ).replace(/\/$/, "");
+    const rawUrl = `${basePath}/${filename}`;
+    const url =
+      typeof window.otaclawAssetUrl === "function"
+        ? window.otaclawAssetUrl(rawUrl)
+        : rawUrl;
+    // Match the 29x64 individual sprite to the base sheet character scale.
+    // The base sheet box is 47x70 at --otacon-scale; the 29x64 content is the
+    // same art, just tightly cropped. By setting the element to 29x64 and letting
+    // the CSS transform scale it, the overlay character aligns with the base.
+    frameEl.style.setProperty("width", "29px", "important");
+    frameEl.style.setProperty("height", "64px", "important");
+    frameEl.style.setProperty("background-image", `url('${url}')`, "important");
+    frameEl.style.setProperty("background-size", "29px 64px", "important");
+    frameEl.style.setProperty("background-position", "center", "important");
+    frameEl.style.setProperty("background-repeat", "no-repeat", "important");
+  }
+
+  /**
+   * Detect whether the current frame is rendered as an individual sprite or a
+   * sheet-crop frame by inspecting live inline styles. This is more robust than
+   * relying on _lastFrame.renderMode, which can go stale when ambient behaviors
+   * or sequences swap the frame through different paths.
+   * @private
+   */
+  _currentFrameIsIndividual() {
+    const frameEl = document.querySelector("#sprite .otacon-frame");
+    if (!frameEl) return false;
+    const inlineWidth = frameEl.style.width;
+    const inlineHeight = frameEl.style.height;
+    return inlineWidth === "100%" && inlineHeight === "100%";
+  }
+
+  /**
+   * Apply an overlay frame by swapping the current frame instead of layering it.
+   * @private
+   * @param {string|[number,number]} overlay - Individual sprite URL or [col,row] sheet cell.
+   */
+  _applyOverlayFrame(overlay) {
+    if (!this._overlaySavedFrame) {
+      this._overlaySavedFrame = this._lastFrame
+        ? { ...this._lastFrame, generation: this._frameGeneration }
+        : null;
+    }
+    // Detect the current base render mode from live inline styles, not stale bookkeeping.
+    const baseMode = this._currentFrameIsIndividual() ? "individual" : "sheet";
+    if (typeof overlay === "string") {
+      if (baseMode === "individual") {
+        this._setFrameFromSprite(overlay, undefined, { isOverlay: true });
+      } else {
+        this._setSheetOverlayFrame(overlay);
+      }
+    } else if (Array.isArray(overlay) && overlay.length === 2) {
+      this._setFrameDirect(overlay[0], overlay[1], undefined, { isOverlay: true });
+    }
+  }
+
+  /**
+   * Restore the frame saved before the overlay started.
+   * @private
+   */
+  _restoreOverlayFrame() {
+    const saved = this._overlaySavedFrame;
+    this._overlaySavedFrame = null;
+    if (!saved) return;
+    // If the base frame has changed since the overlay started (e.g. a state
+    // sequence started mid-blink), do NOT restore the old base.
+    if (saved.generation !== undefined && saved.generation !== this._frameGeneration) {
+      return;
+    }
+    if (saved.type === "sprite") {
+      this._setFrameFromSprite(saved.file, undefined, { isOverlay: true });
+    } else {
+      this._setFrameDirect(saved.col, saved.row, undefined, { isOverlay: true });
+    }
+  }
+
+  /**
+   * Blink: smooth 3-stage human blink (open → half → closed → half → open).
+   *
+   * Stage order (inspected from actual assets):
+   *   - blink_01.png = half-closed
+   *   - blink_02.png = fully closed
+   *   - blink_00.png = fully open (used as the "open" stage / base reference)
+   *
+   * The sequence is rendered by temporarily swapping the base frame through the
+   * same _setFrameFromSprite path, then restoring the exact captured base frame.
+   * If the base frame changes mid-blink (state sequence starts), restore is
+   * skipped so the new animation is not stomped.
+   *
+   * @returns {Promise<void>} Resolves when the blink sequence completes or aborts.
+   */
   _doBlink() {
-    return;
+    return new Promise((resolve) => {
+      this._blinkResolve = resolve;
+      if (!document.body.classList.contains("otaclaw-widget")) {
+        this._blinkResolve = null;
+        resolve();
+        return;
+      }
+      if (this.config?.sprites?.blinkOverlay === false) {
+        this._blinkResolve = null;
+        resolve();
+        return;
+      }
+      const currentState = this.otaclaw?.getState?.();
+      const suppress = this.config?.sprites?.blinkSuppressStates || [
+        "sleeping",
+        "error",
+        "worried",
+        "scared",
+      ];
+      if (suppress.includes(currentState)) {
+        this._blinkResolve = null;
+        resolve();
+        return;
+      }
+      // Skip if a state sequence (success, laugh, surprised, etc.) is currently running.
+      const activeTimers = this.animator?.timers?.activeNames || [];
+      const isSequenceRunning = activeTimers.some((n) => n.startsWith("sequence"));
+      if (isSequenceRunning) {
+        this._blinkResolve = null;
+        resolve();
+        return;
+      }
+
+      const baseFrame = this._lastFrame;
+      if (!baseFrame) {
+        this._blinkResolve = null;
+        resolve();
+        return;
+      }
+
+      // Stage order: half → closed → half
+      // blink_00=open, blink_01=half, blink_02=closed (inspected from PNGs).
+      const overlay = this.config?.sprites?.overlayEffects?.blink || {};
+      const sprites = Array.isArray(overlay.sprites) && overlay.sprites.length
+        ? overlay.sprites
+        : [
+            "otacon_sprite_blink_00.png",
+            "otacon_sprite_blink_01.png",
+            "otacon_sprite_blink_02.png",
+          ];
+      // Map by inspected visual role: half=01, closed=02. The base "open" frame is whatever
+      // the avatar is currently displaying; we only need the transient blink stages.
+      const halfFrame = sprites[1] || "otacon_sprite_blink_01.png";
+      const closedFrame = sprites[2] || "otacon_sprite_blink_02.png";
+      const stages = [halfFrame, closedFrame, halfFrame];
+
+      const totalMs = Number(this.config?.sprites?.blinkDurationMs ?? 140);
+      const stageMs = Math.max(20, Math.round(totalMs / 3));
+      const savedGeneration = this._frameGeneration;
+
+      let stage = 0;
+      const runStage = () => {
+        // Abort if the base frame changed under us (e.g. a state sequence started).
+        if (this._frameGeneration !== savedGeneration) {
+          this._overlaySavedFrame = null;
+          if (this._blinkResolve) {
+            const r = this._blinkResolve;
+            this._blinkResolve = null;
+            r();
+          }
+          return;
+        }
+        if (stage >= stages.length) {
+          this._restoreOverlayFrame();
+          if (this._blinkResolve) {
+            const r = this._blinkResolve;
+            this._blinkResolve = null;
+            r();
+          }
+          return;
+        }
+        this._applyOverlayFrame(stages[stage]);
+        stage++;
+        this._blinkRestoreTimer = setTimeout(runStage, stageMs);
+      };
+
+      this.stopBlinkOverlay();
+      runStage();
+    });
   }
 
   startBlinkOverlay() {
     this.stopBlinkOverlay();
     if (!document.body.classList.contains("otaclaw-widget")) return;
     if (this.config?.sprites?.blinkOverlay === false) return; // Skip blink overlay if disabled
-    // Update blink timer with correct bounds
     const minMs = Number(this.config?.sprites?.blinkIntervalMinMs ?? 2000);
-    const maxMs = Number(this.config?.sprites?.blinkIntervalMaxMs ?? 4000);
-    const schedule = () => {
+    const maxMs = Number(this.config?.sprites?.blinkIntervalMaxMs ?? 8000);
+    const doubleChance = Number(this.config?.sprites?.blinkDoubleChance ?? 0.15);
+    const schedule = async () => {
       if (
         !document.body.classList.contains("otaclaw-widget") ||
         document.body.classList.contains("widget-asleep")
@@ -1666,15 +1957,19 @@ class OtaClawApp {
         this._blinkOverlayHandle = null;
         return;
       }
-      
-      const currentState = this.otaclaw?.getState?.();
-      // Solo hacer el blink extra si no estamos ya haciendo cosas donde los ojos estén cerrados
-      if (currentState !== "sleeping" && currentState !== "error") {
-        this._doBlink();
+      await this._doBlink();
+      // ~15% chance of a double-blink: second sequence 150-250ms after first completes.
+      if (Math.random() < doubleChance) {
+        const doubleDelay = 150 + Math.random() * 100;
+        this._blinkOverlayHandle = setTimeout(async () => {
+          await this._doBlink();
+          const delay = minMs + Math.random() * (maxMs - minMs);
+          this._blinkOverlayHandle = setTimeout(schedule, Math.round(delay));
+        }, Math.round(doubleDelay));
+      } else {
+        const delay = minMs + Math.random() * (maxMs - minMs);
+        this._blinkOverlayHandle = setTimeout(schedule, Math.round(delay));
       }
-      
-      const delay = minMs + Math.random() * (maxMs - minMs);
-      this._blinkOverlayHandle = setTimeout(schedule, Math.round(delay));
     };
     const firstDelay = minMs * 0.5 + Math.random() * minMs * 0.5;
     this._blinkOverlayHandle = setTimeout(schedule, Math.round(firstDelay));
@@ -1688,6 +1983,11 @@ class OtaClawApp {
     if (this._blinkRestoreTimer) {
       clearTimeout(this._blinkRestoreTimer);
       this._blinkRestoreTimer = null;
+    }
+    if (this._blinkResolve) {
+      const r = this._blinkResolve;
+      this._blinkResolve = null;
+      r();
     }
   }
 
@@ -2010,13 +2310,16 @@ class OtaClawApp {
     this.animator.startWork(stateName, speech);
   }
 
-  /** Work = fidelity: stable category-matched pool via AnimationController. */
+  /** Work = fidelity: stable category-matched pool via AnimationController.
+   * Use the current OtaClaw state as the animation state so message-triggered
+   * "thinking" stays contemplative even if a prior tool call left the context
+   * category as "risky" (which would otherwise resolve to worried/pain visuals). */
   startThinkingAnimation() {
     this.stopAllAnimations();
     if (!this.animator) return;
     if (this._frameCatalog) this.animator.setCatalog(this._frameCatalog);
     this.animator.setContext(this._lastContext);
-    const workState = this._resolveWorkState();
+    const workState = this.otaclaw?.getState?.() || this._resolveWorkState();
     const speech = this._t(workState) || this._t("thinking");
     this.animator.startWork(workState, speech);
   }
@@ -2027,6 +2330,28 @@ class OtaClawApp {
       this._thinkingPhaseTimer = null;
     }
     this.animator?.stopAll();
+  }
+
+  /**
+   * Processing animation: visually distinct from thinking.
+   * Prefer sheet tagToSequences.processing; otherwise use a distinct sheet-frame cycle.
+   */
+  startProcessingAnimation() {
+    this.stopAllAnimations();
+    const seqMap = this.config?.sprites?.tagToSequences || {};
+    const seq = seqMap.processing;
+    if (Array.isArray(seq) && seq.length) {
+      this._tryPlayStateSequence("processing", this._t("processing"));
+      return;
+    }
+    if (!this.animator) return;
+    if (this._frameCatalog) this.animator.setCatalog(this._frameCatalog);
+    this.animator.setContext(this._lastContext);
+    this.animator.startProcessing(this._t("processing"));
+  }
+
+  stopProcessingAnimation() {
+    this.stopAllAnimations();
   }
 
   startLaughingAnimation() {
@@ -2069,6 +2394,13 @@ class OtaClawApp {
 
   stopSurprisedAnimation() {}
 
+  startCuriousAnimation() {
+    this.stopAllAnimations();
+    this._runSheetSequence("curious", this._t("curious") || "Hmm?");
+  }
+
+  stopCuriousAnimation() {}
+
   /**
    * Extract brief error reason for speech bubble (~25 chars). No full stack.
    * OpenClaw: timeout, listener timed out, embedded run timeout, etc.
@@ -2098,6 +2430,44 @@ class OtaClawApp {
   }
 
   /**
+   * Play the greeting sequence once on connect, or on reconnect after >5min away.
+   * @private
+   */
+  _playGreetingIfDue() {
+    if (this.config?.sprites?.greetingOnConnect === false) return;
+    const now = Date.now();
+    const awayMs = this._lastDisconnectAt ? now - this._lastDisconnectAt : Infinity;
+    const greetedRecently = this._lastGreetingAt && now - this._lastGreetingAt < 5 * 60 * 1000;
+    if (greetedRecently) return;
+    if (awayMs <= 5 * 60 * 1000) return; // fresh reconnect within 5min -> no greeting
+    this._lastGreetingAt = now;
+    this._tryPlayStateSequence("greeting", this._t("greeting") || "Hello!");
+  }
+
+  /**
+   * Adopt the sprite catalog loaded by app-calibration.js and wire it into the
+   * animator so config.sprites.individualSequences catalog references resolve.
+   * @private
+   */
+  _adoptSpriteCatalog() {
+    if (typeof window === "undefined" || !this.animator) return;
+    const tryAdopt = () => {
+      const cat = window.otaclaw?.getSpriteCatalog?.();
+      if (cat?.sequences) {
+        this.animator.setSpriteCatalog(cat);
+        return true;
+      }
+      return false;
+    };
+    if (!tryAdopt()) {
+      let attempts = 0;
+      const timer = setInterval(() => {
+        if (tryAdopt() || attempts++ > 20) clearInterval(timer);
+      }, 100);
+    }
+  }
+
+  /**
    * Show configuration error
    */
   showConfigError(error) {
@@ -2114,11 +2484,6 @@ class OtaClawApp {
       if (msg) msg.textContent = text;
     }
   }
-
-  /**
-   * Handle WebSocket events and map to states
-   */
-  handleWebSocketEvent() {}
 
   /**
    * Start the application
@@ -2207,7 +2572,7 @@ class OtaClawApp {
       {
         state: "processing",
         duration: 6000,
-        start: () => this.startThinkingAnimation(),
+        start: () => this.startProcessingAnimation(),
       },
       {
         state: "success",

@@ -309,8 +309,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     const cat = await fetch("data/sprite-catalog.json").then((r) => r.json());
     if (cat) SPRITE_CATALOG = cat;
-    if (cat?.useIndividualFiles && cat?.sprites?.length && !isWidget) {
-      document.body.classList.add("use-individual-sprites");
+    if (cat?.useIndividualFiles && cat?.sprites?.length) {
+      // The production kiosk widget stays on sheet-crop for consistent geometry,
+      // 44/44 frame utilization, and a single rendering path. Individual sprites are
+      // used by the calibration path and by AnimationController terminal sequences.
+      if (!document.body.classList.contains("otaclaw-widget")) {
+        document.body.classList.add("use-individual-sprites");
+      }
       if (isDebug()) console.log("[OtaClaw] Using individual sprites:", cat.sprites.length);
     }
   } catch {}
@@ -406,7 +411,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   setupKeyboardShortcuts();
   setupUI();
-  setupEyes();
   setupCalibrationStudio();
 });
 
@@ -1045,7 +1049,7 @@ function showDemoOption() {
 
   const hint = document.createElement("p");
   hint.innerHTML =
-    "<br><kbd>1-7</kbd> states | <kbd>X</kbd> xythobuz | <kbd>C</kbd> cal | <kbd>Y</kbd> studio | <kbd>Esc</kbd> stop | <kbd>D</kbd> debug";
+    "<br><kbd>1-7</kbd> states | <kbd>C</kbd> cal | <kbd>Y</kbd> studio | <kbd>Esc</kbd> stop | <kbd>D</kbd> debug";
   hint.style.cssText = `
     margin-top: 15px;
     font-size: 13px;
@@ -1759,16 +1763,6 @@ function setupKeyboardShortcuts() {
       case "D":
         toggleDebugPanel();
         break;
-      case "x":
-      case "X":
-        document.body.classList.toggle("use-xythobuz");
-        if (isDebug()) console.log(
-          "[OtaClaw] Sprite source:",
-          document.body.classList.contains("use-xythobuz")
-            ? "xythobuz"
-            : "sethen",
-        );
-        break;
     }
 
     // Number keys for states
@@ -1794,107 +1788,6 @@ function toggleDebugPanel() {
   if (debugPanel) {
     debugPanel.classList.toggle("hidden");
   }
-}
-
-// Eyes overlay (xythobuz): from Render.m - eyes at EYE_X/Y_OFFSET, follow mouse + blink.
-// Smooth transition: brief opacity fade when switching to avoid hard pop.
-let _eyesCleanup = null;
-
-function teardownEyes() {
-  if (_eyesCleanup) {
-    _eyesCleanup();
-    _eyesCleanup = null;
-  }
-}
-
-function setupEyes() {
-  const eyesLayer = document.getElementById("eyes-layer");
-  if (!eyesLayer) return;
-
-  // Clean up any existing eyes setup
-  teardownEyes();
-
-  const EYE_BLINK = 0,
-    EYE_TOP_RIGHT = 4,
-    EYE_TOP_LEFT = 2,
-    EYE_BOTTOM_RIGHT = 3,
-    EYE_BOTTOM_LEFT = 1;
-  const base = 'url("assets/sprites/otaclock-xythobuz/eyes_';
-  let lastEye = EYE_TOP_LEFT;
-  let blinking = false;
-  let blinkTimer = null;
-  let raf = null;
-
-  function setEye(id, smooth) {
-    if (blinking && id !== EYE_BLINK) return;
-    const url = base + id + '.png")';
-    if (
-      smooth &&
-      eyesLayer.style.backgroundImage &&
-      eyesLayer.style.backgroundImage !== url
-    ) {
-      eyesLayer.style.opacity = "0";
-      requestAnimationFrame(() => {
-        eyesLayer.style.backgroundImage = url;
-        requestAnimationFrame(() => {
-          eyesLayer.style.opacity = "";
-        });
-      });
-    } else {
-      eyesLayer.style.backgroundImage = url;
-    }
-    lastEye = id;
-  }
-
-  function doBlink() {
-    if (!document.body.classList.contains("use-xythobuz")) return;
-    blinking = true;
-    setEye(EYE_BLINK);
-    setTimeout(() => {
-      blinking = false;
-      setEye(lastEye);
-    }, 100);
-    blinkTimer = setTimeout(doBlink, 2000 + Math.random() * 3000);
-  }
-
-  function updateEyesFromMouse(e) {
-    if (!document.body.classList.contains("use-xythobuz")) return;
-    const sprite = document.getElementById("sprite");
-    const rect = sprite?.getBoundingClientRect();
-    if (!rect || rect.width === 0) return;
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const top = e.clientY < cy;
-    const right = e.clientX > cx;
-    let id = EYE_BOTTOM_LEFT;
-    if (top && right) id = EYE_TOP_RIGHT;
-    else if (top && !right) id = EYE_TOP_LEFT;
-    else if (!top && right) id = EYE_BOTTOM_RIGHT;
-    setEye(id, true);
-  }
-
-  const onMouseMove = (e) => {
-    if (raf) cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(() => updateEyesFromMouse(e));
-  };
-  const onPointerMove = (e) => {
-    if (raf) cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(() => updateEyesFromMouse(e));
-  };
-
-  document.addEventListener("mousemove", onMouseMove);
-  document.addEventListener("pointermove", onPointerMove);
-
-  setEye(EYE_TOP_LEFT);
-  blinkTimer = setTimeout(doBlink, 3000);
-
-  // Store cleanup function
-  _eyesCleanup = function () {
-    clearTimeout(blinkTimer);
-    if (raf) cancelAnimationFrame(raf);
-    document.removeEventListener("mousemove", onMouseMove);
-    document.removeEventListener("pointermove", onPointerMove);
-  };
 }
 
 function setupUI() {

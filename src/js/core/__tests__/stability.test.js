@@ -9,7 +9,6 @@ import { jest } from '@jest/globals';
 import { TimerManager } from '../timer-manager.js';
 import { AnimationController } from '../animation-controller.js';
 import { ConfigValidator } from '../config-validator.js';
-import { StateMachine } from '../state-machine.js';
 
 // Mock minimal config for testing
 const mockConfig = {
@@ -251,105 +250,6 @@ describe('ConfigValidator', () => {
     expect(summary.openclaw.port).toBe(18789);
     expect(summary.states.count).toBe(10);
     expect(summary.behavior.profile).toBe('default');
-  });
-});
-
-describe('StateMachine', () => {
-  let sm;
-  let stateChanges;
-
-  beforeEach(() => {
-    stateChanges = [];
-    sm = new StateMachine(mockConfig, {
-      onStateChange: (from, to, ctx) => {
-        stateChanges.push({ from, to, trigger: ctx.trigger });
-      },
-    });
-  });
-
-  afterEach(() => {
-    sm.destroy();
-  });
-
-  test('should start in idle state', () => {
-    expect(sm.getState()).toBe('idle');
-  });
-
-  test('should transition between states', () => {
-    sm.transition('thinking', { trigger: 'test' });
-    expect(sm.getState()).toBe('thinking');
-    expect(sm.getPreviousState()).toBe('idle');
-  });
-
-  test('should not transition to invalid state', () => {
-    const result = sm.transition('invalid-state', { trigger: 'test' });
-    expect(result).toBe(false);
-    expect(sm.getState()).toBe('idle');
-  });
-
-  test('should skip duplicate state transitions', () => {
-    sm.transition('thinking', { trigger: 'test' });
-    const result = sm.transition('thinking', { trigger: 'test2' });
-    expect(result).toBe(false);
-  });
-
-  test('should force transition to same state', () => {
-    sm.transition('thinking', { trigger: 'test' });
-    const result = sm.transition('thinking', { trigger: 'test2', force: true });
-    expect(result).toBe(true);
-  });
-
-  test('should handle tap when idle', () => {
-    const result = sm.onTap();
-    expect(result).toBe(true);
-    expect(sm.getState()).toBe('thinking');
-  });
-
-  test('should not handle tap when not idle', () => {
-    sm.transition('thinking', { trigger: 'test' });
-    const result = sm.onTap();
-    expect(result).toBe(false);
-  });
-
-  test('should handle tickle', () => {
-    const result = sm.onTickle({ x: 100, y: 100 });
-    expect(result).toBe(true);
-    expect(sm.getState()).toBe('laughing');
-  });
-
-  test('should map events to states', () => {
-    sm.handleEvent('agent.message.start', {});
-    expect(sm.getState()).toBe('thinking');
-
-    sm.handleEvent('agent.message.complete', {});
-    expect(sm.getState()).toBe('success');
-  });
-
-  test('should respect event priority', () => {
-    // Setup: thinking is active (from agent.message.start)
-    sm.transition('thinking', { trigger: 'agent.message.start' });
-
-    // gateway.idle has low priority, should not override
-    const result = sm.handleEvent('gateway.idle', {});
-    expect(result).toBe(false);
-    expect(sm.getState()).toBe('thinking');
-  });
-
-  test('should maintain state history', () => {
-    sm.transition('thinking', { trigger: 't1' });
-    sm.transition('processing', { trigger: 't2' });
-    sm.transition('success', { trigger: 't3' });
-
-    const history = sm.getHistory(3);
-    expect(history).toHaveLength(3);
-    expect(history[0].state).toBe('success');
-    expect(history[1].state).toBe('processing');
-    expect(history[2].state).toBe('thinking');
-  });
-
-  test('should get event priority', () => {
-    const priority = sm.getEventPriority('agent.message.error');
-    expect(typeof priority).toBe('number');
   });
 });
 
@@ -615,20 +515,85 @@ describe('AnimationController', () => {
       animator.startThinking(() => 'thinking');
       expect(tagPoolCalls).toEqual(['thinking']);
 
-      jest.advanceTimersByTime(20000); // 20s elapsed -> curious phase (15-30s)
+      jest.advanceTimersByTime(9000); // 9s elapsed -> curious phase (8-10s)
       expect(tagPoolCalls).toEqual(['thinking', 'curious']);
 
-      jest.advanceTimersByTime(15000); // 35s elapsed -> deep thinking phase (30s+)
+      jest.advanceTimersByTime(2000); // 11s elapsed -> deep thinking phase (~10s+)
       expect(deepCalls).toEqual(['thinkingDeep']);
     } finally {
       jest.useRealTimers();
     }
   });
+
+  test('taxonomy quarantine: pain/fear moods never enter idle/thinking/waiting/processing pools', () => {
+    animator.setCatalog({
+      frames: [
+        { col: 0, row: 0, mood: 'calm', intensity: 'low', context: 'idle', primary: 'idle', lane: 'idle', tags: ['idle_base'] },
+        { col: 1, row: 0, mood: 'think', intensity: 'mid', context: 'work', primary: 'thinking', lane: 'work', tags: ['contemplative'] },
+        { col: 0, row: 2, mood: 'pain', intensity: 'high', context: 'react', primary: 'sad', lane: 'react', tags: ['error'] },
+        { col: 10, row: 3, mood: 'fear', intensity: 'high', context: 'react', primary: 'scared', lane: 'react', tags: ['frightened'] },
+        { col: 6, row: 0, mood: 'work', intensity: 'mid', context: 'work', primary: 'explaining', lane: 'work', tags: ['talking'] },
+      ],
+    });
+    for (const state of ['idle', 'thinking', 'waiting', 'processing']) {
+      const pool = animator.getOrganicFramePool(state).map((f) => `${f.col},${f.row}`);
+      expect(pool).not.toContain('0,2');
+      expect(pool).not.toContain('10,3');
+    }
+  });
+
+  test('anti-repeat window: same frame is not repeated within the configured window', () => {
+    animator.setCatalog({
+      frames: [
+        { col: 0, row: 0, mood: 'calm', intensity: 'low', context: 'idle', primary: 'idle', lane: 'idle', tags: ['idle_base'] },
+        { col: 3, row: 0, mood: 'calm', intensity: 'low', context: 'idle', primary: 'idle', lane: 'idle', tags: ['idle_base'] },
+        { col: 8, row: 0, mood: 'calm', intensity: 'low', context: 'idle', primary: 'idle', lane: 'idle', tags: ['idle_base'] },
+        { col: 7, row: 2, mood: 'social', intensity: 'low', context: 'social', primary: 'greeting', lane: 'social', tags: ['waving'] },
+        { col: 4, row: 3, mood: 'social', intensity: 'high', context: 'social', primary: 'playful', lane: 'social', tags: ['wink'] },
+        { col: 5, row: 3, mood: 'social', intensity: 'high', context: 'social', primary: 'playful', lane: 'social', tags: ['wink'] },
+        { col: 1, row: 0, mood: 'think', intensity: 'mid', context: 'work', primary: 'thinking', lane: 'work', tags: ['contemplative'] },
+        { col: 11, row: 0, mood: 'think', intensity: 'mid', context: 'work', primary: 'thinking', lane: 'work', tags: ['contemplative'] },
+      ],
+    });
+    animator.config.sprites.antiRepeatWindow = 5;
+    animator.config.sprites.idleSpiceChance = 1.0; // force spice path so all frames are reachable
+    const picks = [];
+    for (let i = 0; i < 40; i++) {
+      const f = animator.pickOrganicFrame('idle');
+      picks.push(`${f.col},${f.row}`);
+    }
+    for (let i = 5; i < picks.length; i++) {
+      const window = picks.slice(i - 5, i);
+      expect(window).not.toContain(picks[i]);
+    }
+  });
+
+  test('spice set contains only safe moods (calm or social), never concern/fear/pain', async () => {
+    const { readFileSync } = await import('fs');
+    const { fileURLToPath } = await import('url');
+    const { dirname, join } = await import('path');
+    const dir = dirname(fileURLToPath(import.meta.url));
+    const catalog = JSON.parse(readFileSync(join(dir, '../../../data/frame-catalog.json'), 'utf8'));
+    animator.setCatalog(catalog);
+    animator.config.sprites.idleSpiceChance = 1.0; // force spice path every pick
+    const spiceSet = new Set(['4,3', '5,3', '0,3', '1,3']);
+    for (let i = 0; i < 30; i++) {
+      const f = animator.pickOrganicFrame('idle');
+      const key = `${f.col},${f.row}`;
+      if (spiceSet.has(key)) {
+        const frame = catalog.frames.find((fr) => fr.col === f.col && fr.row === f.row);
+        expect(['calm', 'social']).toContain(frame.mood);
+        expect(['concern', 'fear', 'pain']).not.toContain(frame.mood);
+      }
+    }
+  });
 });
 
 // Integration test
+
+// Integration test
 describe('Integration: Core Modules Work Together', () => {
-  test('full flow: event → state change → animation', (done) => {
+  test('full flow: engine state change → animation controller', (done) => {
     const config = mockConfig;
     const timers = new TimerManager();
     const animator = new AnimationController(config, timers);
@@ -638,53 +603,42 @@ describe('Integration: Core Modules Work Together', () => {
       frameCalls.push({ col, row, speech });
     });
 
-    const sm = new StateMachine(config, {
-      onStateChange: (from, to, ctx) => {
-        // Verify state changed
-        expect(to).toBe('thinking');
+    // OtaClawEngine is the live state orchestrator; start thinking and verify the
+    // animation controller receives the work state and produces frames.
+    animator.startThinking(() => config.i18n.thinking);
 
-        // Verify animation started
-        setTimeout(() => {
-          expect(animator.getCurrentState()).toBe('thinking');
-          expect(frameCalls.length).toBeGreaterThan(0);
-
-          // Cleanup
-          sm.destroy();
-          animator.destroy();
-          timers.clearAll();
-          done();
-        }, 50);
-      },
-      onAnimationStart: (state, speech) => {
-        if (state === 'thinking') {
-          animator.startThinking(() => speech);
-        }
-      },
-    });
-
-    // Trigger the flow
-    sm.handleEvent('agent.message.start', {});
+    setTimeout(() => {
+      expect(animator.getCurrentState()).toBe('thinking');
+      expect(frameCalls.length).toBeGreaterThan(0);
+      animator.destroy();
+      timers.clearAll();
+      done();
+    }, 50);
   });
 });
 
 // Stability stress test
 describe('Stability: Stress Tests', () => {
-  test('rapid state transitions should not crash', () => {
-    const sm = new StateMachine(mockConfig, {
-      onStateChange: () => {},
-      onAnimationStart: () => {},
-    });
-
+  test('rapid animation start/stop cycles should not crash', () => {
+    const timers = new TimerManager();
+    const animator = new AnimationController(mockConfig, timers);
     const states = ['thinking', 'processing', 'success', 'idle', 'error', 'laughing'];
 
-    // Rapid fire 100 state changes
+    // Rapid fire 100 animation cycles
     for (let i = 0; i < 100; i++) {
       const state = states[i % states.length];
-      sm.transition(state, { trigger: 'stress-test', force: true });
+      animator.stopAll();
+      if (state === 'idle') animator.startIdle();
+      else if (state === 'thinking') animator.startThinking(() => mockConfig.i18n.thinking);
+      else if (state === 'processing') animator.startProcessing(mockConfig.i18n.processing);
+      else if (state === 'success') animator.startSuccess(mockConfig.i18n.success);
+      else if (state === 'error') animator.startError(mockConfig.i18n.error);
+      else if (state === 'laughing') animator.startLaughing(mockConfig.i18n.laughing);
     }
 
-    expect(sm.getHistory().length).toBeLessThanOrEqual(50); // Max history
-    sm.destroy();
+    animator.destroy();
+    timers.clearAll();
+    expect(timers.count).toBe(0);
   });
 
   test('timer cleanup should be complete', () => {

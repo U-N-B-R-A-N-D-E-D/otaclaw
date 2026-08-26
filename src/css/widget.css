@@ -207,8 +207,8 @@ html.otaclaw-widget.otaclaw-kiosk *,
   --otacon-scale: 4.5;
 }
 
-/* Widget: default idle frame; JS overrides via setProperty for cycling (no !important) */
-.otaclaw-widget #sprite .otacon-frame {
+/* Widget: default idle frame before JS sets state-frame; does not apply once JS drives the sprite. */
+.otaclaw-widget #sprite:not(.state-frame) .otacon-frame {
   background-image: url("../assets/sprites/otacon_sprite.png_0004_Sprite-5.png");
   background-size: contain !important;
   background-position: center !important;
@@ -254,14 +254,13 @@ html.otaclaw-widget.otaclaw-kiosk *,
   animation: sprite-breathe-otacon 6s ease-in-out infinite !important;
 }
 
-/* Full range demo: use sprite sheet + CSS vars for background-position (overrides default center)
-   NOTE: Now handled directly by JS so individual sprites can work without being overridden */
+/* Full range demo: use sprite sheet + CSS vars for background-position (fallback when JS has not set an individual sprite) */
 .otaclaw-widget #sprite.state-frame .otacon-frame {
-  background-image: url("../assets/sprites/otaclock-original.png") !important;
+  background-image: url("../assets/sprites/otaclock-original.png");
   background-size: calc(var(--otacon-sheet-w, 567) * 1px)
-    calc(var(--otacon-sheet-h, 278) * 1px) !important;
+    calc(var(--otacon-sheet-h, 278) * 1px);
   background-position: calc(var(--otacon-frame-x, 0) * 1px)
-    calc(var(--otacon-frame-y, 0) * 1px) !important;
+    calc(var(--otacon-frame-y, 0) * 1px);
 }
 
 /* Emotions demo: ensure main content is visible and centered after overlay hides */

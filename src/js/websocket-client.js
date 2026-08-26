@@ -329,6 +329,17 @@ export class WebSocketClient {
     const eventMap = this.config.eventMap || {};
     const eventType = data.type;
 
+    // Easter egg events are consumed by the UI, not mapped to avatar states.
+    // easter.codec is aliased to codecCommand below, so exclude it here.
+    if (
+      typeof eventType === "string" &&
+      eventType.startsWith("easter.") &&
+      eventType !== "easter.codec"
+    ) {
+      this.emit(eventType, data);
+      return;
+    }
+
     // Check if this event maps to a state
     const state = eventMap[eventType] ?? eventMap["*"];
     if (state) {

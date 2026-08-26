@@ -10,7 +10,7 @@ Protocol version: **v3**. Any event gateway that speaks these shapes works (Open
 - Status endpoint: `http://<host>:18789/ws-status` (GET JSON)
 - Health endpoint: `http://<host>:18789/health` (GET, returns `ok`)
 
-**Default host:** `localhost` (pi-claw uses URL param `?hal_ws=ws://[REDACTED]23:18789/ws`)
+**Default host:** `localhost` (pi-claw uses URL param `?hal_ws=ws://[REDACTED]29:18789/ws`)
 
 ## Handshake
 
