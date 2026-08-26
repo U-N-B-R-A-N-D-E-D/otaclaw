@@ -318,6 +318,20 @@ export class EasterEggs {
   }
   
   /**
+   * Panic mode: disable any active easter egg and briefly flag the container.
+   * Triggered by gateway-emitted easter.panic events.
+   */
+  triggerPanic() {
+    this.disableGrayFox();
+    this.disableCodecMode();
+    const container = document.getElementById('otaclaw');
+    if (!container) return;
+    container.classList.add('otacon-panic');
+    setTimeout(() => container.classList.remove('otacon-panic'), 1500);
+    this._log('Otacon panic triggered');
+  }
+
+  /**
    * Toggle Codec Mode (Konami Code effect)
    */
   toggleCodecMode() {

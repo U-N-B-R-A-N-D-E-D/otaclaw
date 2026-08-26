@@ -13,10 +13,16 @@
       "tags": [
         "idle",
         "micro"
-      ]
+      ],
+      "sprites": [
+        "otacon_sprite.png_0000_Sprite-1.png",
+        "otacon_sprite.png_0001_Sprite-2.png",
+        "otacon_sprite.png_0002_Sprite-3.png"
+      ],
+      "frameMs": 1200
     },
     {
-      "name": "thinking",
+      "name": "thinkingDeep",
       "indices": [
         2,
         3,
@@ -25,7 +31,13 @@
       ],
       "tags": [
         "thinking"
-      ]
+      ],
+      "sprites": [
+        "otacon_sprite_think_00.png",
+        "otacon_sprite_think_01.png",
+        "otacon_sprite_think_02.png"
+      ],
+      "frameMs": 800
     },
     {
       "name": "laughing",
@@ -36,7 +48,13 @@
       ],
       "tags": [
         "laughing"
-      ]
+      ],
+      "sprites": [
+        "otacon_sprite_laugh_00.png",
+        "otacon_sprite_laugh_01.png",
+        "otacon_sprite_laugh_02.png"
+      ],
+      "frameMs": 200
     },
     {
       "name": "surprised",
@@ -46,10 +64,15 @@
       ],
       "tags": [
         "surprised"
-      ]
+      ],
+      "sprites": [
+        "otacon_sprite.png_0009_Sprite-10.png",
+        "otacon_sprite.png_0010_Sprite-11.png"
+      ],
+      "frameMs": 300
     },
     {
-      "name": "thumbs-up",
+      "name": "success",
       "indices": [
         12,
         13,
@@ -57,6 +80,54 @@
       ],
       "tags": [
         "success"
+      ],
+      "sprites": [
+        "otacon_sprite_thumbs_00.png",
+        "otacon_sprite_thumbs_01.png",
+        "otacon_sprite_thumbs_02.png",
+        "otacon_sprite_thumbs_03.png",
+        "otacon_sprite_thumbs_04.png",
+        "otacon_sprite_thumbs_05.png",
+        "otacon_sprite_thumbs_06.png"
+      ],
+      "frameMs": 150
+    },
+    {
+      "name": "confused",
+      "indices": [],
+      "sprites": [
+        "otacon_sprite_shrug_00.png",
+        "otacon_sprite_shrug_01.png"
+      ],
+      "frameMs": 600,
+      "tags": [
+        "confused"
+      ]
+    },
+    {
+      "name": "frustrated",
+      "indices": [],
+      "sprites": [
+        "otacon_sprite_frustration_00.png",
+        "otacon_sprite_frustration_01.png"
+      ],
+      "frameMs": 400,
+      "tags": [
+        "frustrated"
+      ]
+    },
+    {
+      "name": "cold",
+      "indices": [],
+      "sprites": [
+        "otacon_sprite_coat_00.png",
+        "otacon_sprite_coat_01.png",
+        "otacon_sprite_coat_02.png",
+        "otacon_sprite_coat_03.png"
+      ],
+      "frameMs": 300,
+      "tags": [
+        "cold"
       ]
     }
   ],
@@ -73,7 +144,10 @@
         "calm",
         "resting",
         "base"
-      ]
+      ],
+      "mood": "calm",
+      "intensity": "low",
+      "context": "idle"
     },
     {
       "idx": 1,
@@ -86,7 +160,10 @@
         "calm",
         "idle",
         "resting"
-      ]
+      ],
+      "mood": "think",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 2,
@@ -98,7 +175,10 @@
         "neutral",
         "thinking",
         "micro-variant"
-      ]
+      ],
+      "mood": "think",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 3,
@@ -111,7 +191,10 @@
         "calm",
         "idle",
         "resting"
-      ]
+      ],
+      "mood": "calm",
+      "intensity": "low",
+      "context": "idle"
     },
     {
       "idx": 4,
@@ -122,7 +205,10 @@
       "tags": [
         "neutral",
         "calm"
-      ]
+      ],
+      "mood": "think",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 5,
@@ -134,7 +220,10 @@
         "thinking",
         "confused",
         "contemplative"
-      ]
+      ],
+      "mood": "think",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 6,
@@ -145,7 +234,10 @@
       "tags": [
         "neutral",
         "explaining"
-      ]
+      ],
+      "mood": "work",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 7,
@@ -158,7 +250,10 @@
         "calm",
         "idle",
         "resting"
-      ]
+      ],
+      "mood": "work",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 8,
@@ -170,7 +265,10 @@
         "neutral",
         "closed",
         "waiting"
-      ]
+      ],
+      "mood": "calm",
+      "intensity": "low",
+      "context": "idle"
     },
     {
       "idx": 9,
@@ -183,7 +281,10 @@
         "calm",
         "idle",
         "resting"
-      ]
+      ],
+      "mood": "fear",
+      "intensity": "high",
+      "context": "react"
     },
     {
       "idx": 10,
@@ -196,7 +297,10 @@
         "calm",
         "idle",
         "resting"
-      ]
+      ],
+      "mood": "fear",
+      "intensity": "high",
+      "context": "react"
     },
     {
       "idx": 11,
@@ -207,7 +311,10 @@
       "tags": [
         "contemplative",
         "thinking"
-      ]
+      ],
+      "mood": "think",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 12,
@@ -220,7 +327,10 @@
         "success",
         "approval",
         "happy"
-      ]
+      ],
+      "mood": "celebrate",
+      "intensity": "high",
+      "context": "react"
     },
     {
       "idx": 13,
@@ -233,7 +343,10 @@
         "success",
         "approval",
         "happy"
-      ]
+      ],
+      "mood": "celebrate",
+      "intensity": "high",
+      "context": "react"
     },
     {
       "idx": 14,
@@ -247,7 +360,10 @@
         "approval",
         "happy",
         "excited"
-      ]
+      ],
+      "mood": "celebrate",
+      "intensity": "high",
+      "context": "react"
     },
     {
       "idx": 15,
@@ -259,7 +375,10 @@
         "alert",
         "attentive",
         "focused"
-      ]
+      ],
+      "mood": "celebrate",
+      "intensity": "high",
+      "context": "react"
     },
     {
       "idx": 16,
@@ -273,7 +392,10 @@
         "big",
         "open"
       ],
-      "overflow": true
+      "overflow": true,
+      "mood": "think",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 17,
@@ -285,7 +407,10 @@
         "polite",
         "calm",
         "waiting"
-      ]
+      ],
+      "mood": "concern",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 18,
@@ -297,7 +422,10 @@
         "alert",
         "attentive",
         "focused"
-      ]
+      ],
+      "mood": "work",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 19,
@@ -309,7 +437,10 @@
         "asking",
         "explaining",
         "emphasis"
-      ]
+      ],
+      "mood": "work",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 20,
@@ -321,7 +452,10 @@
         "alert",
         "attentive",
         "focused"
-      ]
+      ],
+      "mood": "work",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 21,
@@ -333,7 +467,10 @@
         "alert",
         "attentive",
         "focused"
-      ]
+      ],
+      "mood": "work",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 22,
@@ -345,7 +482,10 @@
         "confident",
         "assertive",
         "ready"
-      ]
+      ],
+      "mood": "work",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 23,
@@ -357,7 +497,10 @@
         "alert",
         "attentive",
         "focused"
-      ]
+      ],
+      "mood": "work",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 24,
@@ -369,7 +512,10 @@
         "worried",
         "concerned",
         "unpleasant"
-      ]
+      ],
+      "mood": "pain",
+      "intensity": "high",
+      "context": "react"
     },
     {
       "idx": 25,
@@ -381,7 +527,10 @@
         "puzzled",
         "confused",
         "questioning"
-      ]
+      ],
+      "mood": "think",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 26,
@@ -394,7 +543,10 @@
         "error",
         "disappointed",
         "unpleasant"
-      ]
+      ],
+      "mood": "pain",
+      "intensity": "high",
+      "context": "react"
     },
     {
       "idx": 27,
@@ -407,7 +559,10 @@
         "error",
         "distressed",
         "unpleasant"
-      ]
+      ],
+      "mood": "pain",
+      "intensity": "high",
+      "context": "react"
     },
     {
       "idx": 28,
@@ -419,7 +574,10 @@
         "worried",
         "thinking",
         "unpleasant"
-      ]
+      ],
+      "mood": "concern",
+      "intensity": "mid",
+      "context": "react"
     },
     {
       "idx": 29,
@@ -431,7 +589,10 @@
         "tired",
         "subdued",
         "low-energy"
-      ]
+      ],
+      "mood": "think",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 30,
@@ -443,7 +604,10 @@
         "tired",
         "subdued",
         "low-energy"
-      ]
+      ],
+      "mood": "work",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 31,
@@ -454,59 +618,10 @@
       "tags": [
         "waving",
         "greeting"
-      ]
-    },
-    {
-      "idx": 32,
-      "col": 8,
-      "row": 2,
-      "file": "otacon_sprite.png_0032_Sprite-9b.png",
-      "desc": "emotion: tired, subdued, low energy",
-      "tags": [
-        "tired",
-        "subdued",
-        "low-energy"
       ],
-      "skip": true
-    },
-    {
-      "idx": 33,
-      "col": 9,
-      "row": 2,
-      "file": "otacon_sprite.png_0033_Sprite-10b.png",
-      "desc": "emotion: tired, subdued, low energy",
-      "tags": [
-        "tired",
-        "subdued",
-        "low-energy"
-      ],
-      "skip": true
-    },
-    {
-      "idx": 34,
-      "col": 10,
-      "row": 2,
-      "file": "otacon_sprite.png_0034_Sprite-11b.png",
-      "desc": "emotion: tired, subdued, low energy",
-      "tags": [
-        "tired",
-        "subdued",
-        "low-energy"
-      ],
-      "skip": true
-    },
-    {
-      "idx": 35,
-      "col": 11,
-      "row": 2,
-      "file": "otacon_sprite.png_0035_Sprite-12b.png",
-      "desc": "emotion: tired, subdued, low energy",
-      "tags": [
-        "tired",
-        "subdued",
-        "low-energy"
-      ],
-      "skip": true
+      "mood": "social",
+      "intensity": "low",
+      "context": "social"
     },
     {
       "idx": 36,
@@ -517,7 +632,10 @@
       "tags": [
         "dynamic",
         "movement"
-      ]
+      ],
+      "mood": "work",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 37,
@@ -529,7 +647,10 @@
         "happy",
         "laughing",
         "playful"
-      ]
+      ],
+      "mood": "work",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 38,
@@ -541,7 +662,10 @@
         "happy",
         "laughing",
         "playful"
-      ]
+      ],
+      "mood": "celebrate",
+      "intensity": "high",
+      "context": "react"
     },
     {
       "idx": 39,
@@ -555,7 +679,10 @@
         "funny",
         "excited",
         "positive"
-      ]
+      ],
+      "mood": "celebrate",
+      "intensity": "high",
+      "context": "react"
     },
     {
       "idx": 40,
@@ -567,7 +694,10 @@
         "wink",
         "playful",
         "happy"
-      ]
+      ],
+      "mood": "social",
+      "intensity": "low",
+      "context": "social"
     },
     {
       "idx": 41,
@@ -579,7 +709,10 @@
         "wink",
         "playful",
         "happy"
-      ]
+      ],
+      "mood": "social",
+      "intensity": "low",
+      "context": "social"
     },
     {
       "idx": 42,
@@ -591,7 +724,10 @@
         "neutral",
         "variant",
         "alternate"
-      ]
+      ],
+      "mood": "celebrate",
+      "intensity": "high",
+      "context": "react"
     },
     {
       "idx": 43,
@@ -603,7 +739,10 @@
         "neutral",
         "variant",
         "alternate"
-      ]
+      ],
+      "mood": "celebrate",
+      "intensity": "high",
+      "context": "react"
     },
     {
       "idx": 44,
@@ -615,7 +754,10 @@
         "neutral",
         "variant",
         "alternate"
-      ]
+      ],
+      "mood": "work",
+      "intensity": "mid",
+      "context": "work"
     },
     {
       "idx": 45,
@@ -627,7 +769,10 @@
         "neutral",
         "variant",
         "alternate"
-      ]
+      ],
+      "mood": "pain",
+      "intensity": "high",
+      "context": "react"
     },
     {
       "idx": 46,
@@ -640,7 +785,10 @@
         "frightened",
         "unpleasant",
         "alarmed"
-      ]
+      ],
+      "mood": "fear",
+      "intensity": "high",
+      "context": "react"
     },
     {
       "idx": 47,
@@ -653,7 +801,10 @@
         "variant",
         "alternate"
       ],
-      "skip": true
+      "skip": true,
+      "mood": "calm",
+      "intensity": "low",
+      "context": "work"
     }
   ]
 }
