@@ -28,6 +28,7 @@
 import { TimerManager } from './timer-manager.js';
 import { otaclawMonitor as monitor } from './monitor.js';
 import { detectEmotion, RECENT_WINDOW } from './emotion-patterns.js';
+import { getStateSprite, isMappingEnabled } from './state-sprite-map.js';
 
 export class AnimationController {
   constructor(config, timerManager) {
@@ -596,7 +597,7 @@ export class AnimationController {
    * Set frame directly (col, row) - Performance optimized
    * Uses requestAnimationFrame and throttling for smooth 60fps on Pi
    */
-  setFrame(col, row, speech = '', options = {}) {
+  setFrame(col, row, speech, options = {}) {
     if (!this._frameCallback) return;
 
     // For individual sprites, skip throttling
@@ -1103,10 +1104,60 @@ export class AnimationController {
   }
 
   /**
+   * Deterministic state animation from the state->sprite table
+   * (see state-sprite-map.js). No random frame picks: the same state always
+   * shows the same sequence. Returns false when mapping is disabled or the
+   * state has no entry, so callers can fall back to the legacy pools.
+   * @param {string} state
+   * @param {string} [speech] bubble text, applied on the first frame only
+   * @param {{onComplete?: Function}} [options] onComplete fires after a 'hold' sequence ends
+   */
+  startMapped(state, speech = '', options = {}) {
+    if (!isMappingEnabled(this.config)) return false;
+    const spec = getStateSprite(this.config, state);
+    if (!spec) return false;
+
+    this.stopAll();
+    this._currentState = state;
+    this._blinkEnabled = spec.blink !== false;
+    const token = this._generateToken();
+    this._currentToken = token;
+
+    const seq = spec.sequence;
+    const frameMs = Math.max(50, Number(spec.frameMs) || 600);
+    const loop = spec.mode === 'loop';
+    let idx = 0;
+    let lastKey = null;
+
+    const step = () => {
+      if (!this._isTokenValid(token)) return;
+      const [col, row] = seq[idx];
+      const key = `${col},${row}`;
+      if (key !== lastKey) {
+        this.setFrame(col, row, idx === 0 && lastKey === null ? speech : undefined);
+        this._lastFrameKey = key;
+        lastKey = key;
+      }
+      const last = idx === seq.length - 1;
+      if (last && !loop) {
+        if (options.onComplete) options.onComplete();
+        return;
+      }
+      if (seq.length === 1) return; // static pose: nothing to schedule
+      idx = last ? 0 : idx + 1;
+      this.timers.setTimeout('mapped', step, frameMs);
+    };
+
+    step();
+    return true;
+  }
+
+  /**
    * Idle = life only: calm base holds + occasional micro gestures.
    * Ignores task category (fidelity is for work states).
    */
   startIdle() {
+    if (this.startMapped('idle')) return;
     this.stopAll();
     this._currentState = 'idle';
     this._blinkEnabled = true;
@@ -1140,6 +1191,7 @@ export class AnimationController {
    */
   startWork(stateName, speech = '') {
     const state = stateName || 'thinking';
+    if (this.startMapped(state, speech)) return;
     this.stopAll();
     this._currentState = state;
     this._blinkEnabled = true;
@@ -1182,6 +1234,7 @@ export class AnimationController {
    * Uses thumbs-up individual sequence for celebration
    */
   startSuccess(speech) {
+    if (this.startMapped('success', speech)) return;
     this.stopAll();
     this._currentState = 'success';
     const token = this._generateToken();
@@ -1205,6 +1258,7 @@ export class AnimationController {
    * Uses frustrated sequence for repeated errors
    */
   startError(speech) {
+    if (this.startMapped('error', speech)) return;
     this.stopAll();
     this._currentState = 'error';
     const token = this._generateToken();
@@ -1237,6 +1291,7 @@ export class AnimationController {
    * Uses laugh individual sequence (more expressive than sheet)
    */
   startLaughing(speech) {
+    if (this.startMapped('laughing', speech)) return;
     this.stopAll();
     this._currentState = 'laughing';
     const token = this._generateToken();
@@ -1256,6 +1311,7 @@ export class AnimationController {
    * Start surprised animation
    */
   startSurprised(speech) {
+    if (this.startMapped('surprised', speech)) return;
     this.stopAll();
     this._currentState = 'surprised';
     const token = this._generateToken();
@@ -1269,6 +1325,7 @@ export class AnimationController {
    * Uses shrug sequence for "I don't know"
    */
   startConfused(speech) {
+    if (this.startMapped('confused', speech)) return;
     this.stopAll();
     this._currentState = 'confused';
     const token = this._generateToken();
@@ -1287,6 +1344,7 @@ export class AnimationController {
    * deep thinking (30s+, individual think sprites).
    */
   startThinking(_getTextFn) {
+    if (this.startMapped('thinking', this._t('thinking'))) return;
     this.stopAll();
     this._currentState = 'thinking';
     const token = this._generateToken();

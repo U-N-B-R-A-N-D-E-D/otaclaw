@@ -18,3 +18,4 @@ export { ConfigValidator, validateConfig, normalizeGatewayConfig } from './confi
 export { ThinkingParser, thinkingParser } from './thinking-parser.js';
 export { OtaclawMonitor, otaclawMonitor } from './monitor.js';
 export { CharacterExpressionEngine, characterExpression } from './character-expression.js';
+export * from './state-sprite-map.js';

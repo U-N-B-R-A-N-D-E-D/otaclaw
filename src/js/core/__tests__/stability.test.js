@@ -12,6 +12,8 @@ import { ConfigValidator } from '../config-validator.js';
 
 // Mock minimal config for testing
 const mockConfig = {
+  // These tests cover the legacy organic-pool path; the coherent mapping has its own suite.
+  stateSprites: { enabled: false },
   mode: 'public',
   openclaw: {
     host: 'localhost',

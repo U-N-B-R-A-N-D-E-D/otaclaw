@@ -453,6 +453,8 @@ See [PERSONALITY-HAL.md](PERSONALITY-HAL.md) for details and customization.
 
 ## Event Mapping
 
+Which sequence each state plays, how fast states may change, and how free-form signals (names or emoji) map to states are documented in [STATE-SPRITES.md](STATE-SPRITES.md) (`stateSprites` config block).
+
 ### Custom Event Handlers
 
 Create custom mapping for your use case:

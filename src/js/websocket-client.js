@@ -7,6 +7,7 @@
 
 import { otaclawMonitor as monitor } from "./core/monitor.js";
 import { normalizeGatewayConfig } from "./core/config-validator.js";
+import { resolveSignal } from "./core/state-sprite-map.js";
 
 export class WebSocketClient {
   constructor(config) {
@@ -328,6 +329,25 @@ export class WebSocketClient {
     
     const eventMap = this.config.eventMap || {};
     const eventType = data.type;
+
+    // Generic signal event: any gateway can send a name or an emoji and let
+    // config.stateSprites.signalMap decide which state it means.
+    if (eventType === "agent.signal") {
+      const payload = data.data && typeof data.data === "object" ? data.data : {};
+      const signal = data.signal ?? data.emoji ?? payload.signal ?? payload.emoji;
+      const sigState = resolveSignal(this.config, signal);
+      if (sigState) {
+        this._lastEmittedState = sigState;
+        this.emit("stateChange", {
+          state: sigState,
+          trigger: "agent.signal",
+          data,
+          priority: 0,
+          category: data.category,
+        });
+      }
+      return;
+    }
 
     // Easter egg events are consumed by the UI, not mapped to avatar states.
     // easter.codec is aliased to codecCommand below, so exclude it here.
