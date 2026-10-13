@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "OtaClaw"
+abstract: "Animated pixel-art companion that gives any LLM or agent WebSocket event stream a reactive face (kiosk, widget, Raspberry Pi)."
+type: software
+version: 0.0.7
+date-released: 2026-07-14
+authors:
+  - name: "[ U N B R A N D E D ]"
+repository-code: "https://github.com/U-N-B-R-A-N-D-E-D/otaclaw"
+keywords: [llm, websocket, avatar, raspberry-pi, kiosk, inference]
