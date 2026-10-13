@@ -184,7 +184,9 @@ export const OTACLAW_CONFIG = {
     'presenting', // Ta-da, brief transition before idle
     'worried',    // Concerned, making a mistake
     'sad',        // Disappointed
-    'scared'      // Alarmed
+    'scared',     // Alarmed
+    'tool',       // Using a tool (one stable pose for every tool call)
+    'attention'   // Waiting for the user (needs input / approval)
   ],
 
   /**
@@ -198,17 +200,18 @@ export const OTACLAW_CONFIG = {
     'agent.message.delta': 'processing',
     'agent.message.complete': 'success',
     'agent.message.error': 'error',
-    'agent.tool.call': 'surprised',
-    'agent.tool.result': 'success',
+    'agent.tool.call': 'tool',
+    'agent.tool.result': 'thinking', // run is not finished: no success flash per tool
     'agent.tool.error': 'error',
 
     // Tool categories
-    'agent.tool.search':   'curious',
-    'agent.tool.creative': 'excited',
-    'agent.tool.risky':    'worried',
-    'agent.tool.analytical': 'thinking',
-    'agent.tool.communication': 'processing',
-    'agent.tool.neutral':  'surprised',
+    // (with stateSprites enabled these all collapse into the single 'tool' state)
+    'agent.tool.search':   'tool',
+    'agent.tool.creative': 'tool',
+    'agent.tool.risky':    'tool',
+    'agent.tool.analytical': 'tool',
+    'agent.tool.communication': 'tool',
+    'agent.tool.neutral':  'tool',
 
     // Progress phases
     'agent.progress.planning':    'thinking',
@@ -230,6 +233,9 @@ export const OTACLAW_CONFIG = {
     'session.end': 'idle',
     'channel.connected': 'idle',
     'channel.disconnected': 'idle',
+
+    // Free-form signal (name or emoji) -> state via stateSprites.signalMap
+    // 'agent.signal' is handled by the client and does not need an entry here.
 
     // Fallback for unknown gateway events (prevents Hal from getting stuck)
     '*': 'idle',
@@ -319,7 +325,7 @@ export const OTACLAW_CONFIG = {
         'agent.message.delta': 'processing',
         'agent.message.complete': 'success',
         'agent.message.error': 'error',
-        'agent.tool.call': 'surprised',
+        'agent.tool.call': 'tool',
         'gateway.idle': 'idle',
         'gateway.error': 'error',
         '*': 'idle',
@@ -331,6 +337,25 @@ export const OTACLAW_CONFIG = {
         surprised: 3000,
       },
     },
+  },
+
+  /**
+   * Coherent state -> sprite mapping (see docs/STATE-SPRITES.md).
+   * Each state plays one fixed, deterministic frame sequence; state changes are
+   * debounced by priority + minimum hold time. Set enabled:false for the legacy
+   * random-pool behaviour.
+   */
+  stateSprites: {
+    enabled: true,
+    // Let tool categories (search/creative/risky...) pick different poses
+    // instead of the single 'tool' pose.
+    toolCategoryReactions: false,
+    // Override or add states, e.g.:
+    // states: { tool: { sequence: [[8, 2], [6, 1]], frameMs: 2000, minHoldMs: 1200 } },
+    // Extra signal -> state entries for 'agent.signal' events (names or emoji):
+    // signalMap: { '🧪': 'tool', 'blocked': 'attention' },
+    states: {},
+    signalMap: {},
   },
 
   /**
@@ -470,6 +495,8 @@ export const OTACLAW_CONFIG = {
   i18n: {
     thinking: 'Hmmm....',
     processing: 'Processing',
+    tool: 'Working...',
+    attention: 'Hey!',
     success: 'Got it!',
     error: 'Oops...',
     laughing: 'Haha!',

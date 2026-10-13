@@ -10,13 +10,14 @@ Animated pixel-art companion that gives any LLM or agent WebSocket event stream 
 - `src/js/core/` — state machine, animation controller, emotion patterns; unit tests in `src/js/core/__tests__/`.
 - `src/js/websocket-client.js` — gateway connection (heartbeat, reconnect, queue).
 - `config/config.example.js` — template; copy to `config/config.js` (git-ignored).
+- `src/js/core/state-sprite-map.js` — state -> sprite table, signals, priority/debounce coordinator (`docs/STATE-SPRITES.md`).
 - `docs/` — protocol (`WEBSOCKET-PROTOCOL.md`), API, customization, hardware, integration.
 - `deploy/`, `scripts/`, `start-kiosk.sh` — optional Raspberry Pi / kiosk helpers (bash).
 - `tools/needle-bench/` — experimental benchmarks, not used at runtime.
 
 ## Build, test, run
 - Install: `npm install`
-- Test: `npm test` (must pass before any PR; 56 tests)
+- Test: `npm test` (must pass before any PR; 90 tests)
 - Lint: `npm run lint` (0 errors expected; warnings exist)
 - Build: `npm run build` is a no-op (no build step)
 - Run: `npx serve src -p 8080`, then open `http://localhost:8080/?demo=1`
