@@ -2,6 +2,13 @@
 
 All notable changes to OtaClaw.
 
+## [Unreleased]
+
+### Changed
+
+- Docs: full public README (thesis, architecture, verified quickstart, limitations), `AGENTS.md`, `CITATION.cff`.
+- Docs/config: internal hostnames and machine names removed from examples (placeholders only).
+
 ## [0.0.7] - 2026-07-14
 
 ### Added
