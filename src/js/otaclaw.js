@@ -318,7 +318,9 @@ export class OtaClawEngine {
       "surprised",
     ];
 
-    if (!validStates.includes(newState)) {
+    // Built-in states added by the coherent mapping stay valid even with an older config.
+    const builtIn = ["tool", "attention", "greeting"];
+    if (!validStates.includes(newState) && !builtIn.includes(newState)) {
       this.log("error", `Invalid state: ${newState}`);
       return false;
     }
@@ -349,8 +351,10 @@ export class OtaClawEngine {
       this.playStateSound(newState);
     }
 
-    // Auto-return to idle after duration (if configured)
-    this.scheduleIdleReturn(newState);
+    // Auto-return to idle after duration (if configured). Coordinator-managed
+    // states return on their own (to the active work state, not blindly idle).
+    if (options.managed) clearTimeout(this.stateTimer);
+    else this.scheduleIdleReturn(newState);
 
     // Emit state change event
     this.emit("stateChange", {
