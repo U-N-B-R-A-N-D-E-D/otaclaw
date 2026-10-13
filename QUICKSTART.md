@@ -72,4 +72,4 @@ openclaw: { host: 'YOUR_OPENCLAW_HOST', port: 18789, wsPath: '/ws' }
 
 ---
 
-**Credits:** Otacon concept © Kojima Productions / Konami. This is an open source fan project, non-commercial.
+**Credits:** Otacon concept © Kojima Productions / Konami. This is an free, open source fan project (see NOTICE).
