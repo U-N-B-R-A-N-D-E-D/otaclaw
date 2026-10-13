@@ -10,7 +10,7 @@ Protocol version: **v3**. Any event gateway that speaks these shapes works (Open
 - Status endpoint: `http://<host>:18789/ws-status` (GET JSON)
 - Health endpoint: `http://<host>:18789/health` (GET, returns `ok`)
 
-**Default host:** `localhost` (pi-claw uses URL param `?hal_ws=ws://192.168.86.29:18789/ws`)
+**Default host:** `localhost` (pi-claw uses URL param `?hal_ws=ws://<HOST>:18789/ws`)
 
 ## Handshake
 
@@ -150,7 +150,7 @@ Configuration (`config.openclaw`):
   },
   "connections": [
     {
-      "remoteAddress": "192.168.86.36",
+      "remoteAddress": "<CLIENT_IP>",
       "connectedAt": 1747391950000,
       "ageSec": 100,
       "lastPongAt": 1747391975000,
@@ -185,7 +185,7 @@ Configuration (`config.openclaw`):
 
 ## Security & Auth
 
-**No built‑in authentication.** Assumes local network (192.168.86.0/24) or tunnel.
+**No built‑in authentication.** Assumes local network (<LAN_CIDR>) or tunnel.
 
 **Token passthrough** (optional):
 - Query param: `?oc_token=...` or `?hal_ws=...`
@@ -208,7 +208,7 @@ Configuration (`config.openclaw`):
   openclaw: {
     host: 'auto',               // auto‑detect
     port: 18789,
-    backupHost: '192.168.86.24',
+    backupHost: '<BACKUP_HOST>',
     backupPort: 18789
   }
 }
@@ -247,7 +247,7 @@ Configuration (`config.openclaw`):
 
 ## Files
 
-- **Server:** `/Users/leolambertini/HAL/scripts/lib/hal‑discord‑bot.mjs` (lines 924–1200)
-- **Client:** `/Users/leolambertini/HAL/otaclaw/src/js/websocket‑client.js`
-- **Config:** `/Users/leolambertini/HAL/otaclaw/src/js/config.js`
-- **This doc:** `/Users/leolambertini/HAL/otaclaw/docs/WEBSOCKET‑PROTOCOL.md`
+- **Server:** `scripts/lib/hal‑discord‑bot.mjs` (lines 924–1200)
+- **Client:** `otaclaw/src/js/websocket‑client.js`
+- **Config:** `otaclaw/src/js/config.js`
+- **This doc:** `otaclaw/docs/WEBSOCKET‑PROTOCOL.md`
