@@ -10,7 +10,7 @@ Protocol version: **v3**. Any event gateway that speaks these shapes works (Open
 - Status endpoint: `http://<host>:18789/ws-status` (GET JSON)
 - Health endpoint: `http://<host>:18789/health` (GET, returns `ok`)
 
-**Default host:** `localhost` (pi-claw uses URL param `?hal_ws=ws://<HOST>:18789/ws`)
+**Default host:** `localhost` (a Pi kiosk can pass the URL param `?hal_ws=ws://<HOST>:18789/ws`)
 
 ## Handshake
 
@@ -198,7 +198,7 @@ Configuration (`config.openclaw`):
 
 **Single‑server** design. For redundancy:
 
-1. Run HAL bot on multiple nodes (e.g., mini1, mini2).
+1. Run HAL bot on multiple nodes (e.g., node-1, node-2).
 2. DNS round‑robin / client‑side failover to `backupHost`.
 3. **No session state** allows seamless migration.
 

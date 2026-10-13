@@ -1,3 +1,5 @@
+Animated pixel-art companion that gives any LLM or agent WebSocket event stream a reactive face (kiosk, widget, Raspberry Pi).
+
 # OtaClaw
 
 [![CI](https://github.com/U-N-B-R-A-N-D-E-D/otaclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/U-N-B-R-A-N-D-E-D/otaclaw/actions)
@@ -52,6 +54,83 @@ Perfect for:
 
 ---
 
+## Why this exists
+
+LLM stacks are invisible: you send a prompt and wait. When inference runs locally, on a Raspberry Pi desk display or a spare tablet, you also want to know *at a glance* whether the system is idle, thinking, calling a tool, or has failed. OtaClaw turns the event stream of any gateway into a character that visibly reacts, so state is legible without reading logs.
+
+Design choices:
+
+- **Gateway-agnostic.** It only needs a WebSocket that emits `agent.*` / `gateway.*` events ([protocol](docs/WEBSOCKET-PROTOCOL.md)). OpenClaw works out of the box; any custom bridge in front of your own model can emit the same shapes.
+- **No build step, no framework.** Vanilla HTML/CSS/JS served as static files. Runs on a Pi-class device.
+- **Semantic, not just on/off.** Events map to states, states map to tagged sprite sequences, so reactions stay coherent with the work being done (see `src/data/sprite-catalog.json`).
+- **Degrades gracefully.** If the gateway is unreachable the UI falls back to a demo mode instead of going blank.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  GW["Event gateway<br/>(OpenClaw or custom bridge)"] -- "WebSocket: agent.* / gateway.*" --> WS["websocket-client.js<br/>connect, heartbeat, reconnect, queue"]
+  WS --> EM["eventMap<br/>event -> state"]
+  EM --> SM["State machine<br/>idle / thinking / processing / success / error / ..."]
+  SM --> AC["animation-controller<br/>tag-based sprite sequences"]
+  CAT[("sprite + frame catalogs<br/>src/data/*.json")] --> AC
+  AC --> UI["Renderer: full screen (kiosk) or widget (iframe)"]
+  TOUCH["Touch / tickle / easter eggs"] --> SM
+```
+
+| Path | Role |
+|------|------|
+| `src/index.html`, `src/widget.html` | Full-screen kiosk page and embeddable widget |
+| `src/js/websocket-client.js` | Gateway connection, heartbeat, reconnect, offline queue |
+| `src/js/core/` | State machine, animation controller, emotion patterns (unit tested) |
+| `src/js/app.js`, `otaclaw.js` | Wiring, touch interaction, speech bubbles |
+| `src/data/` | Sprite and frame catalogs (tags, sequences) |
+| `config/config.example.js` | Copy to `config/config.js` (git-ignored); mode, gateway, behavior |
+| `deploy/`, `scripts/`, `start-kiosk.sh` | Optional Raspberry Pi / kiosk deployment helpers |
+| `tools/needle-bench/` | Experimental scripts benchmarking tiny tool-calling models for an animation "director"; not used at runtime |
+
+## Show, don't tell
+
+All previews below are real frames from `src/assets/sprites/`.
+
+| State | Trigger event | Preview |
+|-------|---------------|---------|
+| Idle | `gateway.idle` | <img src="src/assets/sprites/otacon_sprite.png_0000_Sprite-1.png" height="96" alt="idle" /> |
+| Thinking | `agent.message.start` | <img src="src/assets/sprites/otacon_sprite_think_00.png" height="96" alt="thinking" /> |
+| Surprised | `agent.tool.call` | <img src="src/assets/sprites/otacon_sprite.png_0009_Sprite-10.png" height="96" alt="surprised" /> |
+| Success | `agent.message.complete` | <img src="src/assets/sprites/otacon_sprite_thumbs_00.png" height="96" alt="success" /> |
+| Laughing | humor detected | <img src="src/assets/sprites/otacon_sprite_laugh_00.png" height="96" alt="laughing" /> |
+| Confused | ambiguous result | <img src="src/assets/sprites/otacon_sprite_shrug_00.png" height="96" alt="confused" /> |
+| Frustrated | repeated failure | <img src="src/assets/sprites/otacon_sprite_frustration_00.png" height="96" alt="frustrated" /> |
+
+No animated GIF or video is shipped yet; to see motion run the demo (`?demo=1`, below).
+
+## Verified quickstart (no gateway needed)
+
+Requires Node.js 16+ (checked with Node 20+).
+
+```bash
+git clone https://github.com/U-N-B-R-A-N-D-E-D/otaclaw.git
+cd otaclaw
+npm install          # dev tools only (jest, eslint, serve)
+npm test             # 56 tests, 2 suites
+npm run lint         # 0 errors (a few unused-variable warnings)
+npx serve src -p 8080
+# open http://localhost:8080/?demo=1   (full screen, simulated events)
+# open http://localhost:8080/widget.html   (embeddable widget)
+```
+
+Checked on 2026-10-12: `npm install`, `npm test` (56 passed), `npm run lint` (0 errors, 6 warnings) and `npm run build` (no-op by design) succeed, and the static server returns HTTP 200 for `/?demo=1`, `/widget.html` and sprite assets. Visual behavior in a real browser was not re-verified in this pass.
+
+## Limitations and status
+
+- Version 0.0.x: the event protocol and config keys may still change; see [CHANGELOG.md](CHANGELOG.md).
+- Only two unit-test suites exist (core state/animation and config stability); the WebSocket client, kiosk scripts and deploy script are not covered by automated tests.
+- The deploy script and Pi kiosk helpers are bash-only and have been exercised on Linux/Pi hardware, not on every platform listed under Hardware Support.
+- Sprites are a fixed 48-frame character set; custom characters require editing the catalogs (see [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md)).
+- The character art is third-party; see [License](#license-and-credits).
+- Roadmap items are intentions, not commitments, and are not part of this documentation.
+
 ## Prerequisites
 
 - **An event gateway** that emits `agent.*` / `gateway.*` WebSocket events (see [docs/WEBSOCKET-PROTOCOL.md](docs/WEBSOCKET-PROTOCOL.md))
@@ -95,9 +174,9 @@ cp config/config.example.js config/config.js
 
 # Edit config.js to enable local mode:
 # mode: 'local',
-# gateway: { host: '192.168.1.100', port: 18789 },
+# gateway: { host: '192.0.2.100', port: 18789 },
 # localCluster: {
-#   nodes: ['192.168.1.10', '192.168.1.11'],  # Your local inference nodes
+#   nodes: ['192.0.2.10', '192.0.2.11'],  # Your local inference nodes
 #   modelName: 'Qwen3.5-4B',
 #   showClusterStatus: true
 # }
@@ -107,7 +186,7 @@ cp config/config.example.js config/config.js
 ```
 
 **What is Local Mode?**
-- Connects to a local inference cluster (e.g., Mac Minis running Qwen3.5-4B) via any event gateway
+- Connects to a local inference cluster (e.g., a few small machines running a local model) via any event gateway
 - Shows cluster health status in debug panel
 - Extended timeouts for local network inference
 - **Best for:** Users with local LLM inference setups
@@ -347,7 +426,7 @@ See [docs/HARDWARE.md](docs/HARDWARE.md) for detailed guides.
 
 ### Included Sprites
 
-The default sprite set uses placeholder graphics. You can replace them with:
+The bundled sprite set depicts the Otacon character (see [NOTICE](NOTICE) for ownership; it is not relicensed by this repository). You can replace it with:
 
 1. **Original Otacon sprites** from Metal Gear Solid (fan-made recreations)
 2. **Custom pixel art** in the same style
@@ -387,11 +466,21 @@ npm start
 
 ---
 
-## License
+## License and credits
 
-MIT - see [LICENSE](LICENSE). [NOTICE](NOTICE) for credits.
+<a id="license-and-credits"></a>
 
-**Credits:** Otaclock/Otacon © Kojima Productions / Konami. Non-commercial, 100% open source fan project. No affiliation. No warranty.
+- Source code: see [LICENSE](LICENSE) (MIT text, copyright "[ U N B R A N D E D ]").
+- Character art: Otacon / Hal, image, likeness and original sprites are (c) Kojima Productions / Konami; Metal Gear Solid and related marks belong to their owners. This is a non-commercial fan project with no affiliation. See [NOTICE](NOTICE) before reusing the sprites; they are not covered by the code license.
+- OpenClaw: https://github.com/openclaw/openclaw (optional integration).
+
+## Citation
+
+If you use OtaClaw in research or a writeup, cite it with [CITATION.cff](CITATION.cff) (GitHub shows a "Cite this repository" button).
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md). Contributor and agent guidance: [CONTRIBUTING.md](CONTRIBUTING.md), [AGENTS.md](AGENTS.md).
 
 ---
 
