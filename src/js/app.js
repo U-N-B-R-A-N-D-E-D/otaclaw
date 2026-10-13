@@ -29,6 +29,14 @@ import { CharacterExpressionEngine } from "./core/character-expression.js";
 import { detectEmotion, RECENT_WINDOW } from "./core/emotion-patterns.js";
 import { AnimationController } from "./core/animation-controller.js";
 import { TimerManager } from "./core/timer-manager.js";
+import {
+  StateCoordinator,
+  coherentEventState,
+  endsRun,
+  getStateSprite,
+  getStateTable,
+  isMappingEnabled,
+} from "./core/state-sprite-map.js";
 import { normalizeGatewayConfig } from "./core/config-validator.js";
 import { EasterEggs } from "./easter-eggs.js";
 
@@ -196,6 +204,15 @@ class OtaClawApp {
         this._frameCatalog = window.__otaclawEarlyCatalog;
         this.animator.setCatalog(this._frameCatalog);
       }
+
+      // Coherent state->sprite mapping: debounced, priority-aware state changes.
+      // Disable with `stateSprites: { enabled: false }` to get the legacy behaviour.
+      this._coordinator = isMappingEnabled(this.config)
+        ? new StateCoordinator({
+            table: getStateTable(this.config),
+            apply: (state, opts) => this.otaclaw.setState(state, opts),
+          })
+        : null;
 
       // Setup event listeners
       this.setupEventListeners();
@@ -580,17 +597,27 @@ class OtaClawApp {
 
     this.wsClient.on("stateChange", (data) => {
       this._lastActivityTime = Date.now();
-      const eventPriority = this.config?.eventPriority || {};
-      const newPriority = data.priority ?? 0;
-      const currentPriority =
-        this._currentStatePriority ?? eventPriority[data.trigger] ?? 0;
-      if (
-        newPriority < currentPriority &&
-        !["agent.tool.call", "agent.message.delta"].includes(data.trigger)
-      ) {
-        return;
+      if (this._coordinator) {
+        // The coordinator owns returns to idle; ignore the client's blind idle timer.
+        if (data.trigger === "timeout") return;
+        // Coherent mode: tool events collapse into one "tool" state, noisy
+        // events are dropped, priority/debounce is handled by the coordinator.
+        const resolved = coherentEventState(this.config, data.trigger, data.state);
+        if (!resolved) return;
+        data.state = resolved;
+      } else {
+        const eventPriority = this.config?.eventPriority || {};
+        const newPriority = data.priority ?? 0;
+        const currentPriority =
+          this._currentStatePriority ?? eventPriority[data.trigger] ?? 0;
+        if (
+          newPriority < currentPriority &&
+          !["agent.tool.call", "agent.message.delta"].includes(data.trigger)
+        ) {
+          return;
+        }
+        this._currentStatePriority = newPriority;
       }
-      this._currentStatePriority = newPriority;
 
       const opts = { trigger: data.trigger, data: data.data };
       
@@ -619,7 +646,9 @@ class OtaClawApp {
         const toolName = data?.data?.tool || data?.data?.name;
         this._setLastContext({ category: cat, tool: toolName });
         this._activeWorkUntil = Date.now() + 120000;
-        data.state = this._categoryToToolReaction(cat);
+        if (!this._coordinator || this.config?.stateSprites?.toolCategoryReactions === true) {
+          data.state = this._categoryToToolReaction(cat);
+        }
       }
       if (data.state === "error")
         opts.speech = this._briefErrorReason(data.data ?? data);
@@ -638,6 +667,7 @@ class OtaClawApp {
       else if (data.state === "confident") opts.speech = this._t("confident");
       else if (data.state === "wink") opts.speech = this._t("wink");
       else if (data.state === "sad") opts.speech = this._t("sad");
+      else if (data.state === "tool" || data.state === "attention") opts.speech = this._t(data.state);
       else if (data.state === "idle") {
         opts.speech = "";
         this._currentStatePriority = 0;
@@ -647,6 +677,10 @@ class OtaClawApp {
         // If the incoming event carries category (from HAL agent-signals or stock), keep it for sprite bias
         if (data?.category) {
           this._setLastContext({ category: data.category });
+        }
+        if (this._coordinator) {
+          this._requestState(data.state, { ...opts, endsRun: endsRun(data.trigger) });
+          return;
         }
         this.otaclaw.setState(data.state, { ...opts, force: data.state === "error" });
         if (data.trigger === "agent.tool.call") {
@@ -708,7 +742,7 @@ class OtaClawApp {
 
     this.wsClient.on("gatewayError", (data) => {
       const brief = this._briefErrorReason(data);
-      this.otaclaw.setState("error", {
+      this._requestState("error", {
         trigger: "gateway.error",
         data,
         speech: brief,
@@ -750,7 +784,7 @@ class OtaClawApp {
         state: "thinking",
         activity: "thinking",
       });
-      this.otaclaw.setState("thinking", {
+      this._requestState("thinking", {
         trigger: "agent.start",
         data,
         speech: opener,
@@ -808,14 +842,16 @@ class OtaClawApp {
 
       if (targetEmotion !== "processing" && !this._streamingSpeechActive) {
           if (currentState !== targetEmotion) {
-              this.otaclaw.setState(targetEmotion, {
+              this._requestState(targetEmotion, {
                   trigger: "agent.delta.heuristic",
                   data,
                   speech: this._t(targetEmotion)
               });
               this._updateSpeechBubble(this._t(targetEmotion), { force: true, holdMs: 2500 });
-              if (targetEmotion === "laughing") this.startLaughingAnimation();
-              else if (targetEmotion === "surprised") this.startSurprisedAnimation();
+              if (!this._coordinator) {
+                if (targetEmotion === "laughing") this.startLaughingAnimation();
+                else if (targetEmotion === "surprised") this.startSurprisedAnimation();
+              }
           }
       }
     });
@@ -826,7 +862,7 @@ class OtaClawApp {
 
       this._clearStreamingState();
 
-      this.otaclaw.setState("success", {
+      this._requestState("success", {
         trigger: "agent.complete",
         data,
         speech: completionExpression,
@@ -837,7 +873,7 @@ class OtaClawApp {
     this.wsClient.on("agentError", (data) => {
       const brief = this._briefErrorReason(data);
       this._clearStreamingState();
-      this.otaclaw.setState("error", {
+      this._requestState("error", {
         trigger: "agent.error",
         data,
         speech: brief,
@@ -856,7 +892,7 @@ class OtaClawApp {
 
     this.wsClient.on("gatewayIdle", () => {
       if (this.config?.sprites?.eventReactionCoverage === false) return;
-      this.otaclaw.setState("idle", { trigger: "gateway.idle", speech: "" });
+      this._requestState("idle", { trigger: "gateway.idle", speech: "" });
       this._updateSpeechBubble("", { force: true });
     });
 
@@ -867,6 +903,7 @@ class OtaClawApp {
 
     this.wsClient.on("session.start", () => {
       if (this.config?.sprites?.eventReactionCoverage === false) return;
+      if (this._coordinator) return; // coherent mode: session.start does not pose the agent
       this.otaclaw.setState("curious", { trigger: "session.start", speech: "" });
       this.startCuriousAnimation?.();
     });
@@ -987,6 +1024,10 @@ class OtaClawApp {
 
     this.otaclaw.on("stateChange", (data) => {
       this._lastActivityTime = Date.now();
+      // Something other than the coordinator changed the state (watchdog, tap...): resync.
+      if (this._coordinator && this._coordinator.current !== data.state) {
+        this._coordinator.reset(data.state);
+      }
 
       /* Fix 2: Wake from sleep on ANY state change, not just eventMap-resolved wsClient events.
        * Unmapped events (e.g. stockagent.* before eventMap sync, or state changes from non-WS
@@ -1023,7 +1064,7 @@ class OtaClawApp {
           this._scheduleSleep();
         } else {
           this._cancelSleep();
-          const workAnimStates = ["thinking", "processing", "curious", "excited", "worried"];
+          const workAnimStates = ["thinking", "processing", "tool", "curious", "excited", "worried"];
           if (workAnimStates.includes(data.state)) {
             this.stopIdleAnimation();
             this.stopSuccessAnimation();
@@ -1058,6 +1099,7 @@ class OtaClawApp {
             data.state === "worried" ||
             data.state === "sad" ||
             data.state === "scared" ||
+            data.state === "attention" ||
             data.state === "presenting"
           ) {
             this.stopIdleAnimation();
@@ -2131,6 +2173,7 @@ class OtaClawApp {
     return [
       "thinking",
       "processing",
+      "tool",
       "curious",
       "excited",
       "worried",
@@ -2148,6 +2191,18 @@ class OtaClawApp {
       neutral: "thinking",
     };
     return map[category] || "thinking";
+  }
+
+  /**
+   * Single entry point for state changes that should be debounced and
+   * prioritised. Falls back to a direct setState when mapping is disabled.
+   */
+  _requestState(state, opts = {}) {
+    if (!this._coordinator) return this.otaclaw.setState(state, opts);
+    return this._coordinator.request(state, {
+      ...opts,
+      endsRun: opts.endsRun ?? endsRun(opts.trigger),
+    });
   }
 
   _categoryToToolReaction(category) {
@@ -2185,6 +2240,11 @@ class OtaClawApp {
    * Returns true if a sequence was started.
    */
   _tryPlayStateSequence(stateName, speech = "") {
+    if (this.animator && isMappingEnabled(this.config) && getStateSprite(this.config, stateName)) {
+      if (this._frameCatalog) this.animator.setCatalog(this._frameCatalog);
+      this.animator.setContext(this._lastContext);
+      return this.animator.startMapped(stateName, speech);
+    }
     if (!document.body.classList.contains("otaclaw-widget")) return false;
 
     const seqMap = this.config?.sprites?.tagToSequences || {};

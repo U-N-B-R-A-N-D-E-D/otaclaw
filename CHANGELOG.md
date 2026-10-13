@@ -4,6 +4,19 @@ All notable changes to OtaClaw.
 
 ## [Unreleased]
 
+### Added
+
+- **Coherent state -> sprite mapping** (`src/js/core/state-sprite-map.js`, `docs/STATE-SPRITES.md`): every state plays one fixed, deterministic sequence of existing catalog frames; gateway events go through a priority + minimum-hold coordinator, so rapid event bursts no longer flicker, and transient states return to the active work state (or idle) on their own.
+- New states `tool` (one stable pose for every tool call) and `attention` (waiting for the user).
+- `agent.signal` event: any gateway can send a name or an emoji (`{"type":"agent.signal","signal":"🤔"}`) resolved by `stateSprites.signalMap`.
+- `stateSprites` config block (`enabled`, `toolCategoryReactions`, `states`, `signalMap`). `enabled: false` restores the previous behaviour.
+- 34 unit tests for the mapping, event/signal resolution, priority/debounce, auto-return and deterministic playback.
+
+### Fixed
+
+- `AnimationController.setFrame()` no longer clears the speech bubble when called without speech (the bubble was wiped on every frame of work states).
+- The client's blind `timeout -> idle` emission no longer interrupts a running task when the coordinator is active.
+
 ### Changed
 
 - Docs: full public README (thesis, architecture, verified quickstart, limitations), `AGENTS.md`, `CITATION.cff`.
