@@ -690,7 +690,7 @@ verify_deployment() {
     fi
 
     # Check 3: Service accessibility
-    # The pi-claw kiosk serves the full-repo layout via `npx serve . -p 8080` from ${REMOTE_DIR}.
+    # The Raspberry Pi kiosk serves the full-repo layout via `npx serve . -p 8080` from ${REMOTE_DIR}.
     local service_url="http://${verify_host}:8080/src/widget.html"
     local canvas_url="http://${verify_host}:18789/__openclaw__/canvas/otaclaw/widget.html"
     log_info "OtaClaw kiosk URL (npx serve, primary):"
