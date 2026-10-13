@@ -6,7 +6,7 @@
  *
  * ## Modes
  * - "public": Standard gateway connection (OpenClaw, HAL bot, or any compatible WS)
- * - "local": Local inference cluster (Mac Minis array, llama.cpp, vLLM, etc.)
+ * - "local": Local inference cluster (several small machines, llama.cpp, vLLM, etc.)
  *
  * ## Quick Setup
  * 1. Point `gateway` at any event gateway that emits agent.* / gateway.* events
@@ -32,7 +32,7 @@ export const OTACLAW_CONFIG = {
    */
   gateway: {
     // Host: 'auto' = same as page (works when served from the gateway)
-    // For local mode, set to your local gateway IP (e.g., '192.168.1.100')
+    // For local mode, set to your local gateway IP (e.g., '192.0.2.100')
     host: 'auto',
 
     // Port where the event gateway is running (OpenClaw default: 18789)
@@ -87,14 +87,14 @@ export const OTACLAW_CONFIG = {
    * Configure when running against local inference array
    */
   localCluster: {
-    // Array of Mac Mini IPs for the inference cluster
+    // Array of node IPs for the inference cluster
     // Used for display/debugging purposes
     nodes: [
-      // '192.168.1.10', // mini-1
-      // '192.168.1.11', // mini-2
-      // '192.168.1.12', // mini-3
-      // '192.168.1.13', // mini-4
-      // '192.168.1.14', // mini-5
+      // '192.0.2.10', // node-1
+      // '192.0.2.11', // node-2
+      // '192.0.2.12', // node-3
+      // '192.0.2.13', // node-4
+      // '192.0.2.14', // node-5
     ],
 
     // Model being served (for display purposes)

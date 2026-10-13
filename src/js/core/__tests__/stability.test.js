@@ -180,7 +180,7 @@ describe('ConfigValidator', () => {
       ...mockConfig,
       mode: 'local',
       localCluster: {
-        nodes: ['192.168.1.10', '192.168.1.11'],
+        nodes: ['192.0.2.10', '192.0.2.11'],
         modelName: 'Qwen3.5-4B',
         showClusterStatus: true,
       },
