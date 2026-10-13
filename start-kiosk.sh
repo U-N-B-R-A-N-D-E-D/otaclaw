@@ -28,7 +28,7 @@ if [ -z "$OPENCLAW_HOST" ] || [ "$OPENCLAW_HOST" = "localhost" ] || [ "$OPENCLAW
   fi
 fi
 # Last-resort for this fleet (the host verified to respond for the Pi display)
-OPENCLAW_HOST="${OPENCLAW_HOST:-192.168.86.29}"
+OPENCLAW_HOST="${OPENCLAW_HOST:-localhost}"
 
 echo "[OtaClaw] Starting kiosk..."
 echo "[OtaClaw] Connecting to ws://${OPENCLAW_HOST}:${OPENCLAW_PORT}/ws"
