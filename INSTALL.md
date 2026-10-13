@@ -75,4 +75,4 @@ Tap "Start in Demo Mode" to cycle through states. Deploy once your gateway is ru
 
 ---
 
-**Credits:** Otacon concept © Kojima Productions / Konami. Open source fan project, non-commercial.
+**Credits:** Otacon concept © Kojima Productions / Konami. Free, open source fan project (see NOTICE).

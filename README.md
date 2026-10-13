@@ -471,7 +471,7 @@ npm start
 <a id="license-and-credits"></a>
 
 - Source code: see [LICENSE](LICENSE) (MIT text, copyright "[ U N B R A N D E D ]").
-- Character art: Otacon / Hal, image, likeness and original sprites are (c) Kojima Productions / Konami; Metal Gear Solid and related marks belong to their owners. This is a non-commercial fan project with no affiliation. See [NOTICE](NOTICE) before reusing the sprites; they are not covered by the code license.
+- Character art: the Otacon / Hal Emmerich character, image, likeness and bundled sprites are (c) Konami / Kojima Productions (Metal Gear Solid); we credit them as the original creators. This is a free, open, unofficial fan project with no affiliation, and the sprites are not relicensed here. If the rights holder requests removal, we will comply. See [NOTICE](NOTICE).
 - OpenClaw: https://github.com/openclaw/openclaw (optional integration).
 
 ## Citation
