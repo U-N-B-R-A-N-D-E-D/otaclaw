@@ -100,6 +100,19 @@ HAL Discord Bot broadcasts events to all connected clients via `otaclawEmit(type
 - `gateway.idle` → `"event": "gateway.idle"`
 - Easter eggs (`easter.*`) → `"event": "easter.trigger"`
 
+### `agent.signal` (optional)
+
+A gateway that does not want to emit `agent.*` events can describe the agent's visible state with a
+plain string (a state name or an emoji):
+
+```json
+{ "type": "agent.signal", "signal": "🤔" }
+```
+
+The client resolves it through `stateSprites.signalMap` (defaults in `src/js/core/state-sprite-map.js`)
+and ignores unknown values. The payload may also carry it as `emoji` or inside `data`.
+See [STATE-SPRITES.md](STATE-SPRITES.md).
+
 ## Reconnection Strategy
 
 **Client (`WebSocketClient.js`):**
