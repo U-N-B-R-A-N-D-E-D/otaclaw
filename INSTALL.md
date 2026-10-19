@@ -23,7 +23,7 @@ npm install -g openclaw
 openclaw onboard
 ```
 
-See [docs.openclaw.ai](https://docs.openclaw.ai) for full setup. HAL Discord bot and custom bridges work the same way — point `gateway.host` / `gateway.port` at your WS endpoint.
+See [docs.openclaw.ai](https://docs.openclaw.ai) for full setup. Custom bridges work the same way — point `gateway.host` / `gateway.port` at your WS endpoint.
 
 ## 2. Clone and Deploy
 

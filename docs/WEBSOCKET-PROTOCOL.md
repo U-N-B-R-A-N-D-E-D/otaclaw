@@ -1,6 +1,6 @@
 # WebSocket Protocol v3 – Event Gateway ↔ OtaClaw
 
-Protocol version: **v3**. Any event gateway that speaks these shapes works (OpenClaw ≥ 2026.2.x, HAL Discord Bot on port 18789, or a custom bridge in front of any LLM).
+Protocol version: **v3**. Any event gateway that speaks these shapes works (OpenClaw ≥ 2026.2.x, a custom Discord/WebSocket bridge, or any other bridge in front of your LLM).
 
 ## Connection Parameters
 
@@ -79,7 +79,7 @@ Server responds:
 
 ## Event Forwarding
 
-HAL Discord Bot broadcasts events to all connected clients via `otaclawEmit(type, payload)`.
+The gateway broadcasts events to all connected clients (one event shape per message).
 
 **Event format (server→client):**
 ```json
@@ -211,7 +211,7 @@ Configuration (`config.openclaw`):
 
 **Single‑server** design. For redundancy:
 
-1. Run HAL bot on multiple nodes (e.g., node-1, node-2).
+1. Run the gateway on multiple nodes (e.g., node-1, node-2).
 2. DNS round‑robin / client‑side failover to `backupHost`.
 3. **No session state** allows seamless migration.
 
@@ -246,7 +246,7 @@ Configuration (`config.openclaw`):
 ## Testing
 
 **Manual test:**
-1. Start HAL bot (`node scripts/lib/hal-discord-bot.mjs`).
+1. Start your event gateway (e.g. `node <your-gateway>.mjs`).
 2. Connect browser to `http://localhost:18789/widget.html`.
 3. Check WebSocket connection (F12 → Network → WS).
 4. Query `/ws‑status` for metrics.

@@ -40,7 +40,7 @@ OS="$(uname -s)"
 # Linux / Raspberry Pi  (production path for a Pi kiosk)
 # This script is invoked by <HOME>/otaclaw-kiosk.sh (the systemd user service entrypoint).
 # It MUST keep the browser process in foreground (exec) so the service stays Active(running).
-# Always pass host/port so widget connects to the correct HAL gateway WS.
+# Always pass host/port so widget connects to the correct gateway WS.
 # ─────────────────────────────────────────────────────────────
 if [ "$OS" = "Linux" ]; then
   export DISPLAY="${DISPLAY:-:0}"

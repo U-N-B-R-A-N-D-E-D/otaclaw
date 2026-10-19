@@ -255,7 +255,7 @@ How was this tested?
 
 ## Testing
 
-Automated tests are maintained internally (outside this repo). For PRs, manual testing is required:
+Automated tests live in `src/js/core/__tests__/`. Run `npm test` before opening a PR; manual testing is also recommended:
 
 ```bash
 # Test different states

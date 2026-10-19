@@ -457,7 +457,7 @@ configure_settings() {
             if [[ "$rotation" == "0" || "$rotation" == "90" || "$rotation" == "180" || "$rotation" == "270" ]]; then
                 log_info "Setting rotation to $rotation..."
                 # Update widget URL rotation parameter in the kiosk service or script
-                ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's/rotation=[0-9]*/rotation=$rotation/g' ~/.config/systemd/user/otaclaw-kiosk.service ~/.openclaw/scripts/kco-start-otaclaw-kiosk.sh 2>/dev/null || true"
+                ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's/rotation=[0-9]*/rotation=$rotation/g' ~/.config/systemd/user/otaclaw-kiosk.service ~/.openclaw/scripts/start-otaclaw-kiosk.sh 2>/dev/null || true"
             fi
             echo
         fi
