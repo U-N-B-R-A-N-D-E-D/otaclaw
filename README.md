@@ -37,7 +37,7 @@ Animated pixel-art companion that gives any LLM or agent WebSocket event stream 
   <img src="src/assets/sprites/otacon_sprite.png_0004_Sprite-5.png" alt="Hal (Otacon) idle" width="120" style="image-rendering: pixelated; image-rendering: crisp-edges;" />
 </p>
 
-OtaClaw is a **visual face for any compatible event gateway** — an animated companion that reacts to LLM / agent traffic over WebSocket. OpenClaw is a first-class integration; HAL Discord bot and custom bridges work the same way. Instead of a simple clock like the original [Kojima Productions Otaclock](https://metalgear.fandom.com/wiki/Otaclock), Hal reacts with expressive animations for every exchange.
+OtaClaw is a **visual face for any compatible event gateway** — an animated companion that reacts to LLM / agent traffic over WebSocket. OpenClaw is a first-class integration; Discord bots and custom bridges work the same way. Instead of a simple clock like the original [Kojima Productions Otaclock](https://metalgear.fandom.com/wiki/Otaclock), Hal reacts with expressive animations for every exchange.
 
 Your AI now has NES-style reactions:
 - **Hmmm....** when thinking
@@ -113,19 +113,24 @@ Requires Node.js 16+ (checked with Node 20+).
 git clone https://github.com/U-N-B-R-A-N-D-E-D/otaclaw.git
 cd otaclaw
 npm install          # dev tools only (jest, eslint, serve)
-npm test             # 56 tests, 2 suites
+npm test             # 90 tests, 3 suites
 npm run lint         # 0 errors (a few unused-variable warnings)
 npx serve src -p 8080
 # open http://localhost:8080/?demo=1   (full screen, simulated events)
 # open http://localhost:8080/widget.html   (embeddable widget)
 ```
 
-Checked on 2026-10-12: `npm install`, `npm test` (56 passed), `npm run lint` (0 errors, 6 warnings) and `npm run build` (no-op by design) succeed, and the static server returns HTTP 200 for `/?demo=1`, `/widget.html` and sprite assets. Visual behavior in a real browser was not re-verified in this pass.
+Checked on 2026-10-19: `npm install`, `npm test` (90 passed, 3 suites), `npm run lint` (0 errors, 6 warnings) and `npm run build` (no-op by design) succeed. Visual behavior in a real browser was not re-verified in this pass.
+
+## Results and benchmarks
+
+- **Runs on a Raspberry Pi 4 (8 GB)** with a 480×320 @ 60 Hz TFT. The measured profile (2026-02-27) shows Chromium on software WebGL (SwiftShader) and the gateway at ~110% CPU / 72.5 °C — the known bottleneck, with remediation in [docs/PI-PERFORMANCE-ANALYSIS.md](docs/PI-PERFORMANCE-ANALYSIS.md).
+- **Animation "director" latency:** [tools/needle-bench/](tools/needle-bench/) measures tiny tool-calling models choosing animations from a short prompt. Experimental; not used by the app at runtime.
 
 ## Limitations and status
 
 - Version 0.0.x: the event protocol and config keys may still change; see [CHANGELOG.md](CHANGELOG.md).
-- Only two unit-test suites exist (core state/animation and config stability); the WebSocket client, kiosk scripts and deploy script are not covered by automated tests.
+- Three unit-test suites exist (core state/animation, config stability, and state-to-sprite mapping); the WebSocket client, kiosk scripts and deploy script are not covered by automated tests.
 - The deploy script and Pi kiosk helpers are bash-only and have been exercised on Linux/Pi hardware, not on every platform listed under Hardware Support.
 - Sprites are a fixed 48-frame character set; custom characters require editing the catalogs (see [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md)).
 - The character art is third-party; see [License](#license-and-credits).
@@ -135,7 +140,7 @@ Checked on 2026-10-12: `npm install`, `npm test` (56 passed), `npm run lint` (0 
 
 - **An event gateway** that emits `agent.*` / `gateway.*` WebSocket events (see [docs/WEBSOCKET-PROTOCOL.md](docs/WEBSOCKET-PROTOCOL.md))
   - OpenClaw: `npm install -g openclaw` then `openclaw onboard`
-  - Or HAL Discord bot / any custom bridge in front of your LLM
+  - Or any custom bridge in front of your LLM
 - **Node.js 16+** – For the dev server (`npm start`)
 - **Bash** – Deploy script requires bash (Linux, macOS, or WSL/Git Bash on Windows)
 
@@ -159,7 +164,7 @@ cp config/config.example.js config/config.js
 **What is Public Mode?**
 - Connects to any compatible event gateway (local or remote)
 - Uses standard `agent.*` / `gateway.*` WebSocket events
-- Works OOTB with OpenClaw; same events work with HAL or a custom bridge
+- Works OOTB with OpenClaw; the same events work with a custom bridge
 - Falls back to demo mode if no connection
 - **Best for:** Users who want a face on top of whatever inference they already run
 
@@ -247,7 +252,7 @@ Mode B: Long-press or tap ⚙ for Face rotation, Full window, Backdrop color.
 
 ### Requirements
 
-- A compatible **event gateway** (OpenClaw, HAL Discord bot, or custom WS bridge) — see [WEBSOCKET-PROTOCOL.md](docs/WEBSOCKET-PROTOCOL.md)
+- A compatible **event gateway** (OpenClaw or a custom WS bridge) — see [WEBSOCKET-PROTOCOL.md](docs/WEBSOCKET-PROTOCOL.md)
 - Modern web browser (Chrome, Firefox, Safari, Edge)
 - For Raspberry Pi: Chromium browser + touchscreen (optional)
 
@@ -306,7 +311,7 @@ Edit `config/config.js`:
 
 ```javascript
 export const OTACLAW_CONFIG = {
-  // Event gateway connection (OpenClaw, HAL, or custom)
+  // Event gateway connection (OpenClaw or custom)
   gateway: {
     host: 'auto',               // Use current page host (recommended)
     port: 18789,                // Gateway port

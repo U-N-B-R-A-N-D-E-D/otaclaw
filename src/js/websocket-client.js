@@ -1,6 +1,6 @@
 /**
  * OtaClaw WebSocket Client
- * Handles connection to any compatible event gateway (OpenClaw, HAL Discord bot, custom)
+ * Handles connection to any compatible event gateway (OpenClaw or a custom bridge)
  * and routes agent.* / gateway.* events to the avatar.
  * Config: window.OTACLAW_CONFIG or config.js — use `gateway` (preferred) or `openclaw` (alias).
  */

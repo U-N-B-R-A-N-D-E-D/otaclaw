@@ -674,7 +674,7 @@ class OtaClawApp {
       }
       const applyState = () => {
         const prevState = this.otaclaw?.getState?.();
-        // If the incoming event carries category (from HAL agent-signals or stock), keep it for sprite bias
+        // If the incoming event carries category (from the gateway or another emitter), keep it for sprite bias
         if (data?.category) {
           this._setLastContext({ category: data.category });
         }

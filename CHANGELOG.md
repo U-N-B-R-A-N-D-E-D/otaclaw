@@ -26,7 +26,7 @@ All notable changes to OtaClaw.
 
 ### Added
 
-- **Gateway-agnostic config** – Prefer `gateway` in config; `openclaw` remains a backward-compatible alias. Works with OpenClaw, HAL Discord bot, or any WS bridge that emits `agent.*` / `gateway.*` events.
+- **Gateway-agnostic config** – Prefer `gateway` in config; `openclaw` remains a backward-compatible alias. Works with OpenClaw or any WS bridge that emits `agent.*` / `gateway.*` events.
 - **Emotion patterns + character expression** – Shared pattern table and expression engine for richer reactions.
 - **Monitoring** – Optional `OtaclawMonitor` (metrics / remote export). See `docs/MONITORING.md`.
 - **StockAgent events** – `stockagent.trade.opened|closed`, `stockagent.analyzing`.
