@@ -19,7 +19,7 @@
 /**
  * Normalize gateway connection config.
  * Prefers `gateway`; keeps `openclaw` as a backward-compatible alias.
- * Any WebSocket event gateway (OpenClaw, HAL Discord bot, custom) works.
+ * Any WebSocket event gateway (OpenClaw or a custom bridge) works.
  *
  * @param {Object} config
  * @returns {Object} same config object, mutated for alias sync
