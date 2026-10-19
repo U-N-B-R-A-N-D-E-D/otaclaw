@@ -1,4 +1,4 @@
-Animated pixel-art companion that gives any LLM or agent WebSocket event stream a reactive face (kiosk, widget, Raspberry Pi).
+Animated pixel-art companion that gives any LLM or agent WebSocket event stream a reactive face.
 
 # OtaClaw
 
