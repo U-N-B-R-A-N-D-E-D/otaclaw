@@ -5,7 +5,7 @@
  *   cp config/config.example.js config/config.js
  *
  * ## Modes
- * - "public": Standard gateway connection (OpenClaw, HAL bot, or any compatible WS)
+ * - "public": Standard gateway connection (OpenClaw or any compatible WS bridge)
  * - "local": Local inference cluster (several small machines, llama.cpp, vLLM, etc.)
  *
  * ## Quick Setup
@@ -28,7 +28,7 @@ export const OTACLAW_CONFIG = {
   /**
    * Event Gateway Connection Settings
    * Any WebSocket gateway that speaks the OtaClaw event protocol works:
-   * OpenClaw, HAL Discord bot, or a custom bridge in front of any LLM.
+   * OpenClaw or a custom bridge in front of any LLM.
    */
   gateway: {
     // Host: 'auto' = same as page (works when served from the gateway)
