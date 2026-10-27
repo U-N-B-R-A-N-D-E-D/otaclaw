@@ -1,21 +1,13 @@
-OtaClaw - [ U N B R A N D E D ] - 2026
+OtaClaw — [ U N B R A N D E D ] — 2026
 
-Licensing summary
-  - Source code: MIT (see LICENSE). Free to use, modify and redistribute,
-    including commercially, under the MIT terms.
-  - This project is free and open: 100% open source, no paid tier, no fees.
-  - Character art: the Otacon (Hal Emmerich) character, image, likeness and
-    the bundled sprites belong to Konami / Kojima Productions (Metal Gear
-    Solid). They are NOT relicensed by this repository. This is an unofficial,
-    unaffiliated, free fan project made with admiration for the original work.
-  - If the rights holder asks us to remove the character art, we will remove
-    it promptly. The code is designed so the sprite set can be replaced
-    (see docs/CUSTOMIZATION.md).
+License split:
+  - Source code: MIT. See LICENSE.
+  - Character, likeness, sprites, and OtaClock-derived assets: © Kojima Productions / Konami.
+    Non-commercial fan use only; not covered by the MIT license. See ASSETS.md.
 
-Credits
-  - Original character: Otacon / Hal Emmerich, (c) Konami Digital
-    Entertainment / Kojima Productions. Metal Gear Solid and related marks
-    belong to their owners.
-  - OpenClaw - https://github.com/openclaw/openclaw (optional integration)
+Credits:
+  - Hal / Otacon: character, image, and likeness © Kojima Productions / Konami (Metal Gear Solid)
+  - OpenClaw — https://github.com/openclaw/openclaw
+  - OtaClock references — sethen/otaclock, xythobuz/OtaClock
 
-No secrets. No hardcoded paths. Clone and run. No warranty.
+No affiliation with Konami or Kojima Productions. No warranty.

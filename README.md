@@ -3,7 +3,8 @@ Animated pixel-art companion that gives any LLM or agent WebSocket event stream 
 # OtaClaw
 
 [![CI](https://github.com/U-N-B-R-A-N-D-E-D/otaclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/U-N-B-R-A-N-D-E-D/otaclaw/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT (code)](https://img.shields.io/badge/License-MIT%20(code)-yellow.svg)](LICENSE)
+[![Assets: non-commercial](https://img.shields.io/badge/Assets-non--commercial-lightgrey.svg)](ASSETS.md)
 [![Version](https://img.shields.io/github/package-json/v/U-N-B-R-A-N-D-E-D/otaclaw)](https://github.com/U-N-B-R-A-N-D-E-D/otaclaw)
 [![Node](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen)](https://nodejs.org)
 [![Gateway](https://img.shields.io/badge/gateway-WebSocket%20events-blue)](docs/WEBSOCKET-PROTOCOL.md)
@@ -475,9 +476,9 @@ npm start
 
 <a id="license-and-credits"></a>
 
-- Source code: see [LICENSE](LICENSE) (MIT text, copyright "[ U N B R A N D E D ]").
-- Character art: the Otacon / Hal Emmerich character, image, likeness and bundled sprites are (c) Konami / Kojima Productions (Metal Gear Solid); we credit them as the original creators. This is a free, open, unofficial fan project with no affiliation, and the sprites are not relicensed here. If the rights holder requests removal, we will comply. See [NOTICE](NOTICE).
-- OpenClaw: https://github.com/openclaw/openclaw (optional integration).
+- **Source code:** MIT — see [LICENSE](LICENSE). Reuse, modify and redistribute the code under those terms.
+- **Character and sprites:** the Otacon / Hal Emmerich character, image, likeness and bundled sprites are © Konami / Kojima Productions (Metal Gear Solid). They are included for non-commercial fan use only and are **not** covered by MIT — see [ASSETS.md](ASSETS.md). To reuse the code commercially, replace these assets. If the rights holder requests removal, we will comply. See [NOTICE](NOTICE).
+- **OpenClaw:** https://github.com/openclaw/openclaw (optional integration).
 
 ## Citation
 
