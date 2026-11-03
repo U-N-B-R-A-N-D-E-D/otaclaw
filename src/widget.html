@@ -1,0 +1,255 @@
+<!doctype html>
+<!-- [ U N B R A N D E D ] - 2026 -->
+<html lang="en" class="otaclaw-widget">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>OtaClaw Widget</title>
+    <script>
+      /* Kiosk: hide cursor (touch). Tab: cursor visible (pointer). */
+      if (/[?&]kiosk=1(?=&|$)/.test(location.search || ""))
+        document.documentElement.classList.add("otaclaw-kiosk");
+      /* Compact HUD = desktop window: mark it before the boot/sleep sequence
+         runs so those frames use the same fixed scale as the sprites. */
+      if (/[?&]compact=1(?=&|$)/.test(location.search || ""))
+        document.documentElement.classList.add("otaclaw-compact");
+    </script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #2c2c2c !important;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      html.otaclaw-widget,
+      html.otaclaw-widget body {
+        width: 100vw;
+        height: 100vh;
+      }
+      html,
+      body,
+      .otaclaw-container,
+      .sprite-container {
+        background: #2c2c2c !important;
+      }
+      html.otaclaw-kiosk,
+      html.otaclaw-kiosk body,
+      html.otaclaw-kiosk * {
+        cursor: none !important;
+      }
+      #boot-sprite-overlay,
+      #widget-sprite-overlay {
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+      }
+      #boot-sprite-overlay img,
+      #widget-sprite-overlay img {
+        image-rendering: pixelated;
+        object-position: center;
+        margin: auto;
+        display: block;
+      }
+    </style>
+    <script src="js/default-config.js?v=2"></script>
+    <script>
+      (function () {
+        function formatReason(reason) {
+          var unknown =
+            (window.OTACLAW_CONFIG &&
+              window.OTACLAW_CONFIG.i18n &&
+              window.OTACLAW_CONFIG.i18n.unknownError) ||
+            "Unknown error";
+          if (!reason) return unknown;
+          if (typeof reason === "string") return reason;
+          if (reason.message) return reason.message;
+          try {
+            return JSON.stringify(reason);
+          } catch (_) {
+            return String(reason);
+          }
+        }
+        window.__OTACLAW_LAST_ERROR = "";
+        window.addEventListener("error", function (ev) {
+          var message = formatReason(ev.error || ev.message);
+          var source = ev.filename
+            ? " @ " + ev.filename + ":" + (ev.lineno || "?")
+            : "";
+          window.__OTACLAW_LAST_ERROR = message + source;
+        });
+        window.addEventListener("unhandledrejection", function (ev) {
+          window.__OTACLAW_LAST_ERROR =
+            "Unhandled promise rejection: " + formatReason(ev.reason);
+        });
+      })();
+    </script>
+    <link rel="stylesheet" href="css/otaclaw.css?v=21" />
+    <link rel="stylesheet" href="css/animations.css?v=21" />
+    <link rel="stylesheet" href="css/sprite-sheet.css?v=21" />
+    <link rel="stylesheet" href="css/widget.css?v=21" />
+    <link rel="icon" type="image/png" href="assets/favicon.png" />
+  </head>
+  <body class="use-otacon-sprite otaclaw-widget">
+    <script>
+      (function () {
+        var isEmotionsDemo = /[?&]emotions=1(?=&|$)/.test(location.search);
+        if (!isEmotionsDemo) {
+          document.body.classList.add("widget-waiting");
+        } else {
+          document.body.classList.add("emotions-demo");
+          window.__otaclawBootComplete = true;
+          /* Single view: hide overlays; layout: Hal large, bubble just above */
+          var s = document.createElement("style");
+          s.textContent = [
+            ".emotions-demo #boot-black-overlay,.emotions-demo #widget-sprite-overlay{display:none!important}",
+            ".emotions-demo .sprite-viewport{--sprite-viewport-size:min(480px,90vh)!important}",
+            ".emotions-demo .sprite-viewport-wrapper{display:flex!important;flex-direction:column!important;align-items:center!important;gap:0!important}",
+            ".emotions-demo .speech-bubble{position:relative!important;top:auto!important;transform:none!important;margin-top:0!important;margin-bottom:8px!important}",
+            ".emotions-demo #sprite .otacon-frame{--otacon-scale:6!important}"
+          ].join("\n");
+          document.head.appendChild(s);
+        }
+        window.__otaclawBootStartTime = Date.now();
+      })();
+    </script>
+    <script>
+      (function () {
+        window.addEventListener("pageshow", function (e) {
+          if (e.persisted) {
+            location.reload();
+          }
+        });
+      })();
+    </script>
+    <div id="otaclaw-wrapper" class="otaclaw-widget-main">
+        <div id="otaclaw" class="otaclaw-container">
+          <div class="sprite-container">
+            <div id="sprite" class="sprite-sheet-container state-idle">
+              <div class="sprite-viewport-wrapper">
+                <div id="speech-bubble" class="speech-bubble">
+                  <span id="speech-text" class="speech-text"></span>
+                </div>
+                <div id="widget-check-config-icon" class="widget-check-config-icon" aria-hidden="true"></div>
+                <div id="sprite-viewport" class="sprite-viewport">
+                  <div class="otacon-frame">
+                    <div
+                      id="eyes-layer"
+                      class="eyes-layer"
+                      aria-hidden="true"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <div
+      id="touch-overlay"
+      class="touch-overlay"
+      aria-label="Touch to interact"
+    ></div>
+    <div id="widget-connection-msg" class="widget-connection-msg hidden"></div>
+    <div id="connection-overlay" class="connection-overlay hidden">
+      <div class="connection-content">
+        <div class="sprite-sheet-container connecting">
+          <div class="otacon-frame"></div>
+        </div>
+        <p class="connection-text" data-i18n="connecting">Connecting…</p>
+      </div>
+    </div>
+    <div id="config-error" class="config-overlay hidden">
+      <div class="config-content">
+        <h2>Configuration Required</h2>
+        <p class="config-msg" data-i18n="configRequired">
+          Edit <code>config/config.js</code> with your gateway host.
+        </p>
+        <p
+          id="runtime-error-hint"
+          class="config-msg"
+          style="font-size: 12px; opacity: 0.9"
+        ></p>
+      </div>
+    </div>
+    <div id="status-bar" class="status-bar status-bar-mini">
+      <span id="connection-status" class="status-indicator disconnected">
+        <span class="status-dot"></span>
+      </span>
+    </div>
+    <script>
+      (function () {
+        var hint = document.getElementById("runtime-error-hint");
+        if (!hint) return;
+        // Use a longer interval and clear on page unload to reduce overhead
+        var errorInterval = setInterval(function () {
+          if (window.__OTACLAW_LAST_ERROR) {
+            var prefix =
+              (window.OTACLAW_CONFIG &&
+                window.OTACLAW_CONFIG.i18n &&
+                window.OTACLAW_CONFIG.i18n.runtimeError) ||
+              "Runtime error: ";
+            hint.textContent = prefix + window.__OTACLAW_LAST_ERROR;
+          }
+        }, 5000);
+        window.addEventListener("beforeunload", function () {
+          clearInterval(errorInterval);
+        });
+      })();
+    </script>
+    <script>
+      (function () {
+        function applyI18n() {
+          var cfg = window.OTACLAW_CONFIG;
+          if (cfg && cfg.i18n) {
+            document.querySelectorAll("[data-i18n]").forEach(function (el) {
+              var key = el.getAttribute("data-i18n");
+              if (cfg.i18n[key]) el.textContent = cfg.i18n[key];
+            });
+          }
+        }
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", applyI18n);
+        } else {
+          applyI18n();
+        }
+      })();
+    </script>
+    <script src="js/display-tools.js?v=21"></script>
+    <script type="module" src="js/app.js?v=48"></script>
+  </body>
+  <div
+    id="boot-black-overlay"
+    class="boot-black-overlay"
+    style="
+      position: fixed;
+      inset: 0;
+      z-index: 100001;
+      opacity: 1;
+      pointer-events: none;
+    "
+  >
+    <div id="boot-splash" class="boot-splash done" aria-hidden="true"></div>
+    <div id="boot-sprite-overlay"></div>
+    <div id="boot-loading" class="boot-loading done" data-i18n="loading">
+      Loading…
+    </div>
+  </div>
+  <div
+    id="widget-sprite-overlay"
+    style="
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 100000;
+      background: #2c2c2c;
+    "
+  ></div>
+</html>

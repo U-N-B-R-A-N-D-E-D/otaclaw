@@ -1,0 +1,98 @@
+# OtaClaw Agent Integration
+
+Copy this section into your workspace `AGENTS.md` or `SOUL.md` to enable OtaClaw emotional reactions.
+
+## OtaClaw Avatar
+
+You have access to an OtaClaw avatar displayed on a screen (e.g. Raspberry Pi, kiosk). When your response has an emotional tone, you can trigger a visual reaction.
+
+**How to emit a reaction:** send `agent.signal` for a semantic state/emoji, or
+`agent.sprite` for an exact 1:1 frame, cell or tool. The older `otaclaw.frame`
+shape is still accepted as an alias.
+
+```json
+{"event":"agent.signal","payload":{"signal":"worried"}}
+{"event":"agent.sprite","payload":{"sprite":"4,3"}}
+{"event":"agent.sprite","payload":{"sprite":"search","bubble":"Searching…"}}
+```
+
+**Signal map (semantic selection):**
+
+| Tag | Use when |
+|-----|----------|
+| `idle` | Default, resting |
+| `thinking` | Processing, contemplating |
+| `processing` | Actively generating |
+| `success` | Task complete, approval |
+| `error` | Something went wrong |
+| `laughing` | Humor, funny moment |
+| `surprised` | Tool call, unexpected result |
+| `worried` | Concern, uncertainty |
+| `puzzled` | Confused, questioning |
+| `sad` | Disappointment, apology |
+| `waving` | Greeting, hello |
+| `scared` | Alarm, fear |
+| `confident` | Assertive, sure |
+| `wink` | Playful, knowing |
+| `curious` | Interested, exploring |
+| `presenting` | Ta-da, presenting result |
+| `cold` | Uncomfortable, brr |
+| `unpleasant` | Yeesh, bad news |
+
+**Supported OpenClaw events:** `agent.message.start`, `agent.message.delta`, `agent.message.complete`, `agent.message.error`, `agent.tool.call`, `agent.tool.result`, `agent.tool.error`, `gateway.idle`, `gateway.ready`, `gateway.error`, `session.start`, `session.end`, `channel.connected`, `channel.disconnected`, `user.presence`, `user.typing`, `client.interaction`. Unknown events fall back to `idle`.
+
+## Receiving Tickle (Discord & Webchat)
+
+When the user swipes over Hal (tickle), OtaClaw sends a message `[tickle]` to the gateway to trigger a response from the agent.
+
+**For Webchat:** It works automatically. The gateway forwards `client.interaction` with `action: "tickle"`.
+
+**For Discord:** OpenClaw requires a target Channel ID to know *where* to send the tickle message. 
+1. In Discord, right-click your active channel and select **Copy Channel ID** (requires Developer Mode enabled in Discord settings).
+2. Edit `config/config.js` and set `tickleDiscordChannel: "YOUR_CHANNEL_ID_HERE"`.
+
+To make the agent react playfully, add to your `SOUL.md` or `AGENTS.md`:
+
+```markdown
+## OtaClaw Tickle
+
+When the user tickles Hal (swipe over the avatar), you receive `[tickle]` or `client.interaction` with `action: "tickle"`. React briefly and playfully — e.g. "Hehe, that tickles!", "Hey, easy!", or a short joke. Keep it to one short sentence. Match Hal's personality if using `personality: 'hal'`.
+```
+
+The gateway must forward `client.interaction` to the agent. If tickle does not trigger a reply, check OpenClaw gateway configuration and channel setup (webchat, Discord, etc.).
+
+**Tickle and wake sync between clients:** For tickle and wake to sync across multiple OtaClaw instances (e.g. a Pi kiosk and a browser tab), the gateway must broadcast `client.interaction` events to all connected webchat sessions. OtaClaw sends `action: "tickle"` on swipe and `action: "wake"` on touch-to-wake. If tickle or wake on one device does not sync to another, verify the gateway broadcasts these events.
+
+**Hal (Otacon) personality:** When `personality: 'hal'` is set, OtaClaw uses Hal Emmerich–inspired speech. You can match that tone in `speech` — nerdy, loyal, varied (e.g. "Roger that", "Crunchn' numbers", "My bad"). See [PERSONALITY-HAL.md](PERSONALITY-HAL.md).
+
+**Guidelines:**
+- Use reactions sparingly; one per message max.
+- Match the tag to the emotional tone of your reply.
+- Optional `speech` overrides the bubble text (short, ~25 chars).
+- The gateway must forward `otaclaw.frame` events to WebSocket clients. If reactions do not appear, check gateway configuration.
+
+## Tag-to-Frame Reference
+
+Frames are selected from `config.sprites.tagToFrames`. Default mapping (from frame-catalog.json):
+
+- `unpleasant` → [9,0], [10,0], [0,2], [2,2], [3,2], [9,3], [10,3]
+- `success` → [0,1], [1,1], [2,1], [6,3], [7,3]
+- `thinking` → [1,0], [2,0], [5,0], [11,0]
+- `sad` → [2,2], [3,2]
+- `laughing` → [2,3], [3,3]
+- `idle` → [0,0], [1,0], [3,0], [4,0], [6,0], [7,0], [8,0]
+- `worried` → [0,2], [4,2]
+- `waving` → [7,2]
+- `scared` → [10,3]
+- `confident` → [8,1], [9,1], [10,1], [8,3]
+- `wink` → [4,3], [5,3]
+- `surprised` → [9,0], [10,0]
+- `processing` → [3,1], [4,1], [6,1], [7,1]
+- `error` → [2,2], [3,2]
+- `puzzled` → [1,2]
+- `curious` → [5,2]
+- `greeting` → [7,2]
+- `cold` → [9,3]
+- `presenting` → [6,3], [7,3]
+
+Customize via `config.sprites.tagToFrames` in config.js or widget.html.

@@ -1,0 +1,313 @@
+/**
+ * Sprite Calibration Tool
+ * Use arrow keys to adjust background-position
+ * Press S to save coordinates to console
+ */
+
+.calibration-mode .otacon-frame {
+  outline: 3px solid #0f0 !important;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+  animation: none !important;
+  /* Position applied via JS inline style */
+}
+
+.calibration-controls {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.9);
+  color: #0f0;
+  padding: 15px;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 14px;
+  z-index: 10000;
+  min-width: 250px;
+}
+
+.calibration-controls h3 {
+  margin: 0 0 10px 0;
+  color: #fff;
+  font-size: 16px;
+}
+
+.calibration-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 5px 0;
+}
+
+.calibration-row label {
+  color: #888;
+}
+
+.calibration-row span {
+  color: #0f0;
+  font-weight: bold;
+}
+
+.calibration-help {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #333;
+  font-size: 12px;
+  color: #888;
+  line-height: 1.5;
+}
+
+.calibration-help kbd {
+  background: #333;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: #fff;
+}
+
+/* Grid overlay for calibration */
+.calibration-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  opacity: 0;
+  background-image:
+    linear-gradient(rgba(255, 0, 0, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.1) 1px, transparent 1px);
+  background-size: 10px 10px;
+}
+
+.calibration-mode .calibration-grid {
+  opacity: 1;
+}
+
+/* ========== Calibration Studio ========== */
+.calibration-studio {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 320px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.95);
+  border-radius: 12px;
+  padding: 16px;
+  z-index: 210;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.calibration-studio.hidden {
+  display: none !important;
+}
+
+.studio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 600;
+}
+
+.studio-close {
+  background: none;
+  border: none;
+  color: var(--otaclaw-text);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0 6px;
+  line-height: 1;
+}
+
+.studio-close:hover {
+  color: var(--otaclaw-primary);
+}
+
+.studio-section {
+  margin-bottom: 14px;
+}
+
+.studio-howto {
+  margin-bottom: 12px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.studio-howto summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.studio-steps {
+  margin: 8px 0 8px 16px;
+  padding: 0;
+  line-height: 1.6;
+}
+.studio-map-ref {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  color: var(--otaclaw-text-muted);
+}
+.studio-cell-formula small {
+  color: var(--otaclaw-text-muted);
+  font-size: 11px;
+}
+.studio-hint {
+  font-size: 11px;
+  color: var(--otaclaw-text-muted);
+  margin: 4px 0;
+}
+.studio-hint code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.studio-mapping-text {
+  width: 100%;
+  font-family: monospace;
+  font-size: 12px;
+  padding: 8px;
+  background: var(--otaclaw-bg-dark);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: #fff;
+  resize: vertical;
+}
+
+.studio-section strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.studio-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+}
+
+.studio-row label {
+  font-size: 12px;
+  color: var(--otaclaw-text-muted);
+}
+
+.studio-row input[type="number"] {
+  width: 60px;
+  padding: 4px 6px;
+  background: var(--otaclaw-bg-dark);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 12px;
+}
+
+.studio-btn {
+  margin-top: 8px;
+  padding: 8px 14px;
+  background: var(--otaclaw-secondary);
+  color: var(--otaclaw-text);
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.studio-btn:hover {
+  background: var(--otaclaw-accent);
+}
+
+.studio-btn-small {
+  padding: 4px 8px;
+  font-size: 11px;
+  background: var(--otaclaw-secondary);
+  color: var(--otaclaw-text);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.studio-btn-small:hover {
+  background: var(--otaclaw-accent);
+}
+.studio-stages-list {
+  font-size: 11px;
+  color: var(--otaclaw-text-muted);
+  flex: 1;
+}
+
+#studio-mapping {
+  font-size: 11px;
+  background: var(--otaclaw-bg-dark);
+  padding: 8px;
+  border-radius: 4px;
+  margin: 6px 0;
+  max-height: 100px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Safe zone overlay - one cell frame outline on main stage */
+.safe-zone-overlay {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px dashed rgba(0, 255, 0, 0.8);
+  box-shadow: 0 0 12px rgba(0, 255, 0, 0.4);
+  pointer-events: none;
+  z-index: 15;
+}
+
+.safe-zone-overlay.hidden {
+  display: none !important;
+}
+
+/* Grid overlay - full sheet with grid, shown in preview area */
+.grid-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 150;
+}
+
+.grid-overlay.hidden {
+  display: none !important;
+}
+
+/* Sheet preview inside studio - full sprite with optional grid overlay */
+.studio-sheet-preview {
+  margin-top: 8px;
+  cursor: crosshair;
+  width: 100%;
+  aspect-ratio: 567 / 278;
+  margin-top: 8px;
+  max-height: 180px;
+  background: var(--otaclaw-bg-dark)
+    url("../assets/sprites/otaclock-original.png") no-repeat center / 100% 100%;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.studio-sheet-preview .sheet-grid-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(0, 255, 0, 0.5) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 0, 0.5) 1px, transparent 1px);
+  opacity: 0;
+}
+
+.studio-sheet-preview.grid-active .sheet-grid-overlay {
+  opacity: 1;
+}

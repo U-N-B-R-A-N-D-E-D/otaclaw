@@ -1,0 +1,283 @@
+# WebSocket Protocol v3 – Event Gateway ↔ OtaClaw
+
+Protocol version: **v3**. Any event gateway that speaks these shapes works (OpenClaw ≥ 2026.2.x, a custom Discord/WebSocket bridge, or any other bridge in front of your LLM).
+
+## Connection Parameters
+
+**Endpoints:**
+- WebSocket: `ws://<host>:18789/ws`
+- HTTP static server: `http://<host>:18789/` (serves `/src/` files from OtaClaw repo)
+- Status endpoint: `http://<host>:18789/ws-status` (GET JSON)
+- Health endpoint: `http://<host>:18789/health` (GET, returns `ok`)
+
+**Default host:** `localhost` (a Pi kiosk can pass the URL param `?hal_ws=ws://<HOST>:18789/ws`)
+
+## Handshake
+
+Client must send a `connect` request immediately after connection:
+
+```json
+{
+  "type": "req",
+  "id": "otaclaw-connect-...",
+  "method": "connect",
+  "params": {
+    "minProtocol": 3,
+    "maxProtocol": 3,
+    "client": {
+      "id": "webchat",
+      "displayName": "OtaClaw Widget",
+      "version": "1.0.0",
+      "platform": "browser",
+      "mode": "webchat"
+    },
+    "scopes": ["operator.read", "operator.write"]
+  }
+}
+```
+
+Server responds:
+
+```json
+{
+  "type": "res",
+  "id": "otaclaw-connect-...",
+  "ok": true
+}
+```
+
+## Message Flow
+
+### Ping/Pong Keep‑Alive
+
+**WS-level (transport)**
+- Server sends `ws.ping()` every 30s.
+- Client must reply with `ws.pong()`.
+- Any client that fails to pong within **60s** is considered stale and forcibly terminated.
+- Server logs evictions and increments `totalStaleEvictions` counter.
+
+**Application-level (semantic)**
+- Server broadcasts `gateway.heartbeat` event every 30s:
+
+  ```json
+  {
+    "type": "event",
+    "event": "gateway.heartbeat",
+    "payload": { "ts": 1747392000000 }
+  }
+  ```
+
+- Client can send `client.ping` or `client.refresh` (both answered with `server.pong`).
+
+### Client‑Side Heartbeat (OtaClaw)
+
+`WebSocketClient` includes robust heartbeat logic (`startHeartbeat()`, `stopHeartbeat()`):
+
+- Sends `client.refresh` every `heartbeatInterval` (default 45s).
+- Detects stale connection if no message received for `staleThreshold` (default 120s).
+- Forces reconnection via `reconnectIfStale()`.
+
+## Event Forwarding
+
+The gateway broadcasts events to all connected clients (one event shape per message).
+
+**Event format (server→client):**
+```json
+{
+  "type": "agent.message.delta",
+  "event": "agent",
+  "stream": "assistant",
+  "phase": null,
+  "content": "...",
+  "...": "..."
+}
+```
+
+**Key event mappings:**
+- `agent.message.*` → `"stream": "assistant"`
+- `agent.tool.call` → `"stream": "tool"`
+- `agent.message.error` → `"stream": "error"`
+- `gateway.idle` → `"event": "gateway.idle"`
+- Easter eggs (`easter.*`) → `"event": "easter.trigger"`
+
+### `agent.signal` (optional)
+
+A gateway that does not want to emit `agent.*` events can describe the agent's visible state with a
+plain string (a state name or an emoji):
+
+```json
+{ "type": "agent.signal", "signal": "🤔" }
+```
+
+The client resolves it through `stateSprites.signalMap` (defaults in `src/js/core/state-sprite-map.js`)
+and ignores unknown values. The payload may also carry it as `emoji` or inside `data`.
+See [STATE-SPRITES.md](STATE-SPRITES.md).
+
+### `agent.sprite` (optional, 1:1 asset selection)
+
+State-level signals pick a sequence. When you want a **specific Hal asset**, send:
+
+```json
+{ "type": "agent.sprite", "sprite": "wink_right", "bubble": "😉" }
+{ "type": "agent.sprite", "sprite": "4,3" }
+{ "type": "agent.sprite", "sprite": "search" }
+{ "type": "agent.sprite", "sprite": "😱" }
+```
+
+`sprite` accepts a function id, an emoji, a `"col,row"` cell or a tool id
+(`search`, `read`, `write`, `terminal`, `memory`, `web`, `delegate`, `clarify`,
+`vision`). A function with a frame renders that exact frame; a tool maps to its
+state sequence. `bubble` is optional and follows the short-line policy. See
+[SPRITE-FUNCTIONS.md](SPRITE-FUNCTIONS.md) for the full 1:1 table.
+
+## Reconnection Strategy
+
+**Client (`WebSocketClient.js`):**
+1. **Exponential backoff** with **jitter (±25%)** prevents thundering herd.
+2. **Reconnect queue**: bounded at `maxQueuedMessages` (default 120), oldest dropped on overflow.
+3. **User feedback**: emits `reconnecting`, `maxReconnectReached`, `offlineSuggested`.
+4. **Fallback**: after `maxReconnectAttempts`, stops reconnecting.
+
+Configuration (`config.openclaw`):
+```javascript
+{
+  reconnectInterval: 5000,       // base delay (ms)
+  maxReconnectAttempts: 20,     // 0 = unlimited
+  reconnectBackoff: true,        // enable exponential backoff
+  maxBackoffMs: 60000,          // cap at 60s
+  offlineAfterReconnects: 10,   // emit offlineSuggested after N attempts
+  heartbeatInterval: 45000,
+  staleThreshold: 120000
+}
+```
+
+**Server robustness:**
+- No stateful session; any client can reconnect anytime.
+- No sticky affinity; load‑balancing possible.
+- `/ws-status` exposes current client list and lifetime counters.
+
+## Monitoring & Diagnostics
+
+### `/ws‑status` Endpoint
+
+**GET** `http://<host>:18789/ws-status` → JSON:
+
+```json
+{
+  "status": "healthy",
+  "clients": 2,
+  "uptime": 3600,
+  "lastEvent": "agent.message.delta",
+  "lastEventAt": 1747392000000,
+  "lastEventAgeSec": 5,
+  "counters": {
+    "totalConnections": 42,
+    "totalDisconnects": 40,
+    "totalErrors": 2,
+    "totalStaleEvictions": 1,
+    "eventsEmitted": 12345,
+    "messagesReceived": 9876
+  },
+  "connections": [
+    {
+      "remoteAddress": "<CLIENT_IP>",
+      "connectedAt": 1747391950000,
+      "ageSec": 100,
+      "lastPongAt": 1747391975000,
+      "isAlive": true,
+      "clientId": "webchat"
+    }
+  ]
+}
+```
+
+**Counters** are monotonic; reset only on server restart.
+
+**Client health** is reported via `isAlive` (true if pong received within last 60s).
+
+### Client‑Side Statistics
+
+`WebSocketClient.getStats()` returns:
+
+```javascript
+{
+  isConnected: true,
+  isConnecting: false,
+  reconnectAttempts: 0,
+  uptime: 3600000,
+  queuedMessages: 0,
+  lastEvent: 'agent.message.delta',
+  lastEventAt: 1747392000000,
+  staleSince: null,
+  config: { /* redacted authToken */ }
+}
+```
+
+## Security & Auth
+
+**No built‑in authentication.** Assumes local network (<LAN_CIDR>) or tunnel.
+
+**Token passthrough** (optional):
+- Query param: `?oc_token=...` or `?hal_ws=...`
+- Config token: `config.openclaw.authToken`
+- Server ignores; client includes in connect handshake under `params.auth.token`.
+
+**HTTPS/WSS** recommended for public internet exposure.
+
+## Failover & High Availability
+
+**Single‑server** design. For redundancy:
+
+1. Run the gateway on multiple nodes (e.g., node-1, node-2).
+2. DNS round‑robin / client‑side failover to `backupHost`.
+3. **No session state** allows seamless migration.
+
+**Client config:**
+```javascript
+{
+  openclaw: {
+    host: 'auto',               // auto‑detect
+    port: 18789,
+    backupHost: '<BACKUP_HOST>',
+    backupPort: 18789
+  }
+}
+```
+
+## Change Log
+
+**2026‑05‑15 (robustness upgrade):**
+- Added `/ws‑status` endpoint with counters.
+- Added WS‑level ping/pong stale detection (60s timeout).
+- Cleaned up dead debug‑ingest fetch calls.
+- Preserved existing client reconnection logic (already robust).
+- Minimal server changes: 60 lines added, 30 lines removed.
+
+**Pre‑2026‑05‑15:**
+- Exponential backoff + jitter already present in client.
+- Heartbeat already present in client (45s interval).
+- Queue bounding already present (120 messages).
+- Event forwarding unchanged.
+- Static‑file serving unchanged.
+
+## Testing
+
+**Manual test:**
+1. Start your event gateway (e.g. `node <your-gateway>.mjs`).
+2. Connect browser to `http://localhost:18789/widget.html`.
+3. Check WebSocket connection (F12 → Network → WS).
+4. Query `/ws‑status` for metrics.
+5. Kill network / suspend client → verify reconnection.
+6. Leave idle > 60s → verify stale eviction.
+
+**Integration notes:**
+- Client already handles network loss, suspend/resume, tab visibility.
+- Server now actively evicts zombies.
+- Both sides now expose observability endpoints.
+
+## Files
+
+- **Server:** `scripts/lib/hal‑discord‑bot.mjs` (lines 924–1200)
+- **Client:** `otaclaw/src/js/websocket‑client.js`
+- **Config:** `config/config.js`
+- **This doc:** `otaclaw/docs/WEBSOCKET‑PROTOCOL.md`

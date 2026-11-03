@@ -1,0 +1,72 @@
+{
+  "name": "otaclaw-openclaw",
+  "version": "0.0.8",
+  "description": "Animated Otacon avatar for any WebSocket event gateway (OpenClaw, Discord, custom) — give your AI a face that reacts to every interaction",
+  "main": "src/index.html",
+  "type": "module",
+  "scripts": {
+    "start": "npx serve . -p 8080",
+    "start:local": "npx serve . -p 8080 --single",
+    "dev": "npx serve . -p 8080 --single",
+    "gateway": "node examples/gateway.mjs",
+    "gateway:demo": "node examples/gateway.mjs --demo",
+    "build": "echo 'No build step required - OtaClaw is vanilla HTML/CSS/JS'",
+    "deploy": "./deploy/deploy-to-openclaw.sh",
+    "deploy:remote": "./deploy/deploy-to-openclaw.sh",
+    "lint": "npx eslint src/js/ --ignore-pattern '**/__tests__/**' --ignore-pattern '**/*.test.js'",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "npm test -- --watch",
+    "test:coverage": "npm test -- --coverage",
+    "format": "npx prettier --write 'src/**/*.{js,css,html}'",
+    "sprites:usage": "node tools/sprite-usage.mjs",
+    "docs:sprite-map": "node tools/gen-sprite-map.mjs",
+    "clean": "rm -rf node_modules"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:U-N-B-R-A-N-D-E-D/otaclaw.git"
+  },
+  "keywords": [
+    "openclaw",
+    "hal",
+    "ai",
+    "avatar",
+    "websocket",
+    "inference",
+    "llm",
+    "raspberry-pi",
+    "touchscreen",
+    "kiosk",
+    "metal-gear-solid",
+    "otaclaw",
+    "otacon",
+    "visualization"
+  ],
+  "author": "[ U N B R A N D E D ]",
+  "license": "SEE LICENSE IN LICENSE",
+  "peerDependencies": {
+    "openclaw": ">=2026.2.0 || >=2026.4.0"
+  },
+  "peerDependenciesMeta": {
+    "openclaw": {
+      "optional": true
+    }
+  },
+  "bugs": {
+    "url": "https://github.com/U-N-B-R-A-N-D-E-D/otaclaw/issues"
+  },
+  "homepage": "https://github.com/U-N-B-R-A-N-D-E-D/otaclaw#readme",
+  "devDependencies": {
+    "eslint": "^8.55.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "prettier": "^3.1.1",
+    "serve": "^14.2.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "ws": "^8.22.1"
+  }
+}

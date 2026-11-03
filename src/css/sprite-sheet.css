@@ -1,0 +1,487 @@
+/**
+ * Otacon Sprite Sheet
+ * Default sprite sheet (otaclock-original.png – source: sethen/otaclock, Konami OtaClock)
+ */
+
+.sprite-sheet-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Wrapper: bubble + viewport together, no overflow clip on bubble */
+.sprite-viewport-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Fixed viewport: projection zone stays put; sprite scales/moves inside */
+.sprite-viewport {
+  --sprite-viewport-size: 320px;
+  width: var(--sprite-viewport-size);
+  height: var(--sprite-viewport-size);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Speech bubble - anchored to viewport top, tail points to character's head (just above) */
+.speech-bubble {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  margin-top: -4px;
+  min-width: 120px;
+  max-width: 320px;
+  padding: 12px 18px;
+  background: #fff;
+  border: 4px solid #333;
+  border-radius: 20px;
+  box-shadow: 4px 4px 0 #333;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Bubble tail points down toward the sprite */
+.speech-bubble::after {
+  content: "";
+  position: absolute;
+  top: auto;
+  bottom: -14px;
+  left: 50%;
+  margin-left: -10px;
+  border: 10px solid transparent;
+  border-top-color: #fff;
+  border-bottom: none;
+  filter: drop-shadow(0 3px 0 #333);
+}
+
+.speech-bubble.has-text {
+  opacity: 1;
+  pointer-events: auto;
+  cursor: copy;
+  z-index: 60;
+}
+.speech-bubble.copied {
+  border-color: #3bcb86 !important;
+  box-shadow: 0 0 0 3px #3bcb86, 4px 4px 0 #333 !important;
+}
+
+.speech-text {
+  font-family: "Fira Code", "Fira Mono", "Consolas", monospace;
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  letter-spacing: 0.3px;
+  line-height: 1.3;
+  max-width: 280px;
+  text-align: center;
+  display: block;
+}
+
+.otacon-frame {
+  background-repeat: no-repeat;
+  background-position: center;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  transform: scale(0.5);
+  transform-origin: center;
+  flex-shrink: 0;
+  flex-grow: 0;
+  position: relative;
+}
+
+/* Eye-only blink overlay: same 29x64 canvas as the sprite, transparent except
+   the lenses. object-fit:contain matches the sprite background exactly, so the
+   body never swaps and the blink works on the neutral pose only. */
+.eye-blink {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 29px;
+  height: 64px;
+  transform: translate(-50%, -50%);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 3;
+}
+.eye-blink.is-on {
+  opacity: 1;
+}
+
+/* ============================================
+   Default sheet - otaclock-original.png (source: sethen/otaclock, Konami OtaClock)
+   ============================================ */
+
+.otacon-frame {
+  background-image: url("../assets/sprites/otaclock-original.png");
+  background-size: auto 900px;
+}
+
+.state-idle .otacon-frame,
+.state-thinking .otacon-frame,
+.state-error .otacon-frame {
+  width: 205px;
+  height: 447px;
+  background-position: -489px 0;
+}
+
+.state-processing .otacon-frame {
+  width: 238px;
+  height: 448px;
+  background-position: -214px -391px;
+}
+
+.state-success .otacon-frame {
+  width: 238px;
+  height: 448px;
+  background-position: -452px -452px;
+}
+
+/* LAUGH / SURPRISED: sethen thumbs-up (fallback when not use-otacon-sprite) */
+.state-laughing .otacon-frame {
+  width: 204px;
+  height: 448px;
+  background-image: url("../assets/sprites/otaclock-original.png");
+  background-size: auto 900px;
+  background-position: 0 -392px;
+  transform: scale(0.5);
+}
+
+.state-surprised .otacon-frame {
+  width: 238px;
+  height: 448px;
+  background-image: url("../assets/sprites/otaclock-original.png");
+  background-size: auto 900px;
+  background-position: -452px -452px;
+  transform: scale(0.5);
+}
+
+/* OKITANONIISAN: ALL states — full emotional range */
+body.use-otacon-sprite .state-idle .otacon-frame,
+body.use-otacon-sprite .state-thinking .otacon-frame,
+body.use-otacon-sprite .state-processing .otacon-frame,
+body.use-otacon-sprite .state-success .otacon-frame,
+body.use-otacon-sprite .state-error .otacon-frame,
+body.use-otacon-sprite .state-laughing .otacon-frame,
+body.use-otacon-sprite .state-surprised .otacon-frame,
+body.use-otacon-sprite .state-frame .otacon-frame {
+  width: calc(var(--otacon-frame-w, 47) * 1px);
+  height: calc(var(--otacon-frame-h, 70) * 1px);
+  background-image: url("../assets/sprites/otaclock-original.png");
+  background-size: calc(var(--otacon-sheet-w, 567) * 1px)
+    calc(var(--otacon-sheet-h, 278) * 1px);
+}
+
+body.use-otacon-sprite .otacon-frame {
+  transform: scale(var(--otacon-scale, 4));
+}
+body.use-otacon-sprite .state-idle .otacon-frame {
+  width: calc(var(--otacon-idle-frame-w, 59) * 1px);
+  background-position: calc(var(--otacon-idle-x, 0) * 1px)
+    calc(var(--otacon-idle-y, 0) * 1px);
+}
+body.use-otacon-sprite .state-thinking .otacon-frame {
+  width: calc(var(--otacon-thinking-frame-w, 59) * 1px);
+  background-position: calc(var(--otacon-thinking-x, 0) * 1px)
+    calc(var(--otacon-thinking-y, 0) * 1px);
+}
+body.use-otacon-sprite .state-processing .otacon-frame {
+  width: calc(var(--otacon-processing-frame-w, 59) * 1px);
+  background-position: calc(var(--otacon-processing-x, 0) * 1px)
+    calc(var(--otacon-processing-y, 0) * 1px);
+}
+body.use-otacon-sprite .state-success .otacon-frame {
+  width: calc(var(--otacon-success-frame-w, 59) * 1px);
+  background-position: calc(var(--otacon-success-x, 0) * 1px)
+    calc(var(--otacon-success-y, 0) * 1px);
+}
+body.use-otacon-sprite .state-error .otacon-frame {
+  width: calc(var(--otacon-error-frame-w, 59) * 1px);
+  background-position: calc(var(--otacon-error-x, 0) * 1px)
+    calc(var(--otacon-error-y, 0) * 1px);
+}
+body.use-otacon-sprite .state-laughing .otacon-frame {
+  width: calc(var(--otacon-laughing-frame-w, 51) * 1px);
+  background-position: calc(var(--otacon-laughing-x, 0) * 1px)
+    calc(var(--otacon-laughing-y, 0) * 1px);
+}
+body.use-otacon-sprite .state-surprised .otacon-frame {
+  width: calc(var(--otacon-surprised-frame-w, 59) * 1px);
+  background-position: calc(var(--otacon-surprised-x, 0) * 1px)
+    calc(var(--otacon-surprised-y, 0) * 1px);
+}
+/* Direct frame (agent semantic selection) — position set via setFrame() */
+body.use-otacon-sprite .state-frame .otacon-frame {
+  background-position: calc(var(--otacon-frame-x, 0) * 1px)
+    calc(var(--otacon-frame-y, 0) * 1px);
+}
+
+/* Individual sprites — each frame is a separate PNG, no sheet.
+   Non-widget calibration uses this to fill the frame viewport.
+   In the widget, individual-sprite sizing is set inline by _setFrameFromSprite()
+   so sheet-crop frames are not forced to contain the whole sheet. */
+body.use-individual-sprites:not(.otaclaw-widget) {
+  --otacon-scale: 1;
+}
+body.use-individual-sprites:not(.otaclaw-widget) .otacon-frame {
+  background-size: contain !important;
+  -webkit-background-size: contain !important;
+  background-position: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 80px;
+  min-height: 100px;
+}
+
+.connecting .otacon-frame {
+  width: 205px;
+  height: 447px;
+  background-image: url("../assets/sprites/otaclock-original.png");
+  background-size: auto 900px;
+  background-position: -489px 0;
+  animation: none !important;
+}
+
+/* Natural breathe – subtle, no rotation. 4s cycle. */
+@keyframes sprite-breathe {
+  0%,
+  100% {
+    transform: scale(0.5) translateY(0);
+  }
+  50% {
+    transform: scale(0.5) translateY(-2px);
+  }
+}
+
+.state-idle .otacon-frame,
+.state-thinking .otacon-frame {
+  animation: sprite-breathe 6s ease-in-out infinite;
+}
+
+/* Breathe-to-breathe: gentle fade-in. Other states: direct cut. */
+@keyframes sprite-fade-in {
+  from {
+    opacity: 0.88;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.state-transition-in .otacon-frame {
+  animation:
+    sprite-fade-in 0.4s ease-out,
+    sprite-breathe 6s ease-in-out infinite;
+}
+body.use-otacon-sprite .state-transition-in .otacon-frame {
+  animation:
+    sprite-fade-in 0.4s ease-out,
+    sprite-breathe-otacon 6s ease-in-out infinite;
+}
+
+/* Processing - subtle pulse */
+@keyframes sprite-pulse {
+  0%,
+  100% {
+    transform: scale(0.5);
+  }
+  50% {
+    transform: scale(0.51);
+  }
+}
+
+.state-processing .otacon-frame {
+  animation: sprite-pulse 1.4s ease-in-out infinite;
+}
+
+/* Success - one bounce */
+@keyframes sprite-bounce {
+  0%,
+  100% {
+    transform: scale(0.5);
+  }
+  50% {
+    transform: scale(0.55);
+  }
+}
+
+.state-success .otacon-frame {
+  animation: sprite-bounce 0.4s ease-out;
+}
+
+/* Okitanoniisan: natural breathe, no rotation */
+@keyframes sprite-breathe-otacon {
+  0%,
+  100% {
+    transform: scale(var(--otacon-scale, 4)) translateY(0);
+  }
+  50% {
+    transform: scale(var(--otacon-scale, 4)) translateY(-2px);
+  }
+}
+@keyframes sprite-pulse-otacon {
+  0%,
+  100% {
+    transform: scale(var(--otacon-scale, 4));
+  }
+  50% {
+    transform: scale(calc(var(--otacon-scale, 4) * 1.02));
+  }
+}
+@keyframes sprite-bounce-otacon {
+  0%,
+  100% {
+    transform: scale(var(--otacon-scale, 4));
+  }
+  50% {
+    transform: scale(calc(var(--otacon-scale, 4) * 1.1));
+  }
+}
+body.use-otacon-sprite .state-idle .otacon-frame,
+body.use-otacon-sprite .state-thinking .otacon-frame {
+  animation: sprite-breathe-otacon 6s ease-in-out infinite;
+}
+body.use-otacon-sprite .state-processing .otacon-frame {
+  animation: sprite-pulse-otacon 1.4s ease-in-out infinite;
+}
+body.use-otacon-sprite .state-success .otacon-frame {
+  animation: sprite-bounce-otacon 0.4s ease-out;
+}
+
+/* No animation for error/laughing/surprised (or could add later) */
+.state-error .otacon-frame,
+.state-laughing .otacon-frame,
+.state-surprised .otacon-frame {
+  animation: none !important;
+}
+
+/* Glow effects */
+.sprite-sheet-container::after {
+  content: "";
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(74, 222, 128, 0.2) 0%,
+    transparent 60%
+  );
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.state-success .sprite-sheet-container::after,
+.state-laughing .sprite-sheet-container::after {
+  opacity: 1;
+}
+
+.state-error .sprite-sheet-container::after {
+  background: radial-gradient(
+    circle,
+    rgba(239, 68, 68, 0.2) 0%,
+    transparent 60%
+  );
+  opacity: 1;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .otacon-frame {
+    transform: scale(0.35);
+  }
+  .state-laughing .otacon-frame,
+  .state-surprised .otacon-frame {
+    transform: scale(1.3);
+  }
+  .speech-bubble {
+    min-width: 160px;
+    padding: 12px 18px;
+  }
+  .speech-text {
+    font-size: 18px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .otacon-frame {
+    transform: scale(0.6);
+  }
+  .state-laughing .otacon-frame,
+  .state-surprised .otacon-frame {
+    transform: scale(1.85);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .otacon-frame {
+    animation: none !important;
+  }
+}
+
+/* CRT power-on/off for wake/sleep (MGS codec screen turn-on style).
+   Uses the individual `scale` property so it multiplies the sprite's
+   transform scale instead of overriding it. */
+@keyframes boot-floor-rise {
+  0% {
+    translate: 0 160%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    translate: 0 0;
+    opacity: 1;
+  }
+}
+@keyframes boot-floor-sink {
+  0% {
+    translate: 0 0;
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    translate: 0 160%;
+    opacity: 0;
+  }
+}
+#boot-sprite-overlay .boot-sprite-img {
+  transform-origin: center center;
+}
+/* Normal wake/sleep: enter/leave through the floor with the boot sprite
+   frames. The CRT power-on/off effect belongs to codec mode only. */
+/* The overlay image is the visible boot/sleep sprite; hide the static frame
+   underneath so only the floor transition is seen. */
+#sprite.boot-rising,
+#sprite.boot-sinking {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+#boot-sprite-overlay.boot-rising .boot-sprite-img {
+  animation: boot-floor-rise 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+#boot-sprite-overlay.boot-sinking .boot-sprite-img {
+  animation: boot-floor-sink 3.5s cubic-bezier(0.6, 0, 0.8, 0.2) forwards;
+}

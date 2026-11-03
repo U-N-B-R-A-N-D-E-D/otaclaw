@@ -1,0 +1,599 @@
+/**
+ * OtaClaw Widget - Fullscreen by default for kiosk/display
+ * Fullscreen by default; resize window for mini widget
+ */
+
+/* Widget overlay: hidden after boot – main content (gray + bubble) is primary */
+#widget-sprite-overlay {
+  display: none !important;
+}
+
+/* Boot/sleep overlay: uses user's backdrop (via display-tools). Fallback #2C2C2C if not yet applied. */
+.boot-black-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--otaclaw-backdrop, #2C2C2C);
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 0.6s ease-out;
+}
+.boot-black-overlay.boot-fade-1 {
+  opacity: 0.85;
+}
+.boot-black-overlay.boot-fade-2 {
+  opacity: 0.65;
+}
+.boot-black-overlay.boot-fade-3 {
+  opacity: 0.4;
+}
+.boot-black-overlay.boot-fade-4 {
+  opacity: 0.2;
+}
+.boot-black-overlay.boot-fade-5 {
+  opacity: 0;
+}
+.boot-black-overlay.boot-sleep {
+  opacity: 1;
+}
+.boot-black-overlay.boot-done {
+  opacity: 0;
+  pointer-events: none;
+  display: none !important;
+}
+/* Boot/sleep overlay: full viewport, flex center for splash and boot frames.
+   Kiosk screens vary (small Pi, large displays) – responsive centering.
+   Respects user rotation (data-rotation on body) so sleep/wake matches main sprite. */
+#boot-sprite-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: transparent;
+}
+.otaclaw-widget[data-rotation="90"] #boot-sprite-overlay {
+  transform: rotate(90deg);
+  transform-origin: center center;
+}
+.otaclaw-widget[data-rotation="180"] #boot-sprite-overlay {
+  transform: rotate(180deg);
+  transform-origin: center center;
+}
+.otaclaw-widget[data-rotation="270"] #boot-sprite-overlay {
+  transform: rotate(270deg);
+  transform-origin: center center;
+}
+/* Splash icon (OtIcon): max 100x100, smaller on small screens, centered */
+.splash-sprite-img {
+  width: min(100px, 25vw, 25vh);
+  height: min(100px, 25vw, 25vh);
+  max-width: 100px;
+  max-height: 100px;
+  object-fit: contain;
+  object-position: center;
+  margin: auto;
+}
+/* Boot/sleep frames: fill viewport, prominent on any screen size */
+.boot-overlay-img:not(.splash-sprite-img) {
+  width: min(92vw, 92vh);
+  height: min(92vw, 92vh);
+  max-width: 92vw;
+  max-height: 92vh;
+  object-fit: contain;
+  object-position: center;
+}
+.boot-splash {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.boot-splash.done {
+  display: none;
+}
+.boot-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  font-family: system-ui, sans-serif;
+  letter-spacing: 0.05em;
+}
+.boot-loading.done {
+  display: none;
+}
+
+/* Responsive: scale to viewport, preserve aspect */
+.otaclaw-widget #otaclaw,
+.otaclaw-widget .sprite-sheet-container {
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
+/* Touch targets: min 44px for accessibility (small screens) */
+.otaclaw-widget .tool-btn,
+.otaclaw-widget .test-btn,
+.otaclaw-widget button {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+}
+
+/* Force full viewport, solid background, no gaps */
+html.otaclaw-widget {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #2c2c2c !important;
+  width: 100%;
+  height: 100%;
+}
+html.otaclaw-widget body {
+  width: 100vw !important;
+  height: 100vh !important;
+  min-width: 100vw;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: radial-gradient(
+    ellipse at center,
+    #3a3a3a 0%,
+    #2c2c2c 70%,
+    #1a1a1a 100%
+  ) !important;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hide cursor only in kiosk (touch). Tab: cursor visible. */
+html.otaclaw-widget.otaclaw-kiosk,
+html.otaclaw-widget.otaclaw-kiosk *,
+.otaclaw-widget.otaclaw-kiosk,
+.otaclaw-widget.otaclaw-kiosk * {
+  cursor: none !important;
+}
+
+.otaclaw-widget .otaclaw-widget-main {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* allow flex child to shrink */
+}
+.otaclaw-widget .otaclaw-container {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100%;
+  min-height: 100%;
+  border-radius: 0;
+  overflow: hidden;
+  background: #2c2c2c !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.otaclaw-widget .sprite-viewport {
+  --sprite-viewport-size: min(100vh, 100vw);
+  overflow: hidden;
+}
+.otaclaw-widget .sprite-viewport-wrapper {
+  overflow: visible; /* allow speech bubble above viewport */
+}
+.otaclaw-widget .sprite-container {
+  flex: 1;
+  min-height: 0;
+  overflow: visible; /* allow comic bubble above Hal */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.otaclaw-widget .otaclaw-container {
+  overflow: visible;
+}
+/* Scale sprite to fit viewport – cell 47×70, keep within safe area */
+.otaclaw-widget {
+  /* Shared frame box: 48x70 fits every individual crop (max 48x69) and the sheet cell. */
+  --otacon-frame-w: 48;
+  --otacon-frame-h: 70;
+}
+/* Default only on <html>: body also carries .otaclaw-widget, and a 3x default
+   there would override the JS scale (?scale=5) for the viewport subtree. */
+html.otaclaw-widget {
+  --otacon-scale: 3;
+}
+
+/* Widget: default idle frame before JS sets state-frame; does not apply once JS drives the sprite. */
+.otaclaw-widget #sprite:not(.state-frame) .otacon-frame {
+  background-image: url("../assets/sprites/otacon_sprite.png_0004_Sprite-5.png");
+  background-size: contain !important;
+  background-position: center !important;
+}
+
+/* Touch overlay: fullscreen, ensure it receives touch on Pi/touchscreens */
+.otaclaw-widget .touch-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  pointer-events: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Legacy: single bubble above head (speech-bubble). Bottom msg unused. */
+.widget-connection-msg {
+  display: none !important;
+}
+
+/* Check config: show icon instead of full sprite */
+.widget-check-config-icon {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: url("../assets/sprites/OtIcon.png") no-repeat center / contain;
+  pointer-events: none;
+}
+.otaclaw-widget.widget-check-config .widget-check-config-icon {
+  display: block;
+}
+.otaclaw-widget.widget-check-config .sprite-viewport {
+  visibility: hidden;
+}
+
+/* Widget breathing lives on the wrapper, not the frame: the frame keeps its own
+   scale transform, and translating the wrapper avoids re-scaling pixel art
+   (which reads as shimmer/tremble). Pixel-stable, 2px float. */
+@keyframes sprite-breathe-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+.otaclaw-widget:not(.widget-waiting) #sprite.state-frame,
+.otaclaw-widget.widget-waiting #sprite {
+  animation: sprite-breathe-float 8s ease-in-out infinite !important;
+  will-change: transform;
+}
+
+/* Cancel the frame-level scale breathe inherited from the state rules: the
+   wrapper already breathes, and scaling the pixel-art frame makes it shimmer. */
+body.otaclaw-widget.use-otacon-sprite .state-idle .otacon-frame,
+body.otaclaw-widget.use-otacon-sprite .state-thinking .otacon-frame {
+  animation: none !important;
+}
+body.otaclaw-widget.use-otacon-sprite .state-transition-in .otacon-frame {
+  animation: sprite-fade-in 0.4s ease-out !important;
+}
+
+/* Full range demo: use sprite sheet + CSS vars for background-position (fallback when JS has not set an individual sprite) */
+.otaclaw-widget #sprite.state-frame .otacon-frame {
+  background-image: url("../assets/sprites/otaclock-original.png");
+  background-size: calc(var(--otacon-sheet-w, 567) * 1px)
+    calc(var(--otacon-sheet-h, 278) * 1px);
+  background-position: calc(var(--otacon-frame-x, 0) * 1px)
+    calc(var(--otacon-frame-y, 0) * 1px);
+}
+
+/* Emotions demo: ensure main content is visible and centered after overlay hides */
+.otaclaw-widget.emotions-demo #otaclaw-wrapper,
+.otaclaw-widget.emotions-demo .sprite-container {
+  display: flex !important;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+/* Widget waiting: frame cycle by JS (idle animation during connecting/reconnecting) */
+.otaclaw-widget.widget-waiting #sprite .otacon-frame {
+  width: calc(var(--otacon-frame-w, 48) * 1px) !important;
+  height: calc(var(--otacon-frame-h, 70) * 1px) !important;
+  background-size: contain !important;
+  background-position: center !important;
+}
+
+/* LED: moved to documentElement so it stays in viewport when body is rotated */
+.otaclaw-widget .status-bar-mini {
+  position: fixed;
+  bottom: 8px;
+  right: 8px;
+  left: auto;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  backdrop-filter: none;
+  justify-content: flex-end;
+  align-items: center;
+  display: flex !important;
+  z-index: 100002;
+}
+
+.otaclaw-widget .status-bar-mini .status-indicator {
+  padding: 2px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.otaclaw-widget .status-bar-mini .status-dot {
+  width: 12px;
+  height: 12px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+
+/* Low-power kiosk: disable decorative glow layer to reduce repaints. */
+.otaclaw-widget .sprite-sheet-container::after {
+  display: none !important;
+}
+
+.otaclaw-widget .status-bar-mini .status-indicator.connected .status-dot {
+  box-shadow: 0 0 4px currentColor;
+}
+
+.otaclaw-widget .status-bar-mini .status-text,
+.otaclaw-widget .status-bar-mini .status-right {
+  display: none;
+}
+
+/* Comic bubble above Hal */
+.otaclaw-widget .speech-bubble {
+  min-width: 120px;
+  padding: 10px 16px;
+  top: -10%; /* Move bubble higher up if space allows */
+}
+/* Tab: bubble lower (top % of wrapper), not stuck to viewport top */
+.otaclaw-widget:not(.otaclaw-kiosk) .speech-bubble {
+  top: 12%;
+  margin-top: 0;
+}
+
+/* Rotation: Hal + speech bubble rotate together (bubble follows head). Canvas stays fixed. */
+.otaclaw-widget[data-rotation="0"] .sprite-viewport-wrapper {
+  transform: none;
+}
+.otaclaw-widget[data-rotation="90"] .sprite-viewport-wrapper {
+  transform: rotate(90deg);
+  transform-origin: center center;
+}
+.otaclaw-widget[data-rotation="180"] .sprite-viewport-wrapper {
+  transform: rotate(180deg);
+  transform-origin: center center;
+}
+.otaclaw-widget[data-rotation="270"] .sprite-viewport-wrapper {
+  transform: rotate(270deg);
+  transform-origin: center center;
+}
+
+.otaclaw-widget .speech-text {
+  font-family: "Fira Code", "Fira Mono", "Consolas", monospace;
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  letter-spacing: 0.3px;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.3;
+  max-width: 260px;
+  text-align: center;
+}
+
+/* Connection overlay in widget: full screen, sprite fills viewport */
+.otaclaw-widget .connection-overlay .connection-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  width: 100%;
+  min-height: 100%;
+}
+.otaclaw-widget .connection-overlay .sprite-sheet-container.connecting {
+  flex: 1;
+  width: 100%;
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.otaclaw-widget .connection-overlay .connecting .otacon-frame {
+  transform: scale(1.5);
+  transform-origin: center;
+}
+
+/* Embed in corner - add .otaclaw-widget-floating to body when in iframe */
+.otaclaw-widget-floating.otaclaw-widget {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 9999;
+}
+
+/* The floating panel can take key focus; never draw a browser focus ring
+   around Hal or the invisible touch layer. */
+body.otaclaw-widget #sprite,
+body.otaclaw-widget #sprite .otacon-frame,
+body.otaclaw-widget #touch-overlay,
+body.otaclaw-widget #otaclaw {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Compact floating HUD: the bubble lives in the flow above the sprite, inside
+   the window. The native panel hugs the measured bubble + sprite height. */
+.otaclaw-widget .sprite-container {
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 6px;
+}
+.otaclaw-widget .sprite-viewport-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+.otaclaw-widget .speech-bubble {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  order: -1;
+  margin: 0 auto 10px !important;
+  max-width: min(90vw, 340px);
+}
+.otaclaw-widget .speech-bubble:not(.has-text) {
+  display: none !important;
+}
+.otaclaw-widget .sprite-viewport {
+  --sprite-viewport-size: min(calc(100vh - 84px), 100vw);
+}
+.otaclaw-widget.otaclaw-compact .sprite-viewport {
+  --sprite-viewport-size: calc(70px * var(--otacon-scale, 3));
+  width: calc(48px * var(--otacon-scale, 3));
+}
+
+/* Compact HUD: no kiosk chrome. The MODE: NORMAL label and the connection LED
+   sit on Hal's feet in a tall window; the director already shows the mood. */
+html.otaclaw-compact #codec-mode-indicator,
+html.otaclaw-compact .codec-mode-indicator,
+html.otaclaw-compact .status-bar-mini {
+  display: none !important;
+}
+html.otaclaw-compact #display-tools-toggle {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  font-size: 16px !important;
+  bottom: 8px !important;
+  left: 8px !important;
+}
+
+/* Compact HUD is a desktop window with a pointer: keep the cursor visible even
+   when the widget is configured as kiosk (the Pi kiosk is touch, not compact). */
+html.otaclaw-kiosk.otaclaw-compact,
+html.otaclaw-kiosk.otaclaw-compact * {
+  cursor: auto !important;
+}
+html.otaclaw-kiosk.otaclaw-compact button,
+html.otaclaw-kiosk.otaclaw-compact a,
+html.otaclaw-kiosk.otaclaw-compact [role="button"],
+html.otaclaw-kiosk.otaclaw-compact select,
+html.otaclaw-kiosk.otaclaw-compact input[type="color"],
+html.otaclaw-kiosk.otaclaw-compact input[type="range"] {
+  cursor: pointer !important;
+}
+html.otaclaw-kiosk.otaclaw-compact input[type="text"],
+html.otaclaw-kiosk.otaclaw-compact input[type="number"],
+html.otaclaw-kiosk.otaclaw-compact textarea {
+  cursor: text !important;
+}
+
+/* Compact HUD: no continuous sub-pixel float. A 3x pixel-art sprite that
+   translates by fractional eased pixels re-rasterizes every frame, which reads
+   as constant shimmer/flicker; the director already changes poses for life. */
+.otaclaw-widget.otaclaw-compact #sprite,
+.otaclaw-widget.otaclaw-compact #sprite.state-frame,
+.otaclaw-widget.otaclaw-compact.widget-waiting #sprite {
+  animation: none !important;
+  will-change: auto;
+}
+/* The 0.4s opacity fade on every state change reads as a dim/flicker next to
+   the director's sequences; cuts are cleaner here. */
+body.otaclaw-widget.otaclaw-compact .state-transition-in .otacon-frame {
+  animation: none !important;
+}
+
+/* Compact HUD: wake/sleep frames use the same fixed sprite scale as the rest,
+   so boot/sleep doesn't pop at a bigger size than the idle sprite. */
+html.otaclaw-compact #boot-sprite-overlay .boot-overlay-img:not(.splash-sprite-img) {
+  width: calc(48px * var(--otacon-scale, 3));
+  height: calc(70px * var(--otacon-scale, 3));
+  max-width: none;
+  max-height: none;
+}
+
+/* Compact HUD: Hal sits on the bottom; bubbles float above him without moving
+   him (the old in-flow bubble pushed the sprite up/down on every message). */
+.otaclaw-widget.otaclaw-compact .sprite-container {
+  justify-content: flex-end !important;
+  padding-bottom: 6px;
+}
+.otaclaw-widget.otaclaw-compact #sprite.sprite-sheet-container {
+  justify-content: flex-end !important;
+  padding-bottom: 6px;
+}
+.otaclaw-widget.otaclaw-compact .sprite-viewport-wrapper {
+  position: relative;
+}
+.otaclaw-widget.otaclaw-compact .speech-bubble {
+  position: absolute !important;
+  left: 50% !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: calc(100% + 10px) !important;
+  transform: translateX(-50%) !important;
+  margin: 0 !important;
+  /* Explicit width: the bubble is positioned against the sprite wrapper,
+     which is only ~120px wide. Without this, shrink-to-fit gives it the
+     right half (~60px), so the text stacked into 10+ lines and the window
+     clipped the top — you only ever saw the tail. */
+  width: calc(100vw - 12px);
+  min-width: 0;
+  max-width: calc(100vw - 12px);
+  padding: 8px 10px;
+  border-width: 3px;
+  border-radius: 16px;
+  /* Hard ceiling: 5 lines at 12px. The window is 320px tall and the sprite
+     starts at 133px, so a taller bubble would get clipped at the top and the
+     user would only see the tail of the message. */
+  max-height: calc(5 * 1.35 * 12px + 20px);
+  overflow: hidden;
+  z-index: 30;
+}
+
+.otaclaw-widget.otaclaw-compact .speech-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.35;
+  letter-spacing: 0.2px;
+  max-width: none;
+  overflow-wrap: anywhere;
+}
+
+/* Compact HUD: the boot overlay is what's visible during wake, so it must
+   rise from the floor too (the main sprite sits behind the opaque overlay). */
+.otaclaw-widget.otaclaw-compact #boot-sprite-overlay {
+  align-items: flex-end !important;
+  justify-content: center !important;
+  padding-bottom: 6px;
+}
+.otaclaw-widget.otaclaw-compact #boot-sprite-overlay .boot-sprite-img {
+  margin: 0 auto !important;
+}
+/* Wake/sleep floor rise/sink animation lives in sprite-sheet.css (shared by
+   kiosk and widget). The compact overlay only needs its bottom alignment. */

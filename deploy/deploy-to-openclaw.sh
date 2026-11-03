@@ -1,0 +1,763 @@
+#!/usr/bin/env bash
+#
+# deploy-to-openclaw.sh - Deploy OtaClaw to OpenClaw Canvas
+#
+# Usage: ./deploy/deploy-to-openclaw.sh [OPTIONS]
+#
+# Options:
+#   --host=HOST         Target host (default: auto-detect or localhost)
+#   --user=USER         SSH user (default: auto-detected: pi, ubuntu, admin)
+#   --port=PORT         SSH port (default: 22)
+#   --canvas-path=PATH  Parent directory holding the otaclaw/ deploy target (default: ~/ )
+#                       Remote default deploys to ~/otaclaw/ (the live path the kiosk serves).
+#                       Pass --canvas-path=~/.openclaw/canvas/ for the legacy OpenClaw canvas layout.
+#   --local             Install locally (no SSH) into $HOME/otaclaw/ (full-repo layout: src/ + config/)
+#   --restart-kiosk     Restart otaclaw-kiosk service after deploy (remote only)
+#   --setup-buzzer     Enable Pi GPIO buzzer for tickle (only when buzzerTickleUrl is null)
+#   --fresh             Remove existing install first (clean install, like "git clone")
+#   --dry-run           Preview changes without deploying
+#   --help              Show this help message
+#
+# Examples:
+#   ./deploy/deploy-to-openclaw.sh --local              # same machine as OpenClaw
+#   ./deploy/deploy-to-openclaw.sh --host=YOUR_HOST     # uses User from ~/.ssh/config
+#   ./deploy/deploy-to-openclaw.sh --host=YOUR_HOST --user=YOUR_USER
+#
+
+set -euo pipefail
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Default configuration (USER from env can block key auth; detect_user fills for remote)
+HOST="${HOST:-}"
+USER=""
+PORT="${PORT:-22}"
+CANVAS_PATH="${CANVAS_PATH:-}"
+LOCAL_INSTALL="${LOCAL_INSTALL:-false}"
+DRY_RUN="${DRY_RUN:-false}"
+RESTART_KIOSK="${RESTART_KIOSK:-false}"
+SKIP_RESTART="${SKIP_RESTART:-false}"
+SETUP_BUZZER="${SETUP_BUZZER:-false}"
+FRESH_INSTALL="${FRESH_INSTALL:-false}"
+SOURCE_DIR="${SOURCE_DIR:-$(dirname "$0")/../src}"
+CONFIG_DIR="${CONFIG_DIR:-$(dirname "$0")/../config}"
+
+# Script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+# Logging functions
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Help message
+show_help() {
+    sed -n '2,20p' "$0" | sed 's/^# //'
+    exit 0
+}
+
+# Parse arguments
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --host=*)
+                HOST="${1#*=}"
+                shift
+                ;;
+            --user=*)
+                USER="${1#*=}"
+                shift
+                ;;
+            --port=*)
+                PORT="${1#*=}"
+                shift
+                ;;
+            --canvas-path=*)
+                CANVAS_PATH="${1#*=}"
+                shift
+                ;;
+            --local)
+                LOCAL_INSTALL=true
+                HOST="localhost"
+                CANVAS_PATH="${CANVAS_PATH:-$HOME}"
+                shift
+                ;;
+            --restart-kiosk)
+                RESTART_KIOSK=true
+                shift
+                ;;
+            --setup-buzzer)
+                SETUP_BUZZER=true
+                shift
+                ;;
+            --fresh)
+                FRESH_INSTALL=true
+                shift
+                ;;
+            --dry-run)
+                DRY_RUN=true
+                shift
+                ;;
+            --help)
+                show_help
+                ;;
+            *)
+                log_error "Unknown option: $1"
+                show_help
+                ;;
+        esac
+    done
+}
+
+# Set default canvas path (use ~ for remote so it expands on target).
+# REMOTE_DIR is the full deploy destination = ${CANVAS_PATH}/otaclaw (default ~/otaclaw).
+# The kiosk serves the full-repo layout: ${REMOTE_DIR}/src/widget.html via `npx serve .`
+# and reads ${REMOTE_DIR}/config/config.js for the gateway host.
+set_canvas_path() {
+    if [[ -z "$CANVAS_PATH" ]]; then
+        [[ "$LOCAL_INSTALL" == "true" ]] && CANVAS_PATH="$HOME" || CANVAS_PATH="~/"
+    fi
+    REMOTE_DIR="${CANVAS_PATH%/}/otaclaw"
+}
+
+# Detect target host
+detect_host() {
+    if [[ "$LOCAL_INSTALL" == "true" ]]; then
+        return
+    fi
+    if [[ -z "$HOST" ]]; then
+        # Try common OpenClaw hostnames
+        local hosts=("raspberrypi.local" "raspberrypi" "openclaw.local" "localhost")
+        
+        for h in "${hosts[@]}"; do
+            if ping -c 1 -W 2 "$h" &>/dev/null; then
+                HOST="$h"
+                log_info "Detected OpenClaw host: $HOST"
+                break
+            fi
+        done
+        
+        if [[ -z "$HOST" ]]; then
+            log_error "Could not detect OpenClaw host. Please specify with --host="
+            exit 1
+        fi
+    fi
+}
+
+# Detect SSH user
+detect_user() {
+    if [[ "$LOCAL_INSTALL" == "true" ]]; then
+        return
+    fi
+    if [[ -z "$USER" ]]; then
+        # Try common usernames
+        local users=("pi" "ubuntu" "admin")
+        
+        for u in "${users[@]}"; do
+            if ssh -o ConnectTimeout=2 -o BatchMode=yes "${u}@${HOST}" "echo ok" &>/dev/null; then
+                USER="$u"
+                log_info "Detected SSH user: $USER"
+                break
+            fi
+        done
+        
+        if [[ -z "$USER" ]]; then
+            USER="pi"
+            log_warn "Could not detect SSH user, using default: $USER"
+        fi
+    fi
+}
+
+# Check prerequisites
+check_prerequisites() {
+    log_info "Checking prerequisites..."
+    
+    if [[ "$LOCAL_INSTALL" != "true" ]]; then
+        if ! command -v ssh &>/dev/null; then
+            log_error "SSH not found. Please install SSH client."
+            exit 1
+        fi
+        if ! command -v scp &>/dev/null; then
+            log_error "SCP not found. Please install SCP."
+            exit 1
+        fi
+    fi
+    
+    # Check source files exist
+    if [[ ! -d "$SOURCE_DIR" ]]; then
+        log_error "Source directory not found: $SOURCE_DIR"
+        log_error "Please run this script from the OtaClaw project directory"
+        exit 1
+    fi
+    
+    log_success "Prerequisites check passed"
+}
+
+# Fresh install: remove existing OtaClaw (like "git clone" – clean slate)
+fresh_install() {
+    if [[ "$FRESH_INSTALL" != "true" ]]; then
+        return 0
+    fi
+    set_canvas_path
+    if [[ "$LOCAL_INSTALL" == "true" ]]; then
+        local dest="${REMOTE_DIR}"
+        if [[ -d "$dest" ]]; then
+            log_info "Fresh install: removing $dest"
+            rm -rf "$dest"
+        fi
+    else
+        log_info "Fresh install: removing existing OtaClaw on ${HOST}..."
+        ssh "${USER}@${HOST}" -p "$PORT" "rm -rf ${REMOTE_DIR}" || true
+        log_success "Cleaned"
+    fi
+}
+
+# Verify OpenClaw installation on target
+verify_openclaw() {
+    if [[ "$LOCAL_INSTALL" == "true" ]]; then
+        set_canvas_path
+        local dest="${REMOTE_DIR}"
+        log_info "Creating local deploy directory: $dest"
+        mkdir -p "$dest"
+        log_success "Local install path: $dest"
+        return 0
+    fi
+    set_canvas_path
+    log_info "Verifying target on ${HOST}..."
+    if ! ssh -o ConnectTimeout=10 "${USER}@${HOST}" -p "$PORT" "echo ok"; then
+        log_error "Cannot connect to ${USER}@${HOST}:${PORT}"
+        log_error "  - Use --host=YOUR_OPENCLAW_HOST --user=YOUR_USER"
+        log_error "  - Verify: ssh ${USER}@${HOST}"
+        exit 1
+    fi
+    if ! ssh "${USER}@${HOST}" -p "$PORT" "test -d ~ || true"; then
+        log_warn "Home directory not found, creating..."
+    fi
+    ssh "${USER}@${HOST}" -p "$PORT" "mkdir -p ${REMOTE_DIR}" || { log_error "Failed to create directory"; exit 1; }
+    log_success "Deploy target verified: ${REMOTE_DIR}"
+}
+
+# Build file list for deployment
+build_file_list() {
+    local files=()
+    
+    # Core HTML
+    files+=("${SOURCE_DIR}/index.html")
+    [[ -f "${SOURCE_DIR}/widget.html" ]] && files+=("${SOURCE_DIR}/widget.html")
+    
+    # CSS files
+    for css_file in "${SOURCE_DIR}/css/"*.css; do
+        [[ -f "$css_file" ]] && files+=("$css_file")
+    done
+    
+    # JS files
+    for js_file in "${SOURCE_DIR}/js/"*.js; do
+        [[ -f "$js_file" ]] && files+=("$js_file")
+    done
+    
+    # Assets
+    if [[ -d "${SOURCE_DIR}/assets" ]]; then
+        find "${SOURCE_DIR}/assets" -type f | while read -r asset; do
+            files+=("$asset")
+        done
+    fi
+
+    # Data (frame catalog for the face)
+    if [[ -d "${SOURCE_DIR}/data" ]]; then
+        find "${SOURCE_DIR}/data" -type f | while read -r datafile; do
+            files+=("$datafile")
+        done
+    fi
+    
+    # Config: --fresh always uses example (clean install). Else use config.js if present.
+    if [[ "$FRESH_INSTALL" == "true" ]] || [[ ! -f "${CONFIG_DIR}/config.js" ]]; then
+        files+=("${CONFIG_DIR}/config.example.js")
+        [[ "$FRESH_INSTALL" == "true" ]] && log_info "Fresh install: using config.example.js"
+        [[ "$FRESH_INSTALL" != "true" ]] && log_warn "Using example configuration. Please customize config/config.js for production."
+    else
+        files+=("${CONFIG_DIR}/config.js")
+    fi
+    
+    printf '%s\n' "${files[@]}"
+}
+
+# Deploy files locally (--local)
+deploy_local() {
+    set_canvas_path
+    local dest="${REMOTE_DIR}"
+    log_info "Installing OtaClaw locally to $dest (full-repo layout: src/ + config/)"
+
+    if [[ "$DRY_RUN" == "true" ]]; then
+        log_info "Dry run - would copy to $dest"
+        return 0
+    fi
+
+    mkdir -p "$dest/src"/{css,js,assets/sprites,data} "$dest/config"
+    cp -r "${SOURCE_DIR}"/* "$dest/src/"
+    if [[ "$FRESH_INSTALL" != "true" ]] && [[ -f "${CONFIG_DIR}/config.js" ]]; then
+        cp "${CONFIG_DIR}/config.js" "$dest/config/"
+    else
+        cp "${CONFIG_DIR}/config.example.js" "$dest/config/config.js"
+        [[ "$FRESH_INSTALL" != "true" ]] && log_warn "Using example config. Customize $dest/config/config.js for production."
+    fi
+
+    log_success "Local installation complete"
+}
+
+# Deploy files (remote)
+deploy_files() {
+    if [[ "$LOCAL_INSTALL" == "true" ]]; then
+        deploy_local
+        return 0
+    fi
+    log_info "Preparing deployment to ${USER}@${HOST}:${REMOTE_DIR}/ (full-repo layout: src/ + config/)"
+    
+    local files
+    files=$(build_file_list)
+    
+    if [[ -z "$files" ]]; then
+        log_error "No files to deploy"
+        exit 1
+    fi
+    
+    log_info "Files to deploy:"
+    echo "$files" | while read -r file; do
+        echo "  - $(basename "$file")"
+    done
+    
+    if [[ "$DRY_RUN" == "true" ]]; then
+        log_info "Dry run - not deploying files"
+        return 0
+    fi
+    
+    # Create remote directory (full-repo layout: src/ holds the web app, config/ holds config.js)
+    log_info "Creating remote directory..."
+    ssh "${USER}@${HOST}" -p "$PORT" "mkdir -p ${REMOTE_DIR}/src/{css,js,assets/sprites,data} ${REMOTE_DIR}/config" || {
+        log_error "Failed to create remote directories"
+        exit 1
+    }
+
+    # Deploy files using rsync if available, otherwise scp.
+    # Protect on-Pi backups (*.bak.*) from --delete so deploys don't wipe recent fix backups.
+    if command -v rsync &>/dev/null; then
+        log_info "Using rsync for deployment..."
+
+        # Sync src/ (web app) into ${REMOTE_DIR}/src/
+        rsync -avz --delete \
+            --filter='- *.bak.*' \
+            -e "ssh -p ${PORT}" \
+            "${SOURCE_DIR}/" \
+            "${USER}@${HOST}:${REMOTE_DIR}/src/" || {
+            log_error "Rsync deployment failed"
+            exit 1
+        }
+
+        # Config: --fresh uses example. Else use config.js if present.
+        if [[ "$FRESH_INSTALL" == "true" ]] || [[ ! -f "${CONFIG_DIR}/config.js" ]]; then
+            scp -P "$PORT" "${CONFIG_DIR}/config.example.js" "${USER}@${HOST}:${REMOTE_DIR}/config/config.js"
+        else
+            scp -P "$PORT" "${CONFIG_DIR}/config.js" "${USER}@${HOST}:${REMOTE_DIR}/config/" || {
+                log_warn "Could not copy custom config, using example"
+                scp -P "$PORT" "${CONFIG_DIR}/config.example.js" "${USER}@${HOST}:${REMOTE_DIR}/config/config.js"
+            }
+        fi
+    else
+        log_info "Using scp for deployment..."
+
+        local scp_port=(-P "$PORT")
+        echo "$files" | while read -r file; do
+            if [[ -f "$file" ]]; then
+                local rel_path="${file#$SOURCE_DIR/}"
+                local target_dir="$(dirname "${REMOTE_DIR}/src/${rel_path}")"
+                scp "${scp_port[@]}" "$file" "${USER}@${HOST}:${target_dir}/" || log_error "Failed: $rel_path"
+            fi
+        done
+    fi
+    
+    log_success "Files deployed successfully"
+}
+
+# Verify deployment
+verify_deployment() {
+    log_info "Verifying deployment..."
+    
+    if [[ "$LOCAL_INSTALL" == "true" ]]; then
+        if [[ "$DRY_RUN" == "true" ]]; then
+            log_info "Dry run - skipping verification"
+            return 0
+        fi
+        set_canvas_path
+        local index_file="${REMOTE_DIR}/src/index.html"
+        if [[ -f "$index_file" ]]; then
+            log_success "Local deployment verified"
+        else
+            log_error "Local deployment verification failed"
+            exit 1
+        fi
+        return 0
+    fi
+
+    local result
+    result=$(ssh "${USER}@${HOST}" -p "$PORT" "test -f ${REMOTE_DIR}/src/index.html && echo 'ok' || echo 'missing'")
+    
+    if [[ "$result" == "ok" ]]; then
+        log_success "Deployment verified"
+    else
+        log_error "Deployment verification failed"
+        exit 1
+    fi
+}
+
+# Interactive configuration for general settings
+configure_settings() {
+    if [[ "$LOCAL_INSTALL" == "true" || "$DRY_RUN" == "true" ]]; then
+        return 0
+    fi
+    
+    # Only prompt if running interactively
+    if [[ -t 0 ]]; then
+        echo
+        echo -e "${BLUE}--- OtaClaw Configuration ---${NC}"
+        read -p "Do you want to configure Discord Channel ID and Display Rotation now? [y/N]: " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo
+            echo -e "${YELLOW}Discord Tickle Channel ID${NC}"
+            echo "When you touch the screen, OtaClaw can send a message back to a specific Discord channel."
+            read -p "Enter your Discord Channel ID (leave blank to keep default/null): " discord_channel
+            if [[ -n "$discord_channel" ]]; then
+                log_info "Setting tickleDiscordChannel to $discord_channel..."
+                # Update config/config.js (read by start-kiosk.sh) and src/widget.html (the served UI)
+                ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's/tickleDiscordChannel: null/tickleDiscordChannel: \"$discord_channel\"/' ${REMOTE_DIR}/config/config.js 2>/dev/null || true"
+                ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's/tickleDiscordChannel: null/tickleDiscordChannel: \"$discord_channel\"/' ${REMOTE_DIR}/src/widget.html 2>/dev/null || true"
+            fi
+            
+            echo
+            echo -e "${YELLOW}Display Rotation${NC}"
+            echo "Depending on how you mounted your screen, you may need to rotate it."
+            read -p "Enter display rotation (0, 90, 180, 270) [leave blank to skip]: " rotation
+            if [[ "$rotation" == "0" || "$rotation" == "90" || "$rotation" == "180" || "$rotation" == "270" ]]; then
+                log_info "Setting rotation to $rotation..."
+                # Update widget URL rotation parameter in the kiosk service or script
+                ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's/rotation=[0-9]*/rotation=$rotation/g' ~/.config/systemd/user/otaclaw-kiosk.service ~/.openclaw/scripts/start-otaclaw-kiosk.sh 2>/dev/null || true"
+            fi
+            echo
+        fi
+    fi
+}
+
+# Restart OpenClaw gateway (optional)
+restart_openclaw() {
+    if [[ "$LOCAL_INSTALL" == "true" ]]; then
+        return 0
+    fi
+    # Skip prompt when --restart-kiosk (non-interactive flow)
+    if [[ "$RESTART_KIOSK" == "true" ]]; then
+        return 0
+    fi
+    read -p "Restart OpenClaw gateway to apply changes? [y/N]: " -n 1 -r
+    echo
+
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        log_info "Restarting OpenClaw gateway..."
+        
+        ssh "${USER}@${HOST}" -p "$PORT" "systemctl --user restart openclaw-gateway 2>/dev/null || openclaw gateway restart" || {
+            log_warn "Could not restart OpenClaw automatically"
+            log_warn "Please restart manually: ssh ${USER}@${HOST} 'systemctl --user restart openclaw-gateway'"
+        }
+        
+        log_info "Waiting for OpenClaw to restart..."
+        sleep 3
+    fi
+}
+
+# Get local network URL with token (runs on the OpenClaw host)
+# Returns: http://LAN_IP:18789/__openclaw__/canvas/otaclaw/widget.html?oc_token=...
+get_widget_url_with_token() {
+    local py_script
+    py_script='import json,os,subprocess
+p=18789
+b="/__openclaw__/canvas/otaclaw/widget.html"
+t=""
+for path in [os.path.expanduser("~/.openclaw/openclaw.json")]:
+    try:
+        if os.path.isfile(path):
+            with open(path) as f: t=json.load(f).get("gateway",{}).get("auth",{}).get("token","")
+            break
+    except: pass
+if not t:
+    try:
+        with open(os.path.expanduser("~/.config/systemd/user/openclaw-gateway.service")) as f:
+            for l in f:
+                if "OPENCLAW_GATEWAY_TOKEN=" in l: t=l.split("=",1)[1].strip(); break
+    except: pass
+ip="localhost"
+try: ip=subprocess.check_output(["hostname","-I"],timeout=2).decode().split()[0].strip()
+except: pass
+u=f"http://{ip}:{p}{b}"
+if t: u+=f"?oc_token={t}"
+print(u)'
+    if [[ "$LOCAL_INSTALL" == "true" ]]; then
+        python3 -c "$py_script"
+    else
+        ssh "${USER}@${HOST}" -p "$PORT" "python3 -c '$py_script'"
+    fi
+}
+
+# Print access information
+print_access_info() {
+    local url
+    url=$(get_widget_url_with_token 2>/dev/null) || url="http://${HOST}:18789/__openclaw__/canvas/otaclaw/widget.html"
+    
+    echo
+    log_success "OtaClaw deployed successfully!"
+    echo
+    echo "OTACLAW_URL: $url"
+    echo
+    echo -e "${GREEN}Local network URL (open from any device on your LAN):${NC}"
+    echo "  $url"
+    if [[ "$LOCAL_INSTALL" != "true" ]]; then
+        local tunnel_url="http://localhost:18789/__openclaw__/canvas/otaclaw/widget.html?rotation=0"
+        [[ "$url" == *"oc_token="* ]] && tunnel_url="${tunnel_url}&oc_token=${url#*oc_token=}"
+        echo
+        echo -e "${YELLOW}From Mac/PC (tunnel required – connects to ${HOST}):${NC}"
+        echo "  1. On your Mac, run:"
+        echo "     ssh -L 18789:127.0.0.1:18789 ${USER}@${HOST} -N"
+        echo "  2. Open in browser:"
+        echo "     $tunnel_url"
+        echo
+        echo -e "${BLUE}Tickle/wake sync:${NC} For tickle and wake to sync between Pi kiosk and Mac tab, the OpenClaw gateway must broadcast client.interaction to all webchat sessions."
+    fi
+    echo
+    echo -e "${BLUE}Configuration:${NC}"
+    echo "  Edit config at: ${REMOTE_DIR}/config/config.js"
+    echo "  Or locally at:  ${CONFIG_DIR}/config.js"
+    if [[ "$LOCAL_INSTALL" == "true" ]]; then
+        echo
+        echo -e "${YELLOW}Kiosk mode:${NC} chromium --kiosk --app=$url"
+    fi
+    if [[ "$LOCAL_INSTALL" != "true" ]]; then
+        echo
+        echo -e "${YELLOW}Note:${NC} If you see 'Configuration Required' page:"
+        echo "  1. SSH: ssh ${USER}@${HOST}"
+        echo "  2. Edit: nano ${REMOTE_DIR}/config/config.js"
+        echo "  3. Set gateway host and restart kiosk: systemctl --user restart otaclaw-kiosk"
+    fi
+    echo
+}
+
+# Pre-flight checks before deployment
+run_preflight_checks() {
+    log_info "Running pre-flight checks..."
+    local checks_passed=0
+    local checks_total=0
+
+    # Check 1: Source files exist
+    ((checks_total++))
+    if [[ -f "${REPO_ROOT}/src/index.html" && -d "${REPO_ROOT}/src/assets/sprites" ]]; then
+        ((checks_passed++))
+        log_success "Source files and sprites present"
+    else
+        log_error "Missing source files or sprites"
+        return 1
+    fi
+
+    # Check 2: Config exists (copy example if needed)
+    ((checks_total++))
+    if [[ -f "${REPO_ROOT}/config/config.js" ]]; then
+        ((checks_passed++))
+        log_success "Configuration file exists"
+    elif [[ -f "${REPO_ROOT}/config/config.example.js" ]]; then
+        log_warn "No config.js found, will use config.example.js"
+        ((checks_passed++))
+    else
+        log_error "No configuration file found"
+        return 1
+    fi
+
+    # Check 3: SSH connectivity (remote deploy only)
+    if [[ "$LOCAL_INSTALL" != "true" ]]; then
+        ((checks_total++))
+        if command -v ssh &>/dev/null; then
+            ((checks_passed++))
+            log_success "SSH client available"
+        else
+            log_error "SSH not installed"
+            return 1
+        fi
+
+        # Check SSH connectivity if host provided
+        if [[ -n "$HOST" ]]; then
+            ((checks_total++))
+            if ssh -o ConnectTimeout=5 -o BatchMode=yes "${USER}@${HOST}" "echo ok" &>/dev/null; then
+                ((checks_passed++))
+                log_success "SSH connectivity to ${HOST} OK"
+            else
+                log_error "Cannot connect to ${HOST} via SSH"
+                log_info "Check: ssh ${USER}@${HOST}"
+                return 1
+            fi
+        fi
+    fi
+
+    # Check 4: OpenClaw gateway health (if not --quick mode)
+    if [[ -n "$HOST" && "$LOCAL_INSTALL" != "true" ]]; then
+        ((checks_total++))
+        local health_url="http://${HOST}:18789/health"
+        if curl -s --max-time 5 "$health_url" &>/dev/null; then
+            ((checks_passed++))
+            log_success "OpenClaw gateway responding"
+        else
+            log_warn "OpenClaw gateway not responding at ${health_url}"
+            log_info "OtaClaw will still deploy but may not connect until OpenClaw starts"
+            ((checks_passed++)) # Not a hard failure
+        fi
+    fi
+
+    # Check 5: Local mode cluster health (if applicable)
+    if [[ -f "${REPO_ROOT}/config/config.js" ]]; then
+        local mode=$(grep -o "mode: *['\"]local['\"]" "${REPO_ROOT}/config/config.js" 2>/dev/null || echo "")
+        if [[ -n "$mode" && -n "$HOST" ]]; then
+            log_info "Local mode detected, checking cluster..."
+            # Try to ping one inference node
+            local cluster_nodes=$(grep -oE "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" "${REPO_ROOT}/config/config.js" 2>/dev/null | head -1)
+            if [[ -n "$cluster_nodes" ]]; then
+                ((checks_total++))
+                if curl -s --max-time 3 "http://${cluster_nodes}:8082/health" &>/dev/null; then
+                    ((checks_passed++))
+                    log_success "Inference node ${cluster_nodes} responding"
+                else
+                    log_warn "Inference node ${cluster_nodes} not responding"
+                    ((checks_passed++)) # Not a hard failure
+                fi
+            fi
+        fi
+    fi
+
+    # Summary
+    log_info "Pre-flight checks: ${checks_passed}/${checks_total} passed"
+    if [[ $checks_passed -lt $((checks_total - 1)) ]]; then
+        log_error "Too many pre-flight checks failed"
+        read -p "Continue anyway? [y/N]: " confirm
+        [[ "$confirm" =~ ^[Yy]$ ]] || return 1
+    fi
+
+    return 0
+}
+
+# Post-deploy health verification
+verify_deployment() {
+    log_info "Verifying deployment..."
+    local verify_host="${HOST:-localhost}"
+    local verify_user="${USER:-$USER}"
+
+    # Check 1: Files deployed
+    if [[ "$LOCAL_INSTALL" != "true" ]]; then
+        if ssh -o ConnectTimeout=5 "${verify_user}@${verify_host}" "test -f ${REMOTE_DIR}/src/index.html" &>/dev/null; then
+            log_success "Files deployed successfully"
+        else
+            log_error "Deployment verification failed - files not found"
+            return 1
+        fi
+    fi
+
+    # Check 2: Restart services if remote
+    if [[ "$LOCAL_INSTALL" != "true" && "$SKIP_RESTART" != "true" ]]; then
+        log_info "Restarting OpenClaw services..."
+        ssh -o ConnectTimeout=10 "${verify_user}@${verify_host}" "
+            systemctl --user restart openclaw-gateway 2>/dev/null || true
+            sleep 2
+            systemctl --user is-active openclaw-gateway &>/dev/null && echo 'OK' || echo 'FAIL'
+        " 2>/dev/null | grep -q "OK" && log_success "OpenClaw gateway restarted" || log_warn "Could not restart OpenClaw"
+    fi
+
+    # Check 3: Service accessibility
+    # The Raspberry Pi kiosk serves the full-repo layout via `npx serve . -p 8080` from ${REMOTE_DIR}.
+    local service_url="http://${verify_host}:8080/src/widget.html"
+    local canvas_url="http://${verify_host}:18789/__openclaw__/canvas/otaclaw/widget.html"
+    log_info "OtaClaw kiosk URL (npx serve, primary):"
+    log_info "  ${service_url}"
+    log_info "OpenClaw canvas URL (if gateway mounted the canvas):"
+    log_info "  ${canvas_url}"
+
+    # Check 4: Browser test suggestion
+    log_info ""
+    log_info "Health check: Open ${service_url} in a browser"
+    log_info "Expected: OtaClaw loads and connects to the configured gateway"
+
+    return 0
+}
+
+# Main deployment flow
+main() {
+    echo -e "${BLUE}========================================${NC}"
+    echo -e "${BLUE}  OtaClaw for OpenClaw - Deploy Script${NC}"
+    echo -e "${BLUE}========================================${NC}"
+    echo
+
+    parse_args "$@"
+    detect_host
+    detect_user
+    check_prerequisites
+
+    # Run pre-flight checks
+    if ! run_preflight_checks; then
+        log_error "Pre-flight checks failed. Aborting."
+        exit 1
+    fi
+
+    fresh_install
+    verify_openclaw
+    deploy_files
+    verify_deployment
+    
+    if [[ "$DRY_RUN" == "false" ]]; then
+        configure_settings
+        restart_openclaw
+        if [[ "$RESTART_KIOSK" == "true" && "$LOCAL_INSTALL" != "true" ]]; then
+            log_info "Updating kiosk script (cache-bust) and restarting..."
+            if [[ -f "${REPO_ROOT}/scripts/patch-kiosk-cache-bust.sh" ]]; then
+                bash "${REPO_ROOT}/scripts/patch-kiosk-cache-bust.sh" "$HOST" "$USER" 2>/dev/null || true
+            fi
+            ssh "${USER}@${HOST}" -p "$PORT" 'XDG_RUNTIME_DIR=/run/user/$(id -u) systemctl --user restart otaclaw-kiosk'
+            ssh "${USER}@${HOST}" -p "$PORT" 'DISPLAY=:0 xset dpms force on 2>/dev/null || true'
+            log_success "Kiosk restarted"
+            log_info "Tip: If screensaver never activates, run: ./scripts/enable-kiosk-screensaver.sh ${HOST} ${USER} 300"
+            # Optional: Pi buzzer for tickle sound. Only when --setup-buzzer (avoids overwriting user customization)
+            if [[ "$SETUP_BUZZER" == "true" && -f "${REPO_ROOT}/scripts/pi-buzzer-tickle.py" ]]; then
+                log_info "Setting up Pi buzzer..."
+                scp -P "$PORT" "${REPO_ROOT}/scripts/pi-buzzer-tickle.py" "${USER}@${HOST}:~/"
+                # Only set buzzerTickleUrl when it is currently null
+                if ssh "${USER}@${HOST}" -p "$PORT" "grep -q 'buzzerTickleUrl: null' ${REMOTE_DIR}/config/config.js 2>/dev/null"; then
+                    ssh "${USER}@${HOST}" -p "$PORT" "sed -i 's|buzzerTickleUrl: null|buzzerTickleUrl: \"http://127.0.0.1:18790/tickle\"|' ${REMOTE_DIR}/config/config.js"
+                fi
+                ssh "${USER}@${HOST}" -p "$PORT" 'pgrep -f pi-buzzer-tickle >/dev/null || (nohup python3 ~/pi-buzzer-tickle.py --audio >> /tmp/buzzer-tickle.log 2>&1 &)'
+                log_success "Pi buzzer configured"
+            fi
+        fi
+        print_access_info
+    else
+        log_info "Dry run complete - no changes made"
+    fi
+}
+
+# Run main function
+main "$@"

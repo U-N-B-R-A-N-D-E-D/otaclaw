@@ -1,0 +1,29 @@
+/* EMERGENCY FIX: Force touch to work */
+body * {
+  pointer-events: auto !important;
+}
+
+/* But keep these elements non-interactive */
+.boot-black-overlay,
+.widget-sprite-overlay,
+.sprite-viewport *,
+.otacon-frame *,
+.speech-bubble {
+  pointer-events: none !important;
+}
+
+/* Touch overlay should NOT block menus/panels */
+#touch-overlay {
+  pointer-events: none !important;
+}
+
+/* Ensure menus and interactive panels are clickable */
+#display-tools-panel,
+#display-tools-panel *,
+#display-tools-button,
+.codec-mode-indicator,
+.codec-frequency-lcd,
+.codec-stats-mini {
+  pointer-events: auto !important;
+  z-index: 99999 !important;
+}
