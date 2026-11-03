@@ -10,29 +10,30 @@ key.
 - Node.js 16+ (18/20 recommended)
 - A modern browser
 
-## 1. Run the demo
+## 1. Run the kiosk demo
 
 ```bash
 git clone https://github.com/U-N-B-R-A-N-D-E-D/otaclaw.git
 cd otaclaw
 npm install
-npm run gateway:demo
+npm run demo:kiosk
 ```
 
-Open the printed URL. The reference gateway serves the app and simulates a
-thinking → reply → success cycle every 3 seconds.
+It starts the reference gateway and opens **only the kiosk**: the native float
+on macOS, or a windowless Chromium/app window on Linux/Windows. No browser tab
+and no landing page. The face reacts to a simulated thinking → reply → success
+cycle every 3 seconds. Ctrl+C stops the gateway and the kiosk.
 
-Stop it with Ctrl+C. To run the gateway without the simulated cycle:
+If port 18789 is busy:
+
+```bash
+PORT=19000 npm run demo:kiosk
+```
+
+To run the gateway headlessly (BYOA, embedding, or your own browser), use:
 
 ```bash
 npm run gateway
-```
-
-If port 18789 is already used by your agent gateway, pick another:
-
-```bash
-npm run gateway -- --port 18800
-# widget: http://127.0.0.1:18800/src/widget.html?host=127.0.0.1&port=18800&hal_ws=ws://127.0.0.1:18800/ws
 ```
 
 ## 2. Drive it from your agent
@@ -54,29 +55,24 @@ Without `bubble`, the face summarizes `content` locally.
 
 Next: [docs/BRING-YOUR-OWN-AGENT.md](docs/BRING-YOUR-OWN-AGENT.md).
 
-## 3. Pick a mode
+## 3. The one window: kiosk or embed
 
-### Widget (resizable / iframe)
+The default is the kiosk from step 1. It is the only window the demo opens.
+
+- **macOS:** `npm run demo:kiosk` opens the native always-on-top float (180×320;
+  sprite size in the gear menu).
+- **Linux/Windows:** `npm run demo:kiosk` opens a windowless Chromium/app kiosk.
+- **Live agent:** `./start-kiosk.sh` opens the same native float against your
+  configured gateway.
+- **Embedding:** use the widget URL in an iframe/your own UI; that is the embed
+  surface, not the kiosk demo:
 
 ```html
 <iframe src="http://YOUR_HOST:18789/src/widget.html?host=YOUR_HOST&port=18789&hal_ws=ws://YOUR_HOST:18789/ws"
   width="240" height="320" style="border:none; border-radius:12px;"></iframe>
 ```
 
-### Fullscreen / kiosk
-
-```bash
-chromium --kiosk --app=http://YOUR_HOST:18789/src/widget.html
-```
-
 Long-press (~1 s) or tap the gear for face rotation, full window and backdrop.
-
-### Desktop companion / floating HUD
-
-- **macOS:** `./start-kiosk.sh` opens the native always-on-top panel (180×320,
-  sprite size in the gear menu).
-- **Linux/Windows:** open the widget in a small Chrome/Brave app window
-  (`--app="<URL>"`).
 
 See [docs/DESKTOP-KIOSK.md](docs/DESKTOP-KIOSK.md).
 

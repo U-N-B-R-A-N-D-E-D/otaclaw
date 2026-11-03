@@ -11,11 +11,14 @@ reference gateway; a modern browser is the only runtime dependency for the face.
 git clone https://github.com/U-N-B-R-A-N-D-E-D/otaclaw.git
 cd otaclaw
 npm install
-npm run gateway:demo
+npm run demo:kiosk
 ```
 
-Open the URL printed by the gateway. It serves the widget and simulates an agent
-cycle every 3 seconds.
+It starts the reference gateway and opens **only the kiosk**: the native float on
+macOS, or a windowless Chromium/app window on Linux/Windows. No browser tab and
+no landing page. It simulates an agent cycle every 3 seconds. Ctrl+C stops both.
+
+If port 18789 is busy: `PORT=19000 npm run demo:kiosk`.
 
 ## 2. Connect your agent
 
@@ -65,18 +68,21 @@ OpenClaw canvas URL (if the gateway mounts it):
 
 ```
 http://YOUR_HOST:18789/__openclaw__/canvas/otaclaw/widget.html?kiosk=1
-http://YOUR_HOST:18789/__openclaw__/canvas/otaclaw/widget.html?kiosk=1widget.html
 ```
 
-## 5. Any static server
+## 5. Development / embed server
 
-No build step. Serve the repository root (or `src/`) with any web server:
+No build step for the web app. Serve the repository root with any web server for
+development and embedding:
 
 ```bash
 npx serve . -p 8080
-# http://localhost:8080/src/index.html      (kiosk)
-# http://localhost:8080/src/widget.html     (widget)
+# http://localhost:8080/src/index.html      (development landing)
+# http://localhost:8080/src/widget.html     (widget / embed)
 ```
+
+This is not the kiosk demo. The kiosk is `npm run demo:kiosk` (demo gateway +
+float/windowless kiosk) or `./start-kiosk.sh` against your own gateway.
 
 ## Configuration
 

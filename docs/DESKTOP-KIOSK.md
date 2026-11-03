@@ -7,8 +7,17 @@ on Linux/Windows, a second monitor, a tablet, or a Raspberry Pi.
 ## 1. The idea
 
 OtaClaw is a static HTML5 app: no build step and no extra hardware. On a desktop
-it can run as a frameless widget that looks like an in-game HUD, with no tab
-strip, address bar, bookmarks or window chrome.
+it runs as a frameless kiosk that looks like an in-game HUD, with no tab strip,
+address bar, bookmarks or window chrome. The optional macOS helper compiles once
+with `swiftc`; everything else is static.
+
+```bash
+# Demo gateway + the only kiosk window (no browser tab/landing)
+npm run demo:kiosk
+
+# Live agent, same float/windowless kiosk
+./start-kiosk.sh
+```
 
 ## 2. macOS: floating panel and Spaces
 
@@ -40,17 +49,19 @@ Source: `tools/mac-float/main.swift`. A small Swift binary built on `Cocoa` +
 - The floating URL uses `?compact=1` (the auto scale is derived from the window;
   no fixed `scale` param).
 
-### Mode B: browser app window (all platforms)
+### Mode B: platform kiosk window (Linux/Windows fallback)
 
-Chrome or Brave in app mode (`--app="<URL>"`) opens a clean 360×480 window with
-no browser chrome. Use it when you do not need always-on-top behavior, or on
-Linux/Windows.
+`npm run demo:kiosk` picks the windowless kiosk automatically: Chromium `--kiosk`
+on Linux and a Chrome app window on Windows. If the macOS Swift helper cannot be
+built, the same launcher falls back to a Chrome app window on macOS. This is a
+fallback for the single kiosk surface, not a second approved window type.
 
 ## 3. Displays and multiple monitors
 
 The widget is just a URL; any display can host it.
 
-- **Mac kiosk (default):** `./start-kiosk.sh` opens the floating panel.
+- **Mac kiosk (default):** `npm run demo:kiosk` (demo) or `./start-kiosk.sh`
+  (live agent) opens the floating panel.
 - **Fullscreen on one display:** `./start-kiosk.sh --browser`, move the app
   window to the target monitor, then `⌃⌘F`.
 - **Another monitor:** drag the floating panel there; it follows Spaces and

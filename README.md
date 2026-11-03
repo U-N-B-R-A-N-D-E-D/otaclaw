@@ -65,27 +65,33 @@ Perfect for:
 
 ## 60-second demo
 
-No gateway or API key required.
+No gateway or API key required. The demo opens **only the kiosk** — no browser
+tab and no landing page.
 
 ```bash
 git clone https://github.com/U-N-B-R-A-N-D-E-D/otaclaw.git
 cd otaclaw
 npm install
-npm run gateway:demo
-# open the printed http://127.0.0.1:18789/... URL
+npm run demo:kiosk
 ```
 
-The reference gateway serves the app and emits a simulated thinking → reply →
-success cycle every 3 seconds. Stop it with Ctrl+C.
+It starts the reference gateway and opens the approved kiosk surface: the native
+floating panel on macOS, or a windowless Chromium/app window on Linux/Windows.
+The face reacts to a simulated thinking → reply → success cycle every 3 seconds.
+Ctrl+C stops the gateway and the kiosk.
 
-Prefer a plain static server? `npm start` (port 8080) then open
-`http://localhost:8080/src/index.html?demo=1`.
+If port 18789 is busy: `PORT=19000 npm run demo:kiosk`.
+
+The raw widget URL is for embedding/observing, not the kiosk. Use
+`npm run gateway:demo` only when you want the gateway headlessly and will open
+the printed widget URL in your own browser.
 
 ## Bring your own agent
 
 OtaClaw ships a tiny reference gateway (`examples/gateway.mjs`, Node + `ws`) with
-**no inference**. You can replace it with anything that speaks the protocol, or
-drive it with one HTTP call per event:
+**no inference**. `npm run demo:kiosk` starts it together with the kiosk;
+`npm run gateway:demo` is the headless/embed path. You can replace the gateway
+with anything that speaks the protocol, or drive it with one HTTP call per event:
 
 ```bash
 curl -X POST http://127.0.0.1:18789/internal/notify \
@@ -128,7 +134,7 @@ flowchart LR
 
 | Path | Role |
 |------|------|
-| `src/index.html`, `src/widget.html` | Demo landing (Tap to start) and the embeddable/kiosk face |
+| `src/index.html`, `src/widget.html` | Development landing (not the kiosk demo) and the embeddable/kiosk face |
 | `src/js/websocket-client.js` | Gateway connection, heartbeat, reconnect, offline queue |
 | `src/js/core/` | State machine, avatar director, animation controller, speech policy, emotion patterns (unit tested) |
 | `src/js/app.js`, `otaclaw.js` | Wiring, touch interaction, floating HUD behavior |
@@ -147,9 +153,9 @@ invariants), [docs/WEBSOCKET-PROTOCOL.md](docs/WEBSOCKET-PROTOCOL.md) (events),
 
 | Mode | Use case |
 |------|----------|
-| **A) Widget** | Floating window, iframe, sidebar; any URL |
-| **B) Fullscreen + rotation** | Dedicated display (second monitor, tablet, optional Pi) |
-| **C) Desktop companion** | Frameless, always-on-top HUD; macOS native panel via `./start-kiosk.sh`, Chrome/Brave app window elsewhere |
+| **A) Kiosk (default)** | `npm run demo:kiosk` — native float on macOS; windowless kiosk window on Linux/Windows |
+| **B) Embed** | The widget URL in an iframe/browser; for embedding, not the default |
+| **C) Dedicated display** | Fullscreen kiosk window / Raspberry Pi, with rotation and display tools |
 
 The widget is just a URL, so any display can host one. For the macOS panel,
 multiple monitors and rotation, see

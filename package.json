@@ -20,7 +20,8 @@
     "format": "npx prettier --write 'src/**/*.{js,css,html}'",
     "sprites:usage": "node tools/sprite-usage.mjs",
     "docs:sprite-map": "node tools/gen-sprite-map.mjs",
-    "clean": "rm -rf node_modules"
+    "clean": "rm -rf node_modules",
+    "demo:kiosk": "bash scripts/demo-kiosk.sh"
   },
   "repository": {
     "type": "git",
