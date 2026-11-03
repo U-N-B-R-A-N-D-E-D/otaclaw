@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OtaClaw Sprite Anatomy</title>
+<style>
+  :root {
+    --bg: #1b1c1e; --panel: #232528; --panel2: #2a2d31; --line: #3a3e44;
+    --text: #e8e9ec; --muted: #9aa0a8; --accent: #3bcb86; --diff: #ff4d4d;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-size: 13px; }
+  header { display: flex; gap: 12px; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--line); background: #17181a; position: sticky; top: 0; z-index: 2; flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 650; }
+  header .muted { color: var(--muted); font-size: 12px; }
+  .spacer { flex: 1; }
+  button, label.toggle { font: inherit; color: var(--text); background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+  button.active { border-color: var(--accent); color: var(--accent); }
+  main { padding: 16px 18px 40px; max-width: 1400px; margin: 0 auto; }
+  h2 { font-size: 14px; margin: 26px 0 8px; }
+  p.lead { color: var(--muted); margin: 0 0 12px; line-height: 1.5; max-width: 900px; }
+  #families { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+  .family { border: 1px solid var(--line); background: var(--panel); border-radius: 11px; padding: 10px 12px; max-width: 100%; }
+  .family-head { display: flex; gap: 8px; align-items: baseline; margin-bottom: 8px; }
+  .family-head b { font-size: 13px; }
+  .family-head span { color: var(--muted); font-size: 11px; }
+  .members { display: flex; gap: 10px; flex-wrap: wrap; }
+  .member { width: 150px; }
+  .member canvas { display: block; width: 116px; height: 256px; image-rendering: pixelated; background: #141517; border-radius: 6px; border: 1px solid var(--line); }
+  .member .cell { font-family: ui-monospace, Menlo, monospace; color: var(--accent); font-size: 11px; margin-top: 4px; }
+  .member .face { color: var(--text); font-size: 11px; line-height: 1.35; }
+  .member .meaning { color: var(--muted); font-size: 10.5px; line-height: 1.35; margin-top: 2px; }
+  .seq-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+  .seq { border: 1px solid var(--line); background: var(--panel); border-radius: 11px; padding: 10px; }
+  .seq h3 { margin: 0 0 6px; font-size: 13px; }
+  .pair { display: flex; gap: 10px; }
+  .pair figure { margin: 0; text-align: center; }
+  .pair figcaption { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 3px; }
+  .pair img { width: 87px; height: 192px; object-fit: contain; image-rendering: pixelated; background: #141517; border-radius: 6px; border: 1px solid var(--line); }
+  .pair figure.new img { border-color: #2c6b4d; }
+  .steps { font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: var(--muted); margin-top: 6px; line-height: 1.5; word-break: break-word; }
+  .steps .on { color: var(--accent); }
+  .codec-row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .codec-row figure { margin: 0; }
+  .codec-row img { width: 104px; height: 178px; image-rendering: pixelated; border-radius: 6px; border: 1px solid var(--line); }
+  .codec-row figcaption { color: var(--muted); font-size: 11px; margin-bottom: 3px; }
+  @media (max-width: 640px) { main { padding: 12px 16px 32px; } .member { width: 128px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Sprite anatomy</h1>
+  <span class="muted" id="summary">loading…</span>
+  <span class="spacer"></span>
+  <label class="toggle"><input type="checkbox" id="diff" checked> diff vs family base</label>
+  <button id="pause">Pause</button>
+</header>
+<main>
+  <h2>Families: one body, different faces</h2>
+  <p class="lead">Frames that share a body drawing are grouped. Red pixels are what changes against the family base after aligning the canvases; the text says what that change means. Short-lived variants (half-blinks, mouth shapes) are what make sequences feel alive.</p>
+  <div id="families"></div>
+
+  <h2>Sequences: before vs after</h2>
+  <p class="lead">Left: the sequence on <code>main</code> before the visual pass (one <code>frameMs</code> per state). Right: the current <code>DEFAULT_STATE_SPRITES</code> with per-frame timing <code>[col, row, ms]</code>.</p>
+  <div class="seq-grid" id="seqs"></div>
+
+  <h2>Codec: listening vs talking</h2>
+  <p class="lead">Each codec set is <code>[1 base, 2 half-blink, 3 blink, 4 mouth open, 5 mouth half]</code>. Listening states only blink; talking states move the mouth.</p>
+  <div class="codec-row" id="codec"></div>
+</main>
+<script type="module">
+import { DEFAULT_STATE_SPRITES, frameDuration } from "/src/js/core/state-sprite-map.js";
+
+const $ = (s) => document.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const json = (p) => fetch(`${p}?v=${Date.now()}`, { cache: "no-store" }).then((r) => r.json());
+
+// Snapshot of main before the visual pass (sequence, frameMs) for comparison.
+const BEFORE = {
+  idle: [[[0, 0], [3, 0], [11, 0], [8, 0]], 6000], thinking: [[[1, 0], [4, 0], [2, 0], [11, 0], [4, 0]], 2400],
+  processing: [[[6, 0], [7, 0], [6, 1], [7, 1], [0, 3], [1, 3]], 1800], tool: [[[6, 2], [8, 1], [10, 1]], 1800],
+  success: [[[0, 1], [1, 1], [3, 1], [2, 1]], 350], error: [[[2, 2], [3, 2]], 600], confused: [[[4, 1], [1, 2]], 700],
+  attention: [[[6, 2], [0, 0]], 1200], laughing: [[[2, 3], [3, 3]], 450], surprised: [[[9, 0], [10, 0]], 400],
+  curious: [[[5, 2], [11, 0]], 1000], excited: [[[2, 1], [3, 1], [6, 3], [7, 3]], 450],
+  presenting: [[[6, 3], [7, 3], [6, 0], [7, 0]], 500], worried: [[[0, 2], [4, 2]], 700], sad: [[[2, 2], [3, 2]], 700],
+  scared: [[[10, 3], [9, 0]], 400], greeting: [[[7, 2], [0, 0]], 800],
+  confident: [[[8, 1], [9, 1], [10, 1], [11, 1], [8, 3]], 1600], playful: [[[4, 3], [5, 3], [2, 3]], 500], cold: [[[9, 3]], 700],
+};
+
+const [anatomy, sprites, frames, config] = await Promise.all([
+  json("/src/data/sprite-anatomy.json"),
+  json("/src/data/sprite-catalog.json"),
+  json("/src/data/frame-catalog.json"),
+  import(`/config/config.example.js?v=${Date.now()}`).then((m) => m.default || m.OTACLAW_CONFIG || m).catch(() => ({})),
+]);
+const fileOf = new Map(sprites.sprites.map((s) => [`${s.col},${s.row}`, s.file]));
+const frameOf = new Map(frames.frames.map((f) => [`${f.col},${f.row}`, f]));
+const url = (c, r) => `/src/assets/sprites/${fileOf.get(`${c},${r}`)}`;
+const loadImg = (src) => new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = bad; i.src = src; });
+
+const images = new Map();
+await Promise.all([...fileOf.keys()].map(async (k) => {
+  const [c, r] = k.split(",").map(Number);
+  images.set(k, await loadImg(url(c, r)));
+}));
+const pixels = (img) => {
+  const cv = document.createElement("canvas"); cv.width = img.width; cv.height = img.height;
+  const cx = cv.getContext("2d"); cx.drawImage(img, 0, 0);
+  return cx.getImageData(0, 0, img.width, img.height).data;
+};
+
+// Same alignment as the analysis: bottom-aligned, best horizontal offset.
+function diffMask(baseKey, key) {
+  const A = images.get(baseKey), B = images.get(key);
+  const a = pixels(A), b = pixels(B);
+  const px = (d, w, h, x, y) => {
+    if (x < 0 || y < 0 || x >= w || y >= h) return [0, 0, 0, 0];
+    const i = (y * w + x) * 4; return d[i + 3] ? [d[i], d[i + 1], d[i + 2], d[i + 3]] : [0, 0, 0, 0];
+  };
+  let best = null;
+  for (let dx = -6; dx <= 6; dx++) {
+    const mask = [];
+    const oy = A.height - B.height;
+    for (let y = 0; y < B.height; y++) for (let x = 0; x < B.width; x++) {
+      const p = px(b, B.width, B.height, x, y), q = px(a, A.width, A.height, x + dx, y + oy);
+      if (p.some((v, i) => v !== q[i])) mask.push([x, y]);
+    }
+    if (!best || mask.length < best.length) best = mask;
+  }
+  return best;
+}
+
+const S = 4;
+function drawMember(canvas, key, baseKey, withDiff) {
+  const img = images.get(key);
+  canvas.width = 29 * S; canvas.height = 64 * S;
+  const cx = canvas.getContext("2d"); cx.imageSmoothingEnabled = false;
+  cx.clearRect(0, 0, canvas.width, canvas.height);
+  const ox = Math.floor((canvas.width - img.width * S) / 2), oy = canvas.height - img.height * S;
+  cx.drawImage(img, ox, oy, img.width * S, img.height * S);
+  if (withDiff && baseKey && baseKey !== key) {
+    cx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--diff").trim() || "red";
+    cx.lineWidth = 1;
+    for (const [x, y] of diffMask(baseKey, key)) cx.strokeRect(ox + x * S + 0.5, oy + y * S + 0.5, S - 1, S - 1);
+  }
+}
+
+function renderFamilies() {
+  const withDiff = $("#diff").checked;
+  const host = $("#families");
+  host.innerHTML = "";
+  for (const [name, fam] of Object.entries(anatomy.families)) {
+    const baseKey = fam.base.join(",");
+    const el = document.createElement("div");
+    el.className = "family";
+    el.innerHTML = `<div class="family-head"><b>${esc(name)}</b><span>base ${esc(baseKey)} · ${fam.members.length} frame${fam.members.length > 1 ? "s" : ""}</span></div><div class="members"></div>`;
+    for (const m of fam.members) {
+      const key = m.cell.join(",");
+      const div = document.createElement("div");
+      div.className = "member";
+      const cv = document.createElement("canvas");
+      div.append(cv);
+      const f = frameOf.get(key) || {};
+      div.insertAdjacentHTML("beforeend", `<div class="cell">${esc(key)} · ${esc(m.id)}${m.diffPx != null && key !== baseKey ? ` · ${m.diffPx}px` : ""}</div>
+        <div class="face">${esc(m.face)}</div><div class="meaning">${esc(f.primary || "")}/${esc(f.lane || "")} — ${esc(m.meaning)}</div>`);
+      el.querySelector(".members").append(div);
+      drawMember(cv, key, baseKey, withDiff);
+    }
+    host.append(el);
+  }
+}
+
+let paused = false;
+const players = [];
+function player(img, steps, seq, defMs) {
+  let i = 0, t = null;
+  const tick = () => {
+    if (!paused) {
+      const [c, r] = seq[i];
+      img.src = url(c, r);
+      steps.forEach((s, j) => s.classList.toggle("on", j === i));
+    }
+    const ms = frameDuration(seq[i], defMs);
+    i = (i + 1) % seq.length;
+    t = setTimeout(tick, i === 0 ? ms + 900 : ms); // short pause marks the loop point
+  };
+  tick();
+  players.push(() => clearTimeout(t));
+}
+
+function renderSeqs() {
+  const host = $("#seqs");
+  for (const [state, def] of Object.entries(DEFAULT_STATE_SPRITES)) {
+    const [oldSeq, oldMs] = BEFORE[state] || [[], 0];
+    const el = document.createElement("div");
+    el.className = "seq";
+    const stepHtml = (seq, ms) => seq.map((f) => `<span>${f[0]},${f[1]}·${frameDuration(f, ms)}</span>`).join(" ");
+    el.innerHTML = `<h3>${esc(state)} <span style="color:var(--muted);font-weight:400;font-size:11px">${esc(def.mode)}</span></h3>
+      <div class="pair">
+        ${oldSeq.length ? `<figure><figcaption>before</figcaption><img alt="${esc(state)} before"></figure>` : ""}
+        <figure class="new"><figcaption>after</figcaption><img alt="${esc(state)} after"></figure>
+      </div>
+      ${oldSeq.length ? `<div class="steps old">${stepHtml(oldSeq, oldMs)}</div>` : '<div class="steps">new state</div>'}
+      <div class="steps new">${stepHtml(def.sequence, def.frameMs)}</div>`;
+    host.append(el);
+    const imgs = el.querySelectorAll(".pair img");
+    if (oldSeq.length) player(imgs[0], [...el.querySelectorAll(".steps.old span")], oldSeq, oldMs);
+    player(imgs[imgs.length - 1], [...el.querySelectorAll(".steps.new span")], def.sequence, def.frameMs);
+  }
+}
+
+function renderCodec() {
+  const faces = config?.sprites?.codecStateFaces || {};
+  const host = $("#codec");
+  for (const state of ["idle", "thinking", "speaking", "success", "presenting", "error", "attention"]) {
+    const list = faces[state];
+    if (!list) continue;
+    const fig = document.createElement("figure");
+    fig.innerHTML = `<figcaption>${esc(state)}</figcaption><img alt="codec ${esc(state)}">`;
+    host.append(fig);
+    const img = fig.querySelector("img");
+    const seq = list.map((e) => { const m = String(e).match(/^(.*)@(\d+)$/); return m ? [m[1], Number(m[2])] : [e, 1200]; });
+    let i = 0;
+    const tick = () => {
+      if (!paused) img.src = `/src/assets/sprites/${seq[i][0]}`;
+      const ms = seq[i][1];
+      i = (i + 1) % seq.length;
+      setTimeout(tick, ms);
+    };
+    tick();
+  }
+}
+
+const famCount = Object.keys(anatomy.families).length;
+$("#summary").textContent = `${frames.frames.length} frames · ${famCount} families · ${Object.keys(anatomy.blink).length} native blink pairs`;
+$("#diff").addEventListener("change", renderFamilies);
+$("#pause").addEventListener("click", (e) => { paused = !paused; e.target.textContent = paused ? "Play" : "Pause"; e.target.classList.toggle("active", paused); });
+renderFamilies();
+renderSeqs();
+renderCodec();
+</script>
+</body>
+</html>

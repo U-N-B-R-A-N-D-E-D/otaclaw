@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "note": "1:1 Hal sprite functions. agent.sprite {sprite:id|emoji|'c,r', bubble?}; tools map tool ids to a state sequence.",
+  "note": "1:1 Hal sprite functions. agent.sprite {sprite:id|emoji|'c,r', bubble?}; tools map tool ids to a state sequence. Ids describe what the pixels show; `aliases` keep the pre-v3 ids resolving to the same cell.",
   "functions": [
     {
       "id": "idle",
@@ -10,53 +10,57 @@
         0
       ],
       "state": "idle",
-      "desc": "neutral standing, arms at sides — true rest",
+      "desc": "standing, one hand on hip, other arm down, neutral face — true rest",
       "primary": "idle",
       "lane": "idle",
       "emotion": "calm",
       "use": [
-        "attention",
-        "greeting",
         "idle"
       ],
       "avoid": []
     },
     {
-      "id": "think_left",
-      "emoji": "🤔",
+      "id": "point_ready",
+      "emoji": "👉",
       "frame": [
         1,
         0
       ],
-      "state": "thinking",
-      "desc": "head left, arm across — mild think (work only, not idle)",
-      "primary": "thinking",
+      "state": "processing",
+      "desc": "fist forward, neutral — about to make a point",
+      "primary": "explaining",
       "lane": "work",
-      "emotion": "calm",
+      "emotion": "working",
       "use": [
-        "thinking"
+        "processing"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "think_left"
       ]
     },
     {
-      "id": "think_right",
-      "emoji": "🤔",
+      "id": "point_stern",
+      "emoji": "😤",
       "frame": [
         2,
         0
       ],
-      "state": "thinking",
-      "desc": "head right, arm across — mild think (work only, not idle)",
-      "primary": "thinking",
+      "state": "processing",
+      "desc": "fist forward, frowning — objecting, stern",
+      "primary": "explaining",
       "lane": "work",
-      "emotion": "calm",
+      "emotion": "confident",
       "use": [
-        "thinking"
+        "processing"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "think_right"
       ]
     },
     {
@@ -67,7 +71,7 @@
         0
       ],
       "state": "idle",
-      "desc": "hands together at waist — calm waiting rest",
+      "desc": "arms folded over belly, head turned aside — calm waiting",
       "primary": "idle",
       "lane": "idle",
       "emotion": "calm",
@@ -84,10 +88,10 @@
         0
       ],
       "state": "thinking",
-      "desc": "hand to chin — contemplative think (not idle rest)",
+      "desc": "arm across, hand to chin — thinking",
       "primary": "thinking",
       "lane": "work",
-      "emotion": "calm",
+      "emotion": "thinking",
       "use": [
         "thinking"
       ],
@@ -96,217 +100,243 @@
       ]
     },
     {
-      "id": "puzzled",
-      "emoji": "😕",
+      "id": "think_squint",
+      "emoji": "🤔",
       "frame": [
         5,
         0
       ],
-      "state": "confused",
-      "desc": "hands near chest, puzzled / unsure",
-      "primary": "confused",
+      "state": "thinking",
+      "desc": "hand to chin, eyes narrowed — concentrating (also the blink frame of 4,0)",
+      "primary": "thinking",
       "lane": "work",
-      "emotion": "confusion",
+      "emotion": "thinking",
       "use": [
-        "confused"
+        "thinking"
       ],
       "avoid": [
-        "idle",
-        "auto"
+        "idle"
+      ],
+      "aliases": [
+        "puzzled"
       ]
     },
     {
-      "id": "explain_left",
-      "emoji": "🗣️",
+      "id": "think_glance",
+      "emoji": "👀",
       "frame": [
         6,
         0
       ],
-      "state": "processing",
-      "desc": "left arm out — explaining / presenting point",
-      "primary": "explaining",
+      "state": "thinking",
+      "desc": "hand to chin, glancing aside — pondering, reading",
+      "primary": "thinking",
       "lane": "work",
-      "emotion": "neutral",
+      "emotion": "thinking",
       "use": [
-        "presenting",
-        "processing"
+        "thinking"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "explain_left"
       ]
     },
     {
-      "id": "explain_right",
-      "emoji": "🗣️",
+      "id": "contemplate_alt",
+      "emoji": "🧐",
       "frame": [
         7,
         0
       ],
-      "state": "processing",
-      "desc": "right arm out — explaining (mirror)",
-      "primary": "explaining",
+      "state": "thinking",
+      "desc": "hand to chin, alternate drawing — thinking",
+      "primary": "thinking",
       "lane": "work",
-      "emotion": "neutral",
+      "emotion": "thinking",
       "use": [
-        "presenting",
-        "processing"
+        "thinking"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "explain_right"
       ]
     },
     {
-      "id": "arms_closed",
-      "emoji": "🙅",
+      "id": "hands_clasped",
+      "emoji": "🙂",
       "frame": [
         8,
         0
       ],
       "state": "idle",
-      "desc": "arms crossed / hands in — closed calm waiting",
+      "desc": "hands clasped in front, neutral — polite waiting",
       "primary": "idle",
       "lane": "idle",
       "emotion": "calm",
       "use": [
         "idle"
       ],
-      "avoid": []
+      "avoid": [],
+      "aliases": [
+        "arms_closed"
+      ]
     },
     {
-      "id": "shocked_left",
-      "emoji": "😮",
+      "id": "arms_crossed",
+      "emoji": "🤔",
       "frame": [
         9,
         0
       ],
-      "state": "surprised",
-      "desc": "hand to face — surprised / shocked (L)",
-      "primary": "surprised",
-      "lane": "react",
-      "emotion": "surprise",
+      "state": "thinking",
+      "desc": "arms crossed, hand at chin, neutral — weighing it up",
+      "primary": "thinking",
+      "lane": "work",
+      "emotion": "thinking",
       "use": [
-        "scared",
-        "surprised"
+        "thinking"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "shocked_left"
       ]
     },
     {
-      "id": "shocked_right",
-      "emoji": "😮",
+      "id": "arms_crossed_squint",
+      "emoji": "😑",
       "frame": [
         10,
         0
       ],
-      "state": "surprised",
-      "desc": "hand to face — surprised / shocked (R)",
-      "primary": "surprised",
-      "lane": "react",
-      "emotion": "surprise",
+      "state": "thinking",
+      "desc": "arms crossed, eyes narrowed — skeptical focus (also the blink frame of 9,0)",
+      "primary": "thinking",
+      "lane": "work",
+      "emotion": "thinking",
       "use": [
-        "surprised"
+        "thinking"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "shocked_right"
       ]
     },
     {
-      "id": "look_aside",
-      "emoji": "👀",
+      "id": "chin_rest",
+      "emoji": "🤔",
       "frame": [
         11,
         0
       ],
       "state": "thinking",
-      "desc": "looking aside, contemplative think",
+      "desc": "hand to chin, alternate drawing — thinking",
       "primary": "thinking",
       "lane": "work",
-      "emotion": "calm",
+      "emotion": "thinking",
       "use": [
-        "curious",
         "thinking"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "look_aside"
       ]
     },
     {
-      "id": "thumbs_up_left",
+      "id": "thumbs_up",
       "emoji": "👍",
       "frame": [
         0,
         1
       ],
       "state": "success",
-      "desc": "thumbs-up left — success",
+      "desc": "thumbs up, neutral face — approval",
       "primary": "success",
       "lane": "react",
-      "emotion": "positive",
+      "emotion": "happy",
       "use": [
         "success"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "thumbs_up_left"
       ]
     },
     {
-      "id": "thumbs_up_right",
+      "id": "thumbs_up_raise",
       "emoji": "👍",
       "frame": [
         1,
         1
       ],
       "state": "success",
-      "desc": "thumbs-up right — success",
+      "desc": "thumb raised high — anticipation before the thumbs up",
       "primary": "success",
       "lane": "react",
-      "emotion": "positive",
+      "emotion": "happy",
       "use": [
         "success"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "thumbs_up_right"
       ]
     },
     {
-      "id": "thumbs_up_both",
+      "id": "thumbs_up_wink",
       "emoji": "🎉",
       "frame": [
         2,
         1
       ],
       "state": "excited",
-      "desc": "both thumbs-up — strong success / excited",
+      "desc": "thumbs up with grin and wink — strong success",
       "primary": "success",
       "lane": "react",
-      "emotion": "positive",
+      "emotion": "excited",
       "use": [
-        "excited",
-        "success"
+        "excited"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "thumbs_up_both"
       ]
     },
     {
-      "id": "thumbs_up_hip",
+      "id": "thumbs_up_grin",
       "emoji": "💪",
       "frame": [
         3,
         1
       ],
       "state": "success",
-      "desc": "thumbs-up + hip — success approval",
+      "desc": "thumbs up follow-through, grin and wink — success settle",
       "primary": "success",
       "lane": "react",
-      "emotion": "positive",
+      "emotion": "happy",
       "use": [
-        "excited",
         "success"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "thumbs_up_hip"
       ]
     },
     {
@@ -317,10 +347,10 @@
         1
       ],
       "state": "confused",
-      "desc": "arms open palms up — unsure shrug (NOT idle)",
+      "desc": "open-arm shrug, palms up, neutral — unsure",
       "primary": "confused",
       "lane": "work",
-      "emotion": "confusion",
+      "emotion": "confused",
       "use": [
         "confused"
       ],
@@ -329,177 +359,195 @@
       ]
     },
     {
-      "id": "doubt",
-      "emoji": "🤨",
+      "id": "shrug_big",
+      "emoji": "🤷",
       "frame": [
         5,
         1
       ],
-      "state": "worried",
-      "desc": "shrug open arms + worried face — doubt (NOT idle)",
-      "primary": "confused",
-      "lane": "work",
-      "emotion": "negative",
-      "use": [
-        "worried"
-      ],
-      "avoid": [
-        "idle",
-        "auto"
-      ]
-    },
-    {
-      "id": "point_left",
-      "emoji": "👉",
-      "frame": [
-        6,
-        1
-      ],
-      "state": "processing",
-      "desc": "arm raised pointing — asking / emphasis",
-      "primary": "explaining",
-      "lane": "work",
-      "emotion": "neutral",
-      "use": [
-        "processing"
-      ],
-      "avoid": [
-        "idle"
-      ]
-    },
-    {
-      "id": "point_right",
-      "emoji": "👉",
-      "frame": [
-        7,
-        1
-      ],
-      "state": "processing",
-      "desc": "arm raised pointing (mirror)",
-      "primary": "explaining",
-      "lane": "work",
-      "emotion": "neutral",
-      "use": [
-        "processing"
-      ],
-      "avoid": [
-        "idle"
-      ]
-    },
-    {
-      "id": "hand_on_hip",
-      "emoji": "🧍",
-      "frame": [
-        8,
-        1
-      ],
-      "state": "confident",
-      "desc": "hand on hip — confident",
-      "primary": "confident",
-      "lane": "work",
-      "emotion": "confident",
-      "use": [
-        "confident",
-        "tool"
-      ],
-      "avoid": [
-        "idle"
-      ]
-    },
-    {
-      "id": "hand_on_hip_mirror",
-      "emoji": "🧍",
-      "frame": [
-        9,
-        1
-      ],
-      "state": "confident",
-      "desc": "hand on hip (mirror) — confident",
-      "primary": "confident",
-      "lane": "work",
-      "emotion": "confident",
-      "use": [
-        "confident"
-      ],
-      "avoid": [
-        "idle"
-      ]
-    },
-    {
-      "id": "hands_on_hips",
-      "emoji": "🧍",
-      "frame": [
-        10,
-        1
-      ],
-      "state": "confident",
-      "desc": "both hands on hips — ready / confident",
-      "primary": "confident",
-      "lane": "work",
-      "emotion": "confident",
-      "use": [
-        "confident",
-        "tool"
-      ],
-      "avoid": [
-        "idle"
-      ]
-    },
-    {
-      "id": "dynamic_confident",
-      "emoji": "💼",
-      "frame": [
-        11,
-        1
-      ],
-      "state": "confident",
-      "desc": "arm out + hip — dynamic confident",
-      "primary": "confident",
-      "lane": "work",
-      "emotion": "confident",
-      "use": [
-        "confident"
-      ],
-      "avoid": [
-        "idle"
-      ]
-    },
-    {
-      "id": "worried",
-      "emoji": "😟",
-      "frame": [
-        0,
-        2
-      ],
-      "state": "worried",
-      "desc": "lean forward grimace — WORRIED (pain face, never thinking)",
-      "primary": "worried",
-      "lane": "react",
-      "emotion": "negative",
-      "use": [
-        "worried"
-      ],
-      "avoid": [
-        "idle"
-      ]
-    },
-    {
-      "id": "puzzled_back",
-      "emoji": "😕",
-      "frame": [
-        1,
-        2
-      ],
       "state": "confused",
-      "desc": "lean back — puzzled / questioning",
+      "desc": "big shrug, eyebrow up, looking away — \"no idea\"",
       "primary": "confused",
       "lane": "work",
-      "emotion": "confusion",
+      "emotion": "confused",
       "use": [
         "confused"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "doubt"
+      ]
+    },
+    {
+      "id": "hands_on_hips",
+      "emoji": "😊",
+      "frame": [
+        6,
+        1
+      ],
+      "state": "confident",
+      "desc": "both hands on hips, small smile — proud, ready",
+      "primary": "confident",
+      "lane": "work",
+      "emotion": "confident",
+      "use": [
+        "confident"
+      ],
+      "avoid": [
+        "idle"
+      ],
+      "aliases": [
+        "point_left"
+      ]
+    },
+    {
+      "id": "point_wink",
+      "emoji": "😏",
+      "frame": [
+        7,
+        1
+      ],
+      "state": "confident",
+      "desc": "fist forward with a knowing half-wink — \"got it\"",
+      "primary": "confident",
+      "lane": "work",
+      "emotion": "confident",
+      "use": [
+        "confident"
+      ],
+      "avoid": [
+        "idle"
+      ],
+      "aliases": [
+        "point_right"
+      ]
+    },
+    {
+      "id": "talk_closed",
+      "emoji": "💬",
+      "frame": [
+        8,
+        1
+      ],
+      "state": "processing",
+      "desc": "fist forward, mouth closed with right corner up — making a point (lip-sync rest)",
+      "primary": "talking",
+      "lane": "work",
+      "emotion": "speaking",
+      "use": [
+        "processing"
+      ],
+      "avoid": [
+        "idle"
+      ],
+      "aliases": [
+        "hand_on_hip"
+      ]
+    },
+    {
+      "id": "talk_open",
+      "emoji": "🗣️",
+      "frame": [
+        9,
+        1
+      ],
+      "state": "processing",
+      "desc": "fist forward, mouth open — speaking (lip-sync open)",
+      "primary": "talking",
+      "lane": "work",
+      "emotion": "speaking",
+      "use": [
+        "processing"
+      ],
+      "avoid": [
+        "idle"
+      ],
+      "aliases": [
+        "hand_on_hip_mirror"
+      ]
+    },
+    {
+      "id": "talk_grin",
+      "emoji": "😁",
+      "frame": [
+        10,
+        1
+      ],
+      "state": "presenting",
+      "desc": "fist forward, open grin with narrowed eyes — emphatic, amused while talking",
+      "primary": "explaining",
+      "lane": "work",
+      "emotion": "speaking",
+      "use": [
+        "presenting"
+      ],
+      "avoid": [
+        "idle"
+      ]
+    },
+    {
+      "id": "skeptical",
+      "emoji": "🤨",
+      "frame": [
+        11,
+        1
+      ],
+      "state": "curious",
+      "desc": "fist forward, eyebrow raised, looking up — skeptical \"hmm?\"",
+      "primary": "curious",
+      "lane": "work",
+      "emotion": "curious",
+      "use": [
+        "curious"
+      ],
+      "avoid": [
+        "idle"
+      ],
+      "aliases": [
+        "dynamic_confident"
+      ]
+    },
+    {
+      "id": "startled",
+      "emoji": "😬",
+      "frame": [
+        0,
+        2
+      ],
+      "state": "surprised",
+      "desc": "leans back, teeth gritted, glasses flash — startled recoil",
+      "primary": "surprised",
+      "lane": "react",
+      "emotion": "surprised",
+      "use": [
+        "surprised"
+      ],
+      "avoid": [
+        "idle"
+      ]
+    },
+    {
+      "id": "wince",
+      "emoji": "😣",
+      "frame": [
+        1,
+        2
+      ],
+      "state": "error",
+      "desc": "leans back, eyes squeezed, teeth gritted — wince, \"ouch\"",
+      "primary": "worried",
+      "lane": "react",
+      "emotion": "error",
+      "use": [
+        "error"
+      ],
+      "avoid": [
+        "idle"
+      ],
+      "aliases": [
+        "puzzled_back"
       ]
     },
     {
@@ -510,12 +558,11 @@
         2
       ],
       "state": "sad",
-      "desc": "sad, hands clasped — error / disappointment",
+      "desc": "slumped, fists down, frown, glasses glare hide the eyes — dejected",
       "primary": "sad",
       "lane": "react",
-      "emotion": "negative",
+      "emotion": "sad",
       "use": [
-        "error",
         "sad"
       ],
       "avoid": [
@@ -524,80 +571,87 @@
     },
     {
       "id": "sad_intense",
-      "emoji": "😭",
+      "emoji": "😢",
       "frame": [
         3,
         2
       ],
       "state": "error",
-      "desc": "sad intense — hard error",
+      "desc": "slumped, lip quivering — about to cry, hard error",
       "primary": "sad",
       "lane": "react",
-      "emotion": "negative",
+      "emotion": "sad",
       "use": [
-        "error",
-        "sad"
+        "error"
       ],
       "avoid": [
         "idle"
       ]
     },
     {
-      "id": "worried_chin",
+      "id": "worried",
       "emoji": "😟",
       "frame": [
         4,
         2
       ],
       "state": "worried",
-      "desc": "hand near chin, strained — WORRIED (not thinking)",
+      "desc": "arms crossed, brow furrowed — concerned (subtle)",
       "primary": "worried",
-      "lane": "react",
-      "emotion": "negative",
+      "lane": "work",
+      "emotion": "worried",
       "use": [
         "worried"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "worried_chin"
       ]
     },
     {
-      "id": "curious",
-      "emoji": "🔍",
+      "id": "attentive",
+      "emoji": "👂",
       "frame": [
         5,
         2
       ],
-      "state": "curious",
-      "desc": "slight lean / interest — curious",
+      "state": "attention",
+      "desc": "hands held at belly, one brow pixel raised — attentive listening",
       "primary": "curious",
       "lane": "work",
-      "emotion": "curious",
+      "emotion": "listening",
       "use": [
-        "curious"
+        "attention"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "curious"
       ]
     },
     {
-      "id": "phone",
-      "emoji": "📞",
+      "id": "point_wink_alt",
+      "emoji": "😉",
       "frame": [
         6,
         2
       ],
-      "state": "attention",
-      "desc": "phone to ear — talking / listening",
-      "primary": "talking",
-      "lane": "work",
-      "emotion": "attention",
+      "state": "playful",
+      "desc": "fist forward, winking — playful \"you got it\"",
+      "primary": "playful",
+      "lane": "social",
+      "emotion": "playful",
       "use": [
-        "attention",
-        "tool"
+        "playful"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "phone"
       ]
     },
     {
@@ -608,10 +662,10 @@
         2
       ],
       "state": "greeting",
-      "desc": "waving — greeting only",
+      "desc": "hand raised by the head — wave / hello",
       "primary": "greeting",
       "lane": "social",
-      "emotion": "positive",
+      "emotion": "greeting",
       "use": [
         "greeting"
       ],
@@ -620,41 +674,47 @@
       ]
     },
     {
-      "id": "talk_left",
-      "emoji": "💬",
+      "id": "collar_tug",
+      "emoji": "😅",
       "frame": [
         0,
         3
       ],
-      "state": "processing",
-      "desc": "facing left, arms out — movement filler",
-      "primary": "talking",
-      "lane": "work",
-      "emotion": "neutral",
+      "state": "worried",
+      "desc": "tugging the collar, nervous toothy grin — nervous, sheepish",
+      "primary": "worried",
+      "lane": "react",
+      "emotion": "worried",
       "use": [
-        "processing"
+        "worried"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "talk_left"
       ]
     },
     {
-      "id": "talk_right",
+      "id": "talk_ajar",
       "emoji": "💬",
       "frame": [
         1,
         3
       ],
       "state": "processing",
-      "desc": "facing right, arms out — movement filler",
+      "desc": "fist forward, mouth slightly open — speaking (lip-sync mid)",
       "primary": "talking",
       "lane": "work",
-      "emotion": "neutral",
+      "emotion": "speaking",
       "use": [
         "processing"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "talk_right"
       ]
     },
     {
@@ -665,13 +725,12 @@
         3
       ],
       "state": "laughing",
-      "desc": "laughing",
+      "desc": "bent forward holding belly, one eye shut, mouth open — laughing",
       "primary": "laughing",
       "lane": "react",
-      "emotion": "positive",
+      "emotion": "laughing",
       "use": [
-        "laughing",
-        "playful"
+        "laughing"
       ],
       "avoid": [
         "idle"
@@ -685,10 +744,10 @@
         3
       ],
       "state": "laughing",
-      "desc": "laughing wide",
+      "desc": "laughing harder — bounce low",
       "primary": "laughing",
       "lane": "react",
-      "emotion": "positive",
+      "emotion": "laughing",
       "use": [
         "laughing"
       ],
@@ -697,33 +756,36 @@
       ]
     },
     {
-      "id": "wink_right",
-      "emoji": "😉",
+      "id": "laugh_tilt",
+      "emoji": "😆",
       "frame": [
         4,
         3
       ],
-      "state": "playful",
-      "desc": "wink right — playful social only",
-      "primary": "playful",
-      "lane": "social",
-      "emotion": "playful",
+      "state": "laughing",
+      "desc": "laughing — bounce up",
+      "primary": "laughing",
+      "lane": "react",
+      "emotion": "laughing",
       "use": [
-        "playful"
+        "laughing"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "wink_right"
       ]
     },
     {
-      "id": "wink_left",
-      "emoji": "😉",
+      "id": "embarrassed",
+      "emoji": "😳",
       "frame": [
         5,
         3
       ],
       "state": "playful",
-      "desc": "wink left — playful social only",
+      "desc": "collar tug + blush — embarrassed",
       "primary": "playful",
       "lane": "social",
       "emotion": "playful",
@@ -732,84 +794,97 @@
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "wink_left"
       ]
     },
     {
-      "id": "tada",
-      "emoji": "🎉",
+      "id": "blush_clasped",
+      "emoji": "☺️",
       "frame": [
         6,
         3
       ],
-      "state": "presenting",
-      "desc": "ta-da present — success flourish",
-      "primary": "presenting",
-      "lane": "react",
-      "emotion": "neutral",
+      "state": "playful",
+      "desc": "hands clasped + blush + smile — flattered, thankful",
+      "primary": "playful",
+      "lane": "social",
+      "emotion": "happy",
       "use": [
-        "excited",
-        "presenting"
+        "playful"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "tada"
       ]
     },
     {
-      "id": "tada_left",
-      "emoji": "🎉",
+      "id": "blush_smile",
+      "emoji": "😊",
       "frame": [
         7,
         3
       ],
-      "state": "presenting",
-      "desc": "ta-da left — success flourish",
-      "primary": "presenting",
-      "lane": "react",
-      "emotion": "neutral",
+      "state": "playful",
+      "desc": "rest pose + blush + smile — pleased, warm",
+      "primary": "playful",
+      "lane": "social",
+      "emotion": "happy",
       "use": [
-        "excited",
-        "presenting"
+        "playful"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "tada_left"
       ]
     },
     {
-      "id": "smug",
-      "emoji": "😏",
+      "id": "blush_shy",
+      "emoji": "☺️",
       "frame": [
         8,
         3
       ],
-      "state": "confident",
-      "desc": "arms crossed smug — confident satisfied",
-      "primary": "confident",
-      "lane": "work",
-      "emotion": "confident",
+      "state": "playful",
+      "desc": "rest pose + blush + smile, glancing away — shy, flattered",
+      "primary": "playful",
+      "lane": "social",
+      "emotion": "happy",
       "use": [
-        "confident"
+        "playful"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "smug"
       ]
     },
     {
-      "id": "shiver",
+      "id": "blanched",
       "emoji": "🥶",
       "frame": [
         9,
         3
       ],
       "state": "cold",
-      "desc": "shivering cold — uncomfortable",
-      "primary": "worried",
+      "desc": "collar tug, face drained pale — mortified / chilled",
+      "primary": "scared",
       "lane": "react",
-      "emotion": "cold",
+      "emotion": "uncomfortable",
       "use": [
         "cold"
       ],
       "avoid": [
         "idle"
+      ],
+      "aliases": [
+        "shiver"
       ]
     },
     {
@@ -820,10 +895,10 @@
         3
       ],
       "state": "scared",
-      "desc": "scared + skull prop — fright / panic",
+      "desc": "a spectral skull appears beside him, teeth gritted — fright",
       "primary": "scared",
       "lane": "react",
-      "emotion": "fear",
+      "emotion": "scared",
       "use": [
         "scared"
       ],
@@ -839,7 +914,7 @@
       "bubble": "Searching…"
     },
     "read": {
-      "state": "presenting",
+      "state": "thinking",
       "emoji": "📄",
       "bubble": "Reading…"
     },
@@ -874,7 +949,7 @@
       "bubble": "Clarifying…"
     },
     "vision": {
-      "state": "surprised",
+      "state": "curious",
       "emoji": "👁️",
       "bubble": "Looking…"
     }

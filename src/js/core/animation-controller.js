@@ -28,7 +28,7 @@
 import { TimerManager } from './timer-manager.js';
 import { otaclawMonitor as monitor } from './monitor.js';
 import { detectEmotion, RECENT_WINDOW } from './emotion-patterns.js';
-import { getStateSprite, isMappingEnabled } from './state-sprite-map.js';
+import { frameDuration, getStateSprite, isMappingEnabled } from './state-sprite-map.js';
 
 export class AnimationController {
   constructor(config, timerManager) {
@@ -1105,8 +1105,9 @@ export class AnimationController {
         return;
       }
       if (seq.length === 1) return; // static pose: nothing to schedule
+      const holdMs = Math.max(50, frameDuration(seq[idx], frameMs));
       idx = last ? 0 : idx + 1;
-      this.timers.setTimeout('mapped', step, frameMs);
+      this.timers.setTimeout('mapped', step, holdMs);
     };
 
     step();

@@ -754,7 +754,7 @@ export class EasterEggs {
     this._codecClosing = true;
 
     if (this._codecFaceTimer) {
-      clearInterval(this._codecFaceTimer);
+      clearTimeout(this._codecFaceTimer);
       this._codecFaceTimer = null;
     }
     if (this._codecBootTimer) {
@@ -829,20 +829,28 @@ export class EasterEggs {
     if (this._codecFaceSig === sig) return;
     this._codecFaceSig = sig;
     if (this._codecFaceTimer) {
-      clearInterval(this._codecFaceTimer);
+      clearTimeout(this._codecFaceTimer);
       this._codecFaceTimer = null;
     }
     const img = this._codecFaceImg;
     const resolve = this._codecResolve || ((f) => f);
-    img.src = resolve(list[0]);
-    if (list.length > 1) {
-      const ms = Math.max(120, Number(this._codecCfg?.sprites?.codecFrameMs) || 1200);
+    // "codec/g1-2.png@90" holds that portrait for 90 ms (blinks); plain
+    // entries use codecFrameMs.
+    const ms = Math.max(60, Number(this._codecCfg?.sprites?.codecFrameMs) || 1200);
+    const frames = list.map((entry) => {
+      const m = String(entry).match(/^(.*)@(\d+)$/);
+      return m ? { file: m[1], ms: Math.max(60, Number(m[2])) } : { file: entry, ms };
+    });
+    img.src = resolve(frames[0].file);
+    if (frames.length > 1) {
       let i = 0;
-      this._codecFaceTimer = setInterval(() => {
+      const tick = () => {
         if (!this.codecActive) return;
-        i = (i + 1) % list.length;
-        img.src = resolve(list[i]);
-      }, ms);
+        i = (i + 1) % frames.length;
+        img.src = resolve(frames[i].file);
+        this._codecFaceTimer = setTimeout(tick, frames[i].ms);
+      };
+      this._codecFaceTimer = setTimeout(tick, frames[0].ms);
     }
   }
 

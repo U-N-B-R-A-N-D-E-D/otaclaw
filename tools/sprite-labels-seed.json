@@ -1,0 +1,408 @@
+{
+  "version": 1,
+  "note": "Suggested labels from the v3 visual pass (docs/SPRITE-ANATOMY.md), keyed like the local label tool.",
+  "labels": {
+    "normal:0,0": {
+      "emotion": "calm",
+      "usage": "both",
+      "intensity": "subtle",
+      "notes": "standing, one hand on hip, other arm down, neutral face — true rest | family base"
+    },
+    "normal:1,0": {
+      "emotion": "presenting",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "fist forward, neutral — about to make a point | vs 8,1: arm redrawn + faint cheek pixels"
+    },
+    "normal:2,0": {
+      "emotion": "angry",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "fist forward, frowning — objecting, stern | vs 8,1: mouth corners turn down"
+    },
+    "normal:3,0": {
+      "emotion": "calm",
+      "usage": "both",
+      "intensity": "subtle",
+      "notes": "arms folded over belly, head turned aside — calm waiting | family base"
+    },
+    "normal:4,0": {
+      "emotion": "thinking",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "arm across, hand to chin — thinking | family base"
+    },
+    "normal:5,0": {
+      "emotion": "thinking",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "hand to chin, eyes narrowed — concentrating (also the blink frame of 4,0) | vs 4,0: pupils flatten to a 3px lid line = eyes narrowed / half-blink"
+    },
+    "normal:6,0": {
+      "emotion": "thinking",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "hand to chin, glancing aside — pondering, reading | vs 4,0: pupils shift down-aside"
+    },
+    "normal:7,0": {
+      "emotion": "thinking",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "hand to chin, alternate drawing — thinking | vs 4,0: body variant (arm/hair redrawn, ~90px)"
+    },
+    "normal:8,0": {
+      "emotion": "calm",
+      "usage": "both",
+      "intensity": "subtle",
+      "notes": "hands clasped in front, neutral — polite waiting | family base"
+    },
+    "normal:9,0": {
+      "emotion": "thinking",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "arms crossed, hand at chin, neutral — weighing it up | family base"
+    },
+    "normal:10,0": {
+      "emotion": "thinking",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "arms crossed, eyes narrowed — skeptical focus (also the blink frame of 9,0) | vs 9,0: pupils flatten = eyes narrowed / half-blink"
+    },
+    "normal:11,0": {
+      "emotion": "thinking",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "hand to chin, alternate drawing — thinking | vs 4,0: body variant (~100px)"
+    },
+    "normal:0,1": {
+      "emotion": "happy",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "thumbs up, neutral face — approval | family base"
+    },
+    "normal:1,1": {
+      "emotion": "happy",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "thumb raised high — anticipation before the thumbs up | vs 0,1: thumb raised high by the face (arm redrawn)"
+    },
+    "normal:2,1": {
+      "emotion": "excited",
+      "usage": "both",
+      "intensity": "strong",
+      "notes": "thumbs up with grin and wink — strong success | vs 0,1: wide grin + right eye half-closed (wink)"
+    },
+    "normal:3,1": {
+      "emotion": "happy",
+      "usage": "both",
+      "intensity": "strong",
+      "notes": "thumbs up follow-through, grin and wink — success settle | vs 0,1: grin + wink + thumb lowered"
+    },
+    "normal:4,1": {
+      "emotion": "confused",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "open-arm shrug, palms up, neutral — unsure | family base"
+    },
+    "normal:5,1": {
+      "emotion": "confused",
+      "usage": "both",
+      "intensity": "strong",
+      "notes": "big shrug, eyebrow up, looking away — \"no idea\" | vs 4,1: arms higher + brow raised + glance aside"
+    },
+    "normal:6,1": {
+      "emotion": "confident",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "both hands on hips, small smile — proud, ready | family base"
+    },
+    "normal:7,1": {
+      "emotion": "confident",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "fist forward with a knowing half-wink — \"got it\" | vs 8,1: arm redrawn + one eye half-closed + brow"
+    },
+    "normal:8,1": {
+      "emotion": "speaking",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "fist forward, mouth closed with right corner up — making a point (lip-sync rest) | family base"
+    },
+    "normal:9,1": {
+      "emotion": "speaking",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "fist forward, mouth open — speaking (lip-sync open) | vs 8,1: mouth fully open: row of teeth"
+    },
+    "normal:10,1": {
+      "emotion": "speaking",
+      "usage": "both",
+      "intensity": "strong",
+      "notes": "fist forward, open grin with narrowed eyes — emphatic, amused while talking | vs 8,1: mouth open + eyes narrowed"
+    },
+    "normal:11,1": {
+      "emotion": "curious",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "fist forward, eyebrow raised, looking up — skeptical \"hmm?\" | vs 8,1: brow raised + pupils up + mouth corner"
+    },
+    "normal:0,2": {
+      "emotion": "surprised",
+      "usage": "both",
+      "intensity": "strong",
+      "notes": "leans back, teeth gritted, glasses flash — startled recoil | family base"
+    },
+    "normal:1,2": {
+      "emotion": "error",
+      "usage": "both",
+      "intensity": "strong",
+      "notes": "leans back, eyes squeezed, teeth gritted — wince, \"ouch\" | vs 0,2: eyes squeezed shut"
+    },
+    "normal:2,2": {
+      "emotion": "sad",
+      "usage": "both",
+      "intensity": "strong",
+      "notes": "slumped, fists down, frown, glasses glare hide the eyes — dejected | family base"
+    },
+    "normal:3,2": {
+      "emotion": "sad",
+      "usage": "both",
+      "intensity": "strong",
+      "notes": "slumped, lip quivering — about to cry, hard error | vs 2,2: lip quiver pixels at the mouth corner"
+    },
+    "normal:4,2": {
+      "emotion": "worried",
+      "usage": "both",
+      "intensity": "subtle",
+      "notes": "arms crossed, brow furrowed — concerned (subtle) | vs 9,0: 2px brow furrow between the lenses + mouth corner drops"
+    },
+    "normal:5,2": {
+      "emotion": "listening",
+      "usage": "both",
+      "intensity": "subtle",
+      "notes": "hands held at belly, one brow pixel raised — attentive listening | family base"
+    },
+    "normal:6,2": {
+      "emotion": "playful",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "fist forward, winking — playful \"you got it\" | vs 8,1: arm redrawn + one eye closed"
+    },
+    "normal:7,2": {
+      "emotion": "greeting",
+      "usage": "both",
+      "intensity": "subtle",
+      "notes": "hand raised by the head — wave / hello | family base"
+    },
+    "normal:0,3": {
+      "emotion": "worried",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "tugging the collar, nervous toothy grin — nervous, sheepish | family base"
+    },
+    "normal:1,3": {
+      "emotion": "speaking",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "fist forward, mouth slightly open — speaking (lip-sync mid) | vs 8,1: mouth opens: 2px teeth"
+    },
+    "normal:2,3": {
+      "emotion": "laughing",
+      "usage": "both",
+      "intensity": "strong",
+      "notes": "bent forward holding belly, one eye shut, mouth open — laughing | family base"
+    },
+    "normal:3,3": {
+      "emotion": "laughing",
+      "usage": "both",
+      "intensity": "strong",
+      "notes": "laughing harder — bounce low | vs 2,3: head dips lower, mouth wider"
+    },
+    "normal:4,3": {
+      "emotion": "laughing",
+      "usage": "both",
+      "intensity": "strong",
+      "notes": "laughing — bounce up | vs 2,3: head tilts back up"
+    },
+    "normal:5,3": {
+      "emotion": "uncomfortable",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "collar tug + blush — embarrassed | vs 0,3: blush + brow pixels + grin widens"
+    },
+    "normal:6,3": {
+      "emotion": "happy",
+      "usage": "both",
+      "intensity": "subtle",
+      "notes": "hands clasped + blush + smile — flattered, thankful | vs 8,0: blush + smile"
+    },
+    "normal:7,3": {
+      "emotion": "happy",
+      "usage": "both",
+      "intensity": "subtle",
+      "notes": "rest pose + blush + smile — pleased, warm | vs 0,0: cheeks blush (2 rows), mouth drops 1px and curls up = smile"
+    },
+    "normal:8,3": {
+      "emotion": "happy",
+      "usage": "both",
+      "intensity": "subtle",
+      "notes": "rest pose + blush + smile, glancing away — shy, flattered | vs 0,0: blush + smile + pupils shifted aside = looks away"
+    },
+    "normal:9,3": {
+      "emotion": "scared",
+      "usage": "both",
+      "intensity": "strong",
+      "notes": "collar tug, face drained pale — mortified / chilled | vs 0,3: whole face turns pale blue-green"
+    },
+    "normal:10,3": {
+      "emotion": "scared",
+      "usage": "both",
+      "intensity": "strong",
+      "notes": "a spectral skull appears beside him, teeth gritted — fright | family base"
+    },
+    "codec:g1-1.png": {
+      "emotion": "calm",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "g1 neutral: base"
+    },
+    "codec:g1-2.png": {
+      "emotion": "calm",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "g1 neutral: half-blink"
+    },
+    "codec:g1-3.png": {
+      "emotion": "calm",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "g1 neutral: blink"
+    },
+    "codec:g1-4.png": {
+      "emotion": "speaking",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "g1 neutral: mouth open"
+    },
+    "codec:g1-5.png": {
+      "emotion": "speaking",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "g1 neutral: mouth half"
+    },
+    "codec:g2-1.png": {
+      "emotion": "neutral",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "g2 neutral, alternate render: base"
+    },
+    "codec:g2-2.png": {
+      "emotion": "neutral",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "g2 neutral, alternate render: half-blink"
+    },
+    "codec:g2-3.png": {
+      "emotion": "neutral",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "g2 neutral, alternate render: blink"
+    },
+    "codec:g2-4.png": {
+      "emotion": "speaking",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "g2 neutral, alternate render: mouth open"
+    },
+    "codec:g2-5.png": {
+      "emotion": "speaking",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "g2 neutral, alternate render: mouth half"
+    },
+    "codec:g3-1.png": {
+      "emotion": "thinking",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "g3 brows lower, serious: base"
+    },
+    "codec:g3-2.png": {
+      "emotion": "thinking",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "g3 brows lower, serious: half-blink"
+    },
+    "codec:g3-3.png": {
+      "emotion": "thinking",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "g3 brows lower, serious: blink"
+    },
+    "codec:g3-4.png": {
+      "emotion": "speaking",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "g3 brows lower, serious: mouth open"
+    },
+    "codec:g3-5.png": {
+      "emotion": "speaking",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "g3 brows lower, serious: mouth half"
+    },
+    "codec:g4-1.png": {
+      "emotion": "happy",
+      "usage": "both",
+      "intensity": "medium",
+      "notes": "g4 slight smile: base"
+    },
+    "codec:g4-2.png": {
+      "emotion": "happy",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "g4 slight smile: half-blink"
+    },
+    "codec:g4-3.png": {
+      "emotion": "happy",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "g4 slight smile: blink"
+    },
+    "codec:g4-4.png": {
+      "emotion": "speaking",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "g4 slight smile: mouth open"
+    },
+    "codec:g4-5.png": {
+      "emotion": "speaking",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "g4 slight smile: mouth half"
+    },
+    "codec:neutral.png": {
+      "emotion": "neutral",
+      "usage": "solo",
+      "intensity": "medium",
+      "notes": "glasses glare hides the eyes: serious / withholding"
+    },
+    "codec:shock-1.png": {
+      "emotion": "surprised",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "shock close-up, step 1/3 (mouth opens as it escalates)"
+    },
+    "codec:shock-2.png": {
+      "emotion": "surprised",
+      "usage": "sequence",
+      "intensity": "medium",
+      "notes": "shock close-up, step 2/3 (mouth opens as it escalates)"
+    },
+    "codec:shock-3.png": {
+      "emotion": "scared",
+      "usage": "sequence",
+      "intensity": "strong",
+      "notes": "shock close-up, step 3/3 (mouth opens as it escalates)"
+    }
+  }
+}

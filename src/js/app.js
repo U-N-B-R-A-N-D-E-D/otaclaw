@@ -34,6 +34,7 @@ import {
   StateCoordinator,
   coherentEventState,
   endsRun,
+  frameDuration,
   getStateSprite,
   getStateTable,
   isMappingEnabled,
@@ -49,15 +50,15 @@ import { summarizeSpeech } from "./core/speech-policy.js";
 
 // Tool -> the exact Hal pose (Vibeconf's ACTIVITY_EMOJIS, 1:1 here).
 const TOOL_SPRITE = {
-  search: "curious",
-  read: "explain_left",
-  write: "explain_right",
-  terminal: "hand_on_hip",
+  search: "skeptical",
+  read: "think_glance",
+  write: "point_ready",
+  terminal: "hands_on_hips",
   memory: "contemplate",
-  web: "curious",
-  delegate: "dynamic_confident",
+  web: "attentive",
+  delegate: "point_wink",
   clarify: "shrug",
-  vision: "shocked_left",
+  vision: "think_squint",
 };
 
 // Director sequences: human pacing per state (ms per frame). Work states loop
@@ -1092,16 +1093,16 @@ class OtaClawApp {
       // agent.sprite override) is what the room sees while the reply lands.
       const EMO = {
         laughing: "laugh",
-        surprised: "shocked_left",
+        surprised: "startled",
         confused: "shrug",
         sad: "sad",
         worried: "worried",
-        curious: "curious",
+        curious: "skeptical",
         error: "sad_intense",
       };
       this._lastEmotionSprite = EMO[mood] || null;
       if (!this._spriteSpeaking) {
-        this._spriteSpeaking = this._lastEmotionSprite || "thumbs_up_right";
+        this._spriteSpeaking = this._lastEmotionSprite || "talk_open";
       }
       this._spriteError = false;
       this._directorSpeech = speech;
@@ -2512,7 +2513,7 @@ class OtaClawApp {
 
   /**
    * agent.sprite: the 1:1 function selector (Vibeconferencing-style).
-   *   { sprite: "wink_right" }  -> that exact asset
+   *   { sprite: "laugh_tilt" }  -> that exact asset
    *   { sprite: "4,3" }         -> that exact cell
    *   { sprite: "search" }      -> the tool's state sequence
    * A bubble/summary overrides the default label.
@@ -2671,8 +2672,9 @@ class OtaClawApp {
       }
       const [c, r] = frames[i];
       this._setFrameDirect(c, r, i === 0 ? speech : undefined);
+      const holdMs = frameDuration(frames[i], frameMs);
       i += 1;
-      this._sequenceTimer = setTimeout(step, frameMs);
+      this._sequenceTimer = setTimeout(step, holdMs);
     };
     step();
     return true;

@@ -1,0 +1,640 @@
+{
+  "version": 1,
+  "note": "Visual anatomy of the 43 grid frames. Families share one body drawing; variants change only the listed face pixels. diffPx = aligned pixel diff vs the family base (RGBA, transparent pixels zeroed; null = different canvas). frame-catalog.json descriptions derive from this.",
+  "families": {
+    "rest_hip": {
+      "base": [
+        0,
+        0
+      ],
+      "members": [
+        {
+          "cell": [
+            0,
+            0
+          ],
+          "id": "idle",
+          "face": "base",
+          "diffPx": 0,
+          "meaning": "standing, one hand on hip, other arm down, neutral face — true rest"
+        },
+        {
+          "cell": [
+            7,
+            3
+          ],
+          "id": "blush_smile",
+          "face": "cheeks blush (2 rows), mouth drops 1px and curls up = smile",
+          "diffPx": 26,
+          "meaning": "rest pose + blush + smile — pleased, warm"
+        },
+        {
+          "cell": [
+            8,
+            3
+          ],
+          "id": "blush_shy",
+          "face": "blush + smile + pupils shifted aside = looks away",
+          "diffPx": 34,
+          "meaning": "rest pose + blush + smile, glancing away — shy, flattered"
+        }
+      ]
+    },
+    "rest_clasp": {
+      "base": [
+        8,
+        0
+      ],
+      "members": [
+        {
+          "cell": [
+            8,
+            0
+          ],
+          "id": "hands_clasped",
+          "face": "base",
+          "diffPx": 0,
+          "meaning": "hands clasped in front, neutral — polite waiting"
+        },
+        {
+          "cell": [
+            6,
+            3
+          ],
+          "id": "blush_clasped",
+          "face": "blush + smile",
+          "diffPx": 26,
+          "meaning": "hands clasped + blush + smile — flattered, thankful"
+        }
+      ]
+    },
+    "rest_fold": {
+      "base": [
+        3,
+        0
+      ],
+      "members": [
+        {
+          "cell": [
+            3,
+            0
+          ],
+          "id": "waiting",
+          "face": "base",
+          "diffPx": 0,
+          "meaning": "arms folded over belly, head turned aside — calm waiting"
+        }
+      ]
+    },
+    "rest_belly": {
+      "base": [
+        5,
+        2
+      ],
+      "members": [
+        {
+          "cell": [
+            5,
+            2
+          ],
+          "id": "attentive",
+          "face": "base",
+          "diffPx": 0,
+          "meaning": "hands held at belly, one brow pixel raised — attentive listening"
+        }
+      ]
+    },
+    "chin": {
+      "base": [
+        4,
+        0
+      ],
+      "members": [
+        {
+          "cell": [
+            4,
+            0
+          ],
+          "id": "contemplate",
+          "face": "base",
+          "diffPx": 0,
+          "meaning": "arm across, hand to chin — thinking"
+        },
+        {
+          "cell": [
+            5,
+            0
+          ],
+          "id": "think_squint",
+          "face": "pupils flatten to a 3px lid line = eyes narrowed / half-blink",
+          "diffPx": 6,
+          "meaning": "hand to chin, eyes narrowed — concentrating (also the blink frame of 4,0)"
+        },
+        {
+          "cell": [
+            6,
+            0
+          ],
+          "id": "think_glance",
+          "face": "pupils shift down-aside",
+          "diffPx": 9,
+          "meaning": "hand to chin, glancing aside — pondering, reading"
+        },
+        {
+          "cell": [
+            7,
+            0
+          ],
+          "id": "contemplate_alt",
+          "face": "body variant (arm/hair redrawn, ~90px)",
+          "diffPx": 91,
+          "meaning": "hand to chin, alternate drawing — thinking"
+        },
+        {
+          "cell": [
+            11,
+            0
+          ],
+          "id": "chin_rest",
+          "face": "body variant (~100px)",
+          "diffPx": 97,
+          "meaning": "hand to chin, alternate drawing — thinking"
+        }
+      ]
+    },
+    "crossed": {
+      "base": [
+        9,
+        0
+      ],
+      "members": [
+        {
+          "cell": [
+            9,
+            0
+          ],
+          "id": "arms_crossed",
+          "face": "base",
+          "diffPx": 0,
+          "meaning": "arms crossed, hand at chin, neutral — weighing it up"
+        },
+        {
+          "cell": [
+            10,
+            0
+          ],
+          "id": "arms_crossed_squint",
+          "face": "pupils flatten = eyes narrowed / half-blink",
+          "diffPx": 9,
+          "meaning": "arms crossed, eyes narrowed — skeptical focus (also the blink frame of 9,0)"
+        },
+        {
+          "cell": [
+            4,
+            2
+          ],
+          "id": "worried",
+          "face": "2px brow furrow between the lenses + mouth corner drops",
+          "diffPx": 6,
+          "meaning": "arms crossed, brow furrowed — concerned (subtle)"
+        }
+      ]
+    },
+    "point": {
+      "base": [
+        8,
+        1
+      ],
+      "members": [
+        {
+          "cell": [
+            8,
+            1
+          ],
+          "id": "talk_closed",
+          "face": "base",
+          "diffPx": 0,
+          "meaning": "fist forward, mouth closed with right corner up — making a point (lip-sync rest)"
+        },
+        {
+          "cell": [
+            1,
+            3
+          ],
+          "id": "talk_ajar",
+          "face": "mouth opens: 2px teeth",
+          "diffPx": 4,
+          "meaning": "fist forward, mouth slightly open — speaking (lip-sync mid)"
+        },
+        {
+          "cell": [
+            9,
+            1
+          ],
+          "id": "talk_open",
+          "face": "mouth fully open: row of teeth",
+          "diffPx": 8,
+          "meaning": "fist forward, mouth open — speaking (lip-sync open)"
+        },
+        {
+          "cell": [
+            10,
+            1
+          ],
+          "id": "talk_grin",
+          "face": "mouth open + eyes narrowed",
+          "diffPx": 14,
+          "meaning": "fist forward, open grin with narrowed eyes — emphatic, amused while talking"
+        },
+        {
+          "cell": [
+            2,
+            0
+          ],
+          "id": "point_stern",
+          "face": "mouth corners turn down",
+          "diffPx": 3,
+          "meaning": "fist forward, frowning — objecting, stern"
+        },
+        {
+          "cell": [
+            11,
+            1
+          ],
+          "id": "skeptical",
+          "face": "brow raised + pupils up + mouth corner",
+          "diffPx": 13,
+          "meaning": "fist forward, eyebrow raised, looking up — skeptical \"hmm?\""
+        },
+        {
+          "cell": [
+            1,
+            0
+          ],
+          "id": "point_ready",
+          "face": "arm redrawn + faint cheek pixels",
+          "diffPx": 73,
+          "meaning": "fist forward, neutral — about to make a point"
+        },
+        {
+          "cell": [
+            7,
+            1
+          ],
+          "id": "point_wink",
+          "face": "arm redrawn + one eye half-closed + brow",
+          "diffPx": 50,
+          "meaning": "fist forward with a knowing half-wink — \"got it\""
+        },
+        {
+          "cell": [
+            6,
+            2
+          ],
+          "id": "point_wink_alt",
+          "face": "arm redrawn + one eye closed",
+          "diffPx": 150,
+          "meaning": "fist forward, winking — playful \"you got it\""
+        }
+      ]
+    },
+    "thumbs": {
+      "base": [
+        0,
+        1
+      ],
+      "members": [
+        {
+          "cell": [
+            0,
+            1
+          ],
+          "id": "thumbs_up",
+          "face": "base",
+          "diffPx": 0,
+          "meaning": "thumbs up, neutral face — approval"
+        },
+        {
+          "cell": [
+            1,
+            1
+          ],
+          "id": "thumbs_up_raise",
+          "face": "thumb raised high by the face (arm redrawn)",
+          "diffPx": 156,
+          "meaning": "thumb raised high — anticipation before the thumbs up"
+        },
+        {
+          "cell": [
+            2,
+            1
+          ],
+          "id": "thumbs_up_wink",
+          "face": "wide grin + right eye half-closed (wink)",
+          "diffPx": 20,
+          "meaning": "thumbs up with grin and wink — strong success"
+        },
+        {
+          "cell": [
+            3,
+            1
+          ],
+          "id": "thumbs_up_grin",
+          "face": "grin + wink + thumb lowered",
+          "diffPx": 84,
+          "meaning": "thumbs up follow-through, grin and wink — success settle"
+        }
+      ]
+    },
+    "shrug": {
+      "base": [
+        4,
+        1
+      ],
+      "members": [
+        {
+          "cell": [
+            4,
+            1
+          ],
+          "id": "shrug",
+          "face": "base",
+          "diffPx": 0,
+          "meaning": "open-arm shrug, palms up, neutral — unsure"
+        },
+        {
+          "cell": [
+            5,
+            1
+          ],
+          "id": "shrug_big",
+          "face": "arms higher + brow raised + glance aside",
+          "diffPx": 297,
+          "meaning": "big shrug, eyebrow up, looking away — \"no idea\""
+        }
+      ]
+    },
+    "hips": {
+      "base": [
+        6,
+        1
+      ],
+      "members": [
+        {
+          "cell": [
+            6,
+            1
+          ],
+          "id": "hands_on_hips",
+          "face": "base",
+          "diffPx": 0,
+          "meaning": "both hands on hips, small smile — proud, ready"
+        }
+      ]
+    },
+    "recoil": {
+      "base": [
+        0,
+        2
+      ],
+      "members": [
+        {
+          "cell": [
+            0,
+            2
+          ],
+          "id": "startled",
+          "face": "base",
+          "diffPx": 0,
+          "meaning": "leans back, teeth gritted, glasses flash — startled recoil"
+        },
+        {
+          "cell": [
+            1,
+            2
+          ],
+          "id": "wince",
+          "face": "eyes squeezed shut",
+          "diffPx": 44,
+          "meaning": "leans back, eyes squeezed, teeth gritted — wince, \"ouch\""
+        }
+      ]
+    },
+    "slump": {
+      "base": [
+        2,
+        2
+      ],
+      "members": [
+        {
+          "cell": [
+            2,
+            2
+          ],
+          "id": "sad",
+          "face": "base",
+          "diffPx": 0,
+          "meaning": "slumped, fists down, frown, glasses glare hide the eyes — dejected"
+        },
+        {
+          "cell": [
+            3,
+            2
+          ],
+          "id": "sad_intense",
+          "face": "lip quiver pixels at the mouth corner",
+          "diffPx": 70,
+          "meaning": "slumped, lip quivering — about to cry, hard error"
+        }
+      ]
+    },
+    "wave": {
+      "base": [
+        7,
+        2
+      ],
+      "members": [
+        {
+          "cell": [
+            7,
+            2
+          ],
+          "id": "wave",
+          "face": "base",
+          "diffPx": 0,
+          "meaning": "hand raised by the head — wave / hello"
+        }
+      ]
+    },
+    "collar": {
+      "base": [
+        0,
+        3
+      ],
+      "members": [
+        {
+          "cell": [
+            0,
+            3
+          ],
+          "id": "collar_tug",
+          "face": "base",
+          "diffPx": 0,
+          "meaning": "tugging the collar, nervous toothy grin — nervous, sheepish"
+        },
+        {
+          "cell": [
+            5,
+            3
+          ],
+          "id": "embarrassed",
+          "face": "blush + brow pixels + grin widens",
+          "diffPx": 16,
+          "meaning": "collar tug + blush — embarrassed"
+        },
+        {
+          "cell": [
+            9,
+            3
+          ],
+          "id": "blanched",
+          "face": "whole face turns pale blue-green",
+          "diffPx": 173,
+          "meaning": "collar tug, face drained pale — mortified / chilled"
+        }
+      ]
+    },
+    "laugh": {
+      "base": [
+        2,
+        3
+      ],
+      "members": [
+        {
+          "cell": [
+            2,
+            3
+          ],
+          "id": "laugh",
+          "face": "base",
+          "diffPx": 0,
+          "meaning": "bent forward holding belly, one eye shut, mouth open — laughing"
+        },
+        {
+          "cell": [
+            3,
+            3
+          ],
+          "id": "laugh_wide",
+          "face": "head dips lower, mouth wider",
+          "diffPx": null,
+          "meaning": "laughing harder — bounce low"
+        },
+        {
+          "cell": [
+            4,
+            3
+          ],
+          "id": "laugh_tilt",
+          "face": "head tilts back up",
+          "diffPx": null,
+          "meaning": "laughing — bounce up"
+        }
+      ]
+    },
+    "ghost": {
+      "base": [
+        10,
+        3
+      ],
+      "members": [
+        {
+          "cell": [
+            10,
+            3
+          ],
+          "id": "scared",
+          "face": "base",
+          "diffPx": 0,
+          "meaning": "a spectral skull appears beside him, teeth gritted — fright"
+        }
+      ]
+    }
+  },
+  "blink": {
+    "4,0": [
+      5,
+      0
+    ],
+    "9,0": [
+      10,
+      0
+    ],
+    "9,1": [
+      10,
+      1
+    ]
+  },
+  "lipSync": {
+    "closed": [
+      8,
+      1
+    ],
+    "ajar": [
+      1,
+      3
+    ],
+    "open": [
+      9,
+      1
+    ],
+    "cycle": [
+      [
+        8,
+        1
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        9,
+        1
+      ],
+      [
+        1,
+        3
+      ]
+    ]
+  },
+  "codec": {
+    "layout": "each gN set = [1 base, 2 half-blink, 3 blink, 4 mouth open, 5 mouth half]; eyes and mouth change separately",
+    "sets": {
+      "g1": "neutral",
+      "g2": "neutral, alternate render/dither (~770 scattered px, no expression change)",
+      "g3": "brows slightly lower: serious",
+      "g4": "mouth corner up: slight smile"
+    },
+    "neutral": "glasses glare hides the eyes: serious / withholding",
+    "shock": "separate close-up, wide eyes, grimace; 1->3 escalates (mouth opens)",
+    "talk": [
+      1,
+      4,
+      5,
+      4
+    ],
+    "blink": [
+      1,
+      2,
+      3,
+      2
+    ]
+  },
+  "misnamedFiles": {
+    "otacon_sprite_thumbs_00..02.png": "cells 9,0 10,0 11,0 (arms crossed, no thumb)",
+    "otacon_sprite_coat_00..03.png": "cells 3,0 4,0 5,0 6,0 (no coat: rest + hand-to-chin)",
+    "otacon_sprite_think_00..02.png": "cells 0,0 1,0 2,0 (rest, point, stern point)",
+    "otacon_sprite_blink_00..02.png": "cells 9,0 10,0 11,0 (full-body frames, not an eye overlay)",
+    "otacon_sprite_blush_04.png": "cell 9,3 (face drained pale, not blush)"
+  }
+}

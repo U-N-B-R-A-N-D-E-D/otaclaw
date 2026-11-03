@@ -435,7 +435,7 @@ describe('AnimationController', () => {
     expect(keys).not.toContain('5,0');
   });
 
-  test('real catalog v2: thinking uses calm think frames only', async () => {
+  test('real catalog v3: thinking uses only the hand-to-chin / arms-crossed families', async () => {
     const { readFileSync } = await import('fs');
     const { fileURLToPath } = await import('url');
     const { dirname, join } = await import('path');
@@ -444,10 +444,13 @@ describe('AnimationController', () => {
     animator.setCatalog(catalog);
     const pool = animator.getOrganicFramePool('thinking');
     const keys = pool.map((f) => `${f.col},${f.row}`);
-    expect(keys.every((k) => ['1,0', '2,0', '11,0', '4,0'].includes(k))).toBe(true);
+    const thinkCells = ['4,0', '5,0', '6,0', '7,0', '11,0', '9,0', '10,0'];
+    expect(keys.length).toBeGreaterThan(0);
+    expect(keys.every((k) => thinkCells.includes(k))).toBe(true);
+    // Furrowed brow (4,2), startle (0,2), stern point (2,0) and the shrug (5,1) are not thinking.
     expect(keys).not.toContain('4,2');
     expect(keys).not.toContain('0,2');
-    expect(keys).not.toContain('5,0');
+    expect(keys).not.toContain('2,0');
     expect(keys).not.toContain('5,1');
   });
 
@@ -464,8 +467,10 @@ describe('AnimationController', () => {
     expect(idle).toContain('0,0');
     const confused = animator.getOrganicFramePool('confused').map((f) => `${f.col},${f.row}`);
     expect(confused).toContain('4,1');
+    expect(confused).toContain('5,1');
     const worried = animator.getOrganicFramePool('worried').map((f) => `${f.col},${f.row}`);
-    expect(worried).toContain('5,1');
+    expect(worried).toContain('4,2');
+    expect(worried).not.toContain('5,1');
   });
 
   test('real catalog: every frame is reachable from at least one state (100% utilization)', async () => {

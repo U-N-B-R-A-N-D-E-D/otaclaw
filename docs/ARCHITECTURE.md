@@ -50,6 +50,7 @@ decides what the agent should say — that is the gateway's job.
 |---|---|
 | State list, sequences, signals | `src/js/core/state-sprite-map.js`, `docs/STATE-SPRITES.md` |
 | Frame tags/coordinates | `src/data/frame-catalog.json` |
+| What each frame shows (families, face deltas, blinks) | `src/data/sprite-anatomy.json`, `docs/SPRITE-ANATOMY.md` |
 | Individual frame files + sequences | `src/data/sprite-catalog.json` |
 | 1:1 sprite functions (id/emoji/cell/state) | `src/data/sprite-functions.json`, `docs/SPRITE-FUNCTIONS.md` |
 | Event contract | `docs/WEBSOCKET-PROTOCOL.md` |

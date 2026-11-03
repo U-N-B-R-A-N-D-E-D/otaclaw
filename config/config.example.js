@@ -387,7 +387,7 @@ export const OTACLAW_CONFIG = {
     // A filename under basePath, an absolute/URL path, or an array for a
     // sequence. `codec/` ships 4 five-frame sets, shock-1..3 and neutral.
     codecFace: [
-      'codec/g1-1.png', 'codec/g1-2.png', 'codec/g1-3.png', 'codec/g1-4.png', 'codec/g1-5.png',
+      'codec/g1-1.png@180', 'codec/g1-4.png@160', 'codec/g1-5.png@140', 'codec/g1-4.png@170', 'codec/g1-1.png@220', 'codec/g1-5.png@140', 'codec/g1-4.png@180', 'codec/g1-1.png@900', 'codec/g1-2.png@80', 'codec/g1-3.png@100', 'codec/g1-2.png@80',
     ],
     codecFrameMs: 1200,
 
@@ -395,26 +395,30 @@ export const OTACLAW_CONFIG = {
     // All 24 codec assets are in use: g1 calm, g2 attentive, g3 serious,
     // g4 positive, neutral, and shock-1..3.
     codecStateFaces: {
-      idle: ['codec/g1-1.png', 'codec/g1-2.png', 'codec/g1-3.png', 'codec/g1-4.png', 'codec/g1-5.png'],
+      // Codec sets are [1 base, 2 half-blink, 3 blink, 4 mouth open, 5 mouth half]
+      // (src/data/sprite-anatomy.json). "file@ms" sets that frame's duration:
+      // listening states only blink, talking states move the mouth.
+      idle: ['codec/g1-1.png@2800', 'codec/g1-2.png@80', 'codec/g1-3.png@110', 'codec/g1-2.png@80', 'codec/g1-1.png@3600', 'codec/g1-2.png@70', 'codec/g1-3.png@90', 'codec/g1-2.png@70'],
+      greeting: ['codec/g1-1.png@180', 'codec/g1-4.png@160', 'codec/g1-5.png@140', 'codec/g1-4.png@170', 'codec/g1-1.png@220', 'codec/g1-5.png@140', 'codec/g1-4.png@180', 'codec/g1-1.png@900', 'codec/g1-2.png@80', 'codec/g1-3.png@100', 'codec/g1-2.png@80'],
+      speaking: ['codec/g1-1.png@180', 'codec/g1-4.png@160', 'codec/g1-5.png@140', 'codec/g1-4.png@170', 'codec/g1-1.png@220', 'codec/g1-5.png@140', 'codec/g1-4.png@180', 'codec/g1-1.png@900', 'codec/g1-2.png@80', 'codec/g1-3.png@100', 'codec/g1-2.png@80'],
       attention: ['codec/neutral.png'],
-      greeting: ['codec/g1-1.png', 'codec/g1-2.png', 'codec/g1-3.png', 'codec/g1-4.png', 'codec/g1-5.png'],
-      thinking: ['codec/g2-1.png', 'codec/g2-2.png', 'codec/g2-3.png', 'codec/g2-4.png', 'codec/g2-5.png'],
-      curious: ['codec/g2-1.png', 'codec/g2-2.png', 'codec/g2-3.png', 'codec/g2-4.png', 'codec/g2-5.png'],
-      confused: ['codec/g2-1.png', 'codec/g2-2.png', 'codec/g2-3.png', 'codec/g2-4.png', 'codec/g2-5.png'],
-      processing: ['codec/g3-1.png', 'codec/g3-2.png', 'codec/g3-3.png', 'codec/g3-4.png', 'codec/g3-5.png'],
-      tool: ['codec/g3-1.png', 'codec/g3-2.png', 'codec/g3-3.png', 'codec/g3-4.png', 'codec/g3-5.png'],
-      worried: ['codec/g3-1.png', 'codec/g3-2.png', 'codec/g3-3.png', 'codec/g3-4.png', 'codec/g3-5.png'],
-      sad: ['codec/g3-1.png', 'codec/g3-2.png', 'codec/g3-3.png', 'codec/g3-4.png', 'codec/g3-5.png'],
-      success: ['codec/g4-1.png', 'codec/g4-2.png', 'codec/g4-3.png', 'codec/g4-4.png', 'codec/g4-5.png'],
-      excited: ['codec/g4-1.png', 'codec/g4-2.png', 'codec/g4-3.png', 'codec/g4-4.png', 'codec/g4-5.png'],
-      laughing: ['codec/g4-1.png', 'codec/g4-2.png', 'codec/g4-3.png', 'codec/g4-4.png', 'codec/g4-5.png'],
-      presenting: ['codec/g4-1.png', 'codec/g4-2.png', 'codec/g4-3.png', 'codec/g4-4.png', 'codec/g4-5.png'],
-      playful: ['codec/g4-1.png', 'codec/g4-2.png', 'codec/g4-3.png', 'codec/g4-4.png', 'codec/g4-5.png'],
-      confident: ['codec/g4-1.png', 'codec/g4-2.png', 'codec/g4-3.png', 'codec/g4-4.png', 'codec/g4-5.png'],
-      error: ['codec/shock-1.png', 'codec/shock-2.png', 'codec/shock-3.png'],
-      surprised: ['codec/shock-1.png', 'codec/shock-2.png', 'codec/shock-3.png'],
-      scared: ['codec/shock-1.png', 'codec/shock-2.png', 'codec/shock-3.png'],
-      cold: ['codec/g1-1.png', 'codec/g1-2.png', 'codec/g1-3.png', 'codec/g1-4.png', 'codec/g1-5.png'],
+      thinking: ['codec/g2-1.png@2800', 'codec/g2-2.png@80', 'codec/g2-3.png@110', 'codec/g2-2.png@80', 'codec/g2-1.png@3600', 'codec/g2-2.png@70', 'codec/g2-3.png@90', 'codec/g2-2.png@70'],
+      curious: ['codec/g2-1.png@2800', 'codec/g2-2.png@80', 'codec/g2-3.png@110', 'codec/g2-2.png@80', 'codec/g2-1.png@3600', 'codec/g2-2.png@70', 'codec/g2-3.png@90', 'codec/g2-2.png@70'],
+      confused: ['codec/g2-1.png@2800', 'codec/g2-2.png@80', 'codec/g2-3.png@110', 'codec/g2-2.png@80', 'codec/g2-1.png@3600', 'codec/g2-2.png@70', 'codec/g2-3.png@90', 'codec/g2-2.png@70'],
+      processing: ['codec/g3-1.png@2800', 'codec/g3-2.png@80', 'codec/g3-3.png@110', 'codec/g3-2.png@80', 'codec/g3-1.png@3600', 'codec/g3-2.png@70', 'codec/g3-3.png@90', 'codec/g3-2.png@70'],
+      tool: ['codec/g3-1.png@2800', 'codec/g3-2.png@80', 'codec/g3-3.png@110', 'codec/g3-2.png@80', 'codec/g3-1.png@3600', 'codec/g3-2.png@70', 'codec/g3-3.png@90', 'codec/g3-2.png@70'],
+      worried: ['codec/g3-1.png@2800', 'codec/g3-2.png@80', 'codec/g3-3.png@110', 'codec/g3-2.png@80', 'codec/g3-1.png@3600', 'codec/g3-2.png@70', 'codec/g3-3.png@90', 'codec/g3-2.png@70'],
+      sad: ['codec/g3-1.png@2800', 'codec/g3-2.png@80', 'codec/g3-3.png@110', 'codec/g3-2.png@80', 'codec/g3-1.png@3600', 'codec/g3-2.png@70', 'codec/g3-3.png@90', 'codec/g3-2.png@70'],
+      cold: ['codec/g3-1.png@2800', 'codec/g3-2.png@80', 'codec/g3-3.png@110', 'codec/g3-2.png@80', 'codec/g3-1.png@3600', 'codec/g3-2.png@70', 'codec/g3-3.png@90', 'codec/g3-2.png@70'],
+      presenting: ['codec/g3-1.png@180', 'codec/g3-4.png@160', 'codec/g3-5.png@140', 'codec/g3-4.png@170', 'codec/g3-1.png@220', 'codec/g3-5.png@140', 'codec/g3-4.png@180', 'codec/g3-1.png@900', 'codec/g3-2.png@80', 'codec/g3-3.png@100', 'codec/g3-2.png@80'],
+      success: ['codec/g4-1.png@180', 'codec/g4-4.png@160', 'codec/g4-5.png@140', 'codec/g4-4.png@170', 'codec/g4-1.png@220', 'codec/g4-5.png@140', 'codec/g4-4.png@180', 'codec/g4-1.png@900', 'codec/g4-2.png@80', 'codec/g4-3.png@100', 'codec/g4-2.png@80'],
+      excited: ['codec/g4-1.png@180', 'codec/g4-4.png@160', 'codec/g4-5.png@140', 'codec/g4-4.png@170', 'codec/g4-1.png@220', 'codec/g4-5.png@140', 'codec/g4-4.png@180', 'codec/g4-1.png@900', 'codec/g4-2.png@80', 'codec/g4-3.png@100', 'codec/g4-2.png@80'],
+      laughing: ['codec/g4-1.png@180', 'codec/g4-4.png@160', 'codec/g4-5.png@140', 'codec/g4-4.png@170', 'codec/g4-1.png@220', 'codec/g4-5.png@140', 'codec/g4-4.png@180', 'codec/g4-1.png@900', 'codec/g4-2.png@80', 'codec/g4-3.png@100', 'codec/g4-2.png@80'],
+      playful: ['codec/g4-1.png@2800', 'codec/g4-2.png@80', 'codec/g4-3.png@110', 'codec/g4-2.png@80', 'codec/g4-1.png@3600', 'codec/g4-2.png@70', 'codec/g4-3.png@90', 'codec/g4-2.png@70'],
+      confident: ['codec/g4-1.png@2800', 'codec/g4-2.png@80', 'codec/g4-3.png@110', 'codec/g4-2.png@80', 'codec/g4-1.png@3600', 'codec/g4-2.png@70', 'codec/g4-3.png@90', 'codec/g4-2.png@70'],
+      error: ['codec/shock-1.png@220', 'codec/shock-2.png@220', 'codec/shock-3.png@2200'],
+      surprised: ['codec/shock-1.png@220', 'codec/shock-2.png@220', 'codec/shock-3.png@2200'],
+      scared: ['codec/shock-1.png@220', 'codec/shock-2.png@220', 'codec/shock-3.png@2200'],
     },
 
     // Blink overlay animation
@@ -426,32 +430,57 @@ export const OTACLAW_CONFIG = {
     // Tag-based frame selection (for semantic animations)
     // Maps emotion tags to arrays of [col, row] coordinates
     tagToFrames: {
-      idle: [[0, 0], [1, 0]],
-      thinking: [[2, 0], [3, 0], [4, 0], [5, 0]],
-      processing: [[6, 0], [7, 0], [8, 0], [9, 0]],
-      success: [[0, 1], [1, 1], [2, 1]],
-      error: [[0, 2], [1, 2], [2, 2]],
-      laughing: [[2, 3], [3, 3]],
-      surprised: [[0, 3], [1, 3]],
+      idle: [[0, 0], [3, 0], [8, 0]],
+      thinking: [[4, 0], [5, 0], [6, 0], [7, 0], [9, 0], [10, 0], [11, 0]],
+      processing: [[1, 0], [2, 0], [10, 1], [8, 1], [9, 1], [1, 3]],
+      talking: [[8, 1], [9, 1], [1, 3]],
+      explaining: [[1, 0], [2, 0], [10, 1]],
+      success: [[0, 1], [1, 1], [2, 1], [3, 1]],
+      error: [[1, 2], [2, 2], [3, 2]],
+      unpleasant: [[0, 2], [1, 2], [2, 2], [3, 2], [9, 3], [10, 3]],
+      laughing: [[2, 3], [3, 3], [4, 3]],
+      surprised: [[0, 2]],
+      curious: [[11, 1], [5, 2]],
+      confused: [[4, 1], [5, 1]],
+      puzzled: [[4, 1], [5, 1]],
+      excited: [[1, 1], [2, 1], [3, 1], [2, 3], [4, 3]],
+      presenting: [[1, 0], [2, 0], [10, 1], [6, 1]],
+      worried: [[1, 2], [4, 2], [0, 3]],
+      sad: [[2, 2], [3, 2]],
+      scared: [[9, 3], [10, 3]],
+      confident: [[6, 1], [7, 1]],
+      playful: [[6, 2], [5, 3], [6, 3], [7, 3], [8, 3]],
+      greeting: [[7, 2]],
+      wink: [[2, 1], [3, 1], [7, 1], [6, 2]],
+      blush: [[5, 3], [6, 3], [7, 3], [8, 3]],
+      cold: [[9, 3]],
+      waving: [[7, 2]],
     },
 
     // Sequential animations (play frames in order)
     // Populated with catalog sequences so more sprites + full animation sequences are used.
     // Success/laughing/etc will prefer playing these for emotional, task-matched animation.
     tagToSequences: {
-      success: [[0,1],[1,1],[2,1]],
-      laughing: [[2,3],[3,3]],
-      thinking: [[1,0],[2,0],[1,0]],
-      processing: [[6,0],[7,0],[6,1],[7,1]],
-      surprised: [[9,0],[10,0]],
-      curious: [[5,2],[1,2]],
-      confused: [[1,2],[5,0]],
-      excited: [[2,1],[6,3],[7,3]],
-      worried: [[0,2],[4,2]],
-      presenting: [[6,3],[7,3]],
-      error: [[0,2],[2,2],[3,2]],
-      sad: [[2,2],[3,2]],
-      scared: [[9,0],[10,0],[10,3]],
+      // Mirrors frame-catalog.json sequences (v3 visual pass): each one stays inside a
+      // frame family so only the face changes; see src/data/sprite-anatomy.json.
+      success: [[1, 1], [0, 1], [2, 1], [3, 1]],
+      laughing: [[2, 3], [3, 3], [4, 3], [3, 3], [2, 3], [4, 3]],
+      thinking: [[4, 0], [6, 0], [4, 0], [5, 0], [7, 0], [9, 0], [10, 0], [11, 0]],
+      processing: [[1, 0], [8, 1], [2, 0], [11, 1], [8, 1], [6, 1]],
+      speaking: [[8, 1], [1, 3], [9, 1], [1, 3], [8, 1], [9, 1], [10, 1], [1, 3]],
+      surprised: [[0, 2], [0, 3]],
+      curious: [[5, 2], [11, 1]],
+      confused: [[4, 1], [5, 1]],
+      excited: [[1, 1], [2, 1], [3, 1], [2, 3], [4, 3]],
+      worried: [[9, 0], [4, 2], [0, 3]],
+      presenting: [[1, 0], [8, 1], [1, 3], [9, 1], [8, 1], [6, 1]],
+      error: [[1, 2], [2, 2], [3, 2]],
+      sad: [[2, 2], [3, 2]],
+      scared: [[0, 2], [10, 3]],
+      greeting: [[7, 2], [7, 3], [6, 3]],
+      playful: [[6, 2], [5, 3], [8, 3], [7, 3]],
+      cold: [[0, 3], [9, 3]],
+      waving: [[7, 2]],
     },
 
     // Frame timing overrides (ms per frame for specific states)
@@ -476,8 +505,8 @@ export const OTACLAW_CONFIG = {
     // Calm idle sequence for the early "waiting" phase (before full organic idle).
     // Prefer explicit [col, row] of resting/calm frames.
     idleSequence: [
-      [0, 0], [0, 0], [3, 0], [0, 0], [4, 0], [5, 1], [0, 0], [8, 0], [3, 0], [0, 0],
-      [4, 0], [0, 0], [5, 1],
+      [0, 0], [0, 0], [3, 0], [0, 0], [8, 0], [5, 2], [0, 0], [3, 0], [8, 0], [0, 0],
+      [5, 2], [0, 0], [3, 0], [8, 0],
     ],
   },
 

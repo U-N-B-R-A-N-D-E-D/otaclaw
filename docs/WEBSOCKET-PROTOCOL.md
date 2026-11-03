@@ -118,7 +118,7 @@ See [STATE-SPRITES.md](STATE-SPRITES.md).
 State-level signals pick a sequence. When you want a **specific Hal asset**, send:
 
 ```json
-{ "type": "agent.sprite", "sprite": "wink_right", "bubble": "😉" }
+{ "type": "agent.sprite", "sprite": "point_wink_alt", "bubble": "😉" }
 { "type": "agent.sprite", "sprite": "4,3" }
 { "type": "agent.sprite", "sprite": "search" }
 { "type": "agent.sprite", "sprite": "😱" }
