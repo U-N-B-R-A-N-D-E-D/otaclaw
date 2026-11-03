@@ -2,8 +2,9 @@
 
 Test OtaClaw against your gateway before deploying.
 
-No gateway yet? Run `npm run gateway:demo` from the repo; it serves the face
-and simulates an agent cycle. The options below assume a real gateway.
+No gateway yet? Run `npm run demo:kiosk` for the demo kiosk (the only window),
+or `npm run gateway:demo` for a headless gateway you open yourself. The options
+below assume a real gateway.
 
 ## Option A: OpenClaw on This Machine
 

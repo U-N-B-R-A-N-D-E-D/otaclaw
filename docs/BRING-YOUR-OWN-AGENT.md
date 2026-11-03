@@ -9,16 +9,24 @@ renders its state.
 
 ## 2-minute quickstart
 
+The clone demo opens only the kiosk (no browser tab, no landing page):
+
 ```bash
 npm install
-npm run gateway:demo
-# open the URL it prints, e.g.
-# http://127.0.0.1:18789/src/widget.html?host=127.0.0.1&port=18789&hal_ws=ws://127.0.0.1:18789/ws
+npm run demo:kiosk
 ```
 
-`gateway:demo` starts the **reference gateway** (`examples/gateway.mjs`) and
-emits a simulated thinking → reply → success cycle. The face should react
-immediately. Stop it with Ctrl+C.
+`demo:kiosk` starts the **reference gateway** (`examples/gateway.mjs`) and opens
+the native float on macOS or a windowless kiosk on Linux/Windows. It emits a
+simulated thinking → reply → success cycle; stop it with Ctrl+C.
+
+To run the gateway headlessly and open the widget URL yourself (embedding,
+remote display, your own browser):
+
+```bash
+npm run gateway:demo
+# http://127.0.0.1:18789/src/widget.html?host=127.0.0.1&port=18789&hal_ws=ws://127.0.0.1:18789/ws
+```
 
 Then drive it yourself — one HTTP call per event:
 
