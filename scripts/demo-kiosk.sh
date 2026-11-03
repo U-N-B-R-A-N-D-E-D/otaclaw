@@ -43,7 +43,10 @@ case "$(uname -s)" in
   Darwin)
     if command -v swiftc >/dev/null 2>&1; then
       if [ ! -x tools/mac-float/otaclaw-float ] || [ tools/mac-float/main.swift -nt tools/mac-float/otaclaw-float ]; then
-        swiftc -O tools/mac-float/main.swift -o tools/mac-float/otaclaw-float -framework Cocoa -framework WebKit
+        if ! swiftc -O tools/mac-float/main.swift -o tools/mac-float/otaclaw-float -framework Cocoa -framework WebKit; then
+          echo "Native float build failed; using the Chrome app window." >&2
+          rm -f tools/mac-float/otaclaw-float
+        fi
       fi
     fi
     if [ -x tools/mac-float/otaclaw-float ]; then
@@ -79,10 +82,12 @@ case "$(uname -s)" in
     ;;
   *)
     echo "Kiosk: Chrome app window. Ctrl+C stops the gateway."
-    start "" "chrome" --app="$BASE&kiosk=1" >/dev/null 2>&1 || {
-      echo "Google Chrome is required for the kiosk window." >&2
+    if command -v cmd.exe >/dev/null 2>&1; then
+      cmd.exe /c start "" "chrome" --app="$BASE&kiosk=1" >/dev/null 2>&1
+    else
+      echo "Run this from Git Bash on Windows (cmd.exe is required)." >&2
       exit 1
-    }
+    fi
     wait "$GW_PID"
     ;;
 esac
