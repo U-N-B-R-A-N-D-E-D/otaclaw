@@ -9,6 +9,7 @@ import {
   StateCoordinator,
   coherentEventState,
   endsRun,
+  frameDuration,
   getStateSprite,
   getStateTable,
   isMappingEnabled,
@@ -297,7 +298,38 @@ describe('AnimationController.startMapped (deterministic playback)', () => {
     const idleSeq = DEFAULT_STATE_SPRITES.idle.sequence.map(([c, r]) => `${c},${r}`);
     expect(seq.length).toBeGreaterThan(1);
     expect(seq.every((k) => idleSeq.includes(k))).toBe(true);
-    expect(new Set(seq)).toEqual(new Set(['0,0', '3,0', '11,0', '8,0']));
+    expect(new Set(seq)).toEqual(new Set(['0,0', '3,0', '8,0', '5,2']));
+  });
+
+  test('a [col, row, ms] entry holds that frame for its own duration', () => {
+    const { sequence } = DEFAULT_STATE_SPRITES.thinking;
+    a.startMapped('thinking', 'hm');
+    const first = frameDuration(sequence[0], 0);
+    run(50); // setFrame paints on a (throttled) animation frame
+    expect(frames).toHaveLength(1);
+    run(first - 100);
+    expect(frames).toHaveLength(1);
+    run(100);
+    expect(frames).toHaveLength(2);
+    // The narrowed-eyes glance (5,0) is shorter than the base pose (4,0).
+    const ms = Object.fromEntries(sequence.map((f) => [`${f[0]},${f[1]}`, frameDuration(f, 0)]));
+    expect(ms['5,0']).toBeLessThan(ms['4,0']);
+  });
+
+  test('every hold sequence finishes before its auto-return', () => {
+    for (const [name, def] of Object.entries(DEFAULT_STATE_SPRITES)) {
+      if (def.mode !== 'hold' || !def.autoReturnMs) continue;
+      const total = def.sequence.reduce((sum, f) => sum + frameDuration(f, def.frameMs), 0);
+      expect([name, total <= def.autoReturnMs]).toEqual([name, true]);
+    }
+  });
+
+  test('speaking lip-syncs inside one body family (only the mouth changes)', () => {
+    const family = new Map(catalog.frames.map((f) => [`${f.col},${f.row}`, f.family]));
+    const cells = DEFAULT_STATE_SPRITES.speaking.sequence.map(([c, r]) => `${c},${r}`);
+    expect(new Set(cells.map((k) => family.get(k)))).toEqual(new Set(['point']));
+    expect(cells).toEqual(expect.arrayContaining(['8,1', '1,3', '9,1']));
+    for (const f of DEFAULT_STATE_SPRITES.speaking.sequence) expect(frameDuration(f, 999)).toBeLessThan(300);
   });
 
   test('starting another state invalidates the previous sequence', () => {

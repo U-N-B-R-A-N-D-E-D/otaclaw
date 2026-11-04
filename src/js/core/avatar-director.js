@@ -14,32 +14,32 @@
  *
  * Modes (Vibeconf MODE_EMOJIS):
  *   active  — engaged, free to answer          -> idle
- *   passive — listening, lips sealed            -> arms_closed
+ *   passive — listening, lips sealed            -> hands_clasped
  *   silent  — will act but cannot speak         -> waiting
  *
  * Activity (Vibeconf ACTIVITY_EMOJIS):
- *   thinking -> contemplate    working -> hand_on_hip
- *   speaking -> talk_left      yielding -> point_right
- *   ticking  -> look_aside     success  -> thumbs_up_right
- *   error    -> sad_intense    listening-> phone
+ *   thinking -> contemplate    working -> hands_on_hips
+ *   speaking -> talk_open      yielding -> point_ready
+ *   ticking  -> think_glance   success  -> thumbs_up_wink
+ *   error    -> sad_intense    listening-> attentive
  */
 
 export const MODE_SPRITES = Object.freeze({
   active: 'idle',
-  passive: 'arms_closed',
+  passive: 'hands_clasped',
   silent: 'waiting',
 });
 
 export const ACTIVITY_SPRITES = Object.freeze({
   thinking: 'contemplate',
-  working: 'hand_on_hip',
-  speaking: 'talk_left',
-  yielding: 'point_right',
-  ticking: 'look_aside',
-  success: 'thumbs_up_right',
+  working: 'hands_on_hips',
+  speaking: 'talk_open',
+  yielding: 'point_ready',
+  ticking: 'think_glance',
+  success: 'thumbs_up_wink',
   error: 'sad_intense',
-  listening: 'phone',
-  attention: 'phone',
+  listening: 'attentive',
+  attention: 'attentive',
   offline: 'waiting',
 });
 
@@ -54,10 +54,10 @@ export const ACTIVITY_SPRITES = Object.freeze({
 export const IDLE_CYCLE = Object.freeze([
   'idle',
   'waiting',
-  'arms_closed',
+  'hands_clasped',
   'idle',
   'waiting',
-  'arms_closed',
+  'hands_clasped',
 ]);
 
 export function idleSprite(index = 0, cycle = IDLE_CYCLE) {

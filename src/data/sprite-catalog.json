@@ -5,129 +5,268 @@
   "sequences": [
     {
       "name": "idle-breathe",
-      "indices": [
-        0,
-        1,
-        2
-      ],
+      "indices": [],
       "tags": [
         "idle",
         "micro"
       ],
       "sprites": [
         "otacon_sprite.png_0000_Sprite-1.png",
-        "otacon_sprite.png_0001_Sprite-2.png",
-        "otacon_sprite.png_0002_Sprite-3.png"
+        "otacon_sprite.png_0003_Sprite-4.png",
+        "otacon_sprite.png_0008_Sprite-9.png"
       ],
-      "frameMs": 1200
+      "frameMs": 1200,
+      "cells": [
+        [
+          0,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          8,
+          0
+        ]
+      ]
     },
     {
       "name": "thinkingDeep",
-      "indices": [
-        2,
-        3,
-        4,
-        5
-      ],
+      "indices": [],
       "tags": [
         "thinking"
       ],
       "sprites": [
-        "otacon_sprite_think_00.png",
-        "otacon_sprite_think_01.png",
-        "otacon_sprite_think_02.png"
+        "otacon_sprite.png_0004_Sprite-5.png",
+        "otacon_sprite.png_0006_Sprite-7.png",
+        "otacon_sprite.png_0005_Sprite-6.png"
       ],
-      "frameMs": 800
+      "frameMs": 800,
+      "cells": [
+        [
+          4,
+          0
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          5,
+          0
+        ]
+      ]
     },
     {
       "name": "laughing",
-      "indices": [
-        37,
-        38,
-        39
-      ],
+      "indices": [],
       "tags": [
         "laughing"
       ],
       "sprites": [
-        "otacon_sprite_laugh_00.png",
-        "otacon_sprite_laugh_01.png",
-        "otacon_sprite_laugh_02.png"
+        "otacon_sprite.png_0038_Layer-3.png",
+        "otacon_sprite.png_0039_Layer-4.png",
+        "otacon_sprite.png_0040_Layer-5.png",
+        "otacon_sprite.png_0039_Layer-4.png"
       ],
-      "frameMs": 200
+      "frameMs": 200,
+      "cells": [
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          3,
+          3
+        ]
+      ]
     },
     {
       "name": "surprised",
-      "indices": [
-        9,
-        10
-      ],
+      "indices": [],
       "tags": [
         "surprised"
       ],
       "sprites": [
-        "otacon_sprite.png_0009_Sprite-10.png",
-        "otacon_sprite.png_0010_Sprite-11.png"
+        "otacon_sprite.png_0024_Sprite-1b.png",
+        "otacon_sprite.png_0036_Layer-1.png"
       ],
-      "frameMs": 300
+      "frameMs": 300,
+      "cells": [
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ]
+      ]
     },
     {
       "name": "success",
-      "indices": [
-        12,
-        13,
-        14
-      ],
+      "indices": [],
       "tags": [
         "success"
       ],
       "sprites": [
-        "otacon_sprite_thumbs_00.png",
-        "otacon_sprite_thumbs_01.png",
-        "otacon_sprite_thumbs_02.png",
-        "otacon_sprite_thumbs_03.png",
-        "otacon_sprite_thumbs_04.png",
-        "otacon_sprite_thumbs_05.png",
-        "otacon_sprite_thumbs_06.png"
+        "otacon_sprite.png_0013_Sprite-2a.png",
+        "otacon_sprite.png_0012_Sprite-1a.png",
+        "otacon_sprite.png_0014_Sprite-3a.png",
+        "otacon_sprite.png_0015_Sprite-4a.png"
       ],
-      "frameMs": 150
+      "frameMs": 150,
+      "cells": [
+        [
+          1,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ]
+      ]
     },
     {
       "name": "confused",
       "indices": [],
       "sprites": [
-        "otacon_sprite_shrug_00.png",
-        "otacon_sprite_shrug_01.png"
+        "otacon_sprite.png_0016_Sprite-5a.png",
+        "otacon_sprite.png_0017_Sprite-6a.png"
       ],
       "frameMs": 600,
       "tags": [
         "confused"
+      ],
+      "cells": [
+        [
+          4,
+          1
+        ],
+        [
+          5,
+          1
+        ]
       ]
     },
     {
       "name": "frustrated",
       "indices": [],
       "sprites": [
-        "otacon_sprite_frustration_00.png",
-        "otacon_sprite_frustration_01.png"
+        "otacon_sprite.png_0026_Sprite-3b.png",
+        "otacon_sprite.png_0027_Sprite-4b.png"
       ],
       "frameMs": 400,
       "tags": [
         "frustrated"
+      ],
+      "cells": [
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          2
+        ]
       ]
     },
     {
       "name": "cold",
       "indices": [],
       "sprites": [
-        "otacon_sprite_coat_00.png",
-        "otacon_sprite_coat_01.png",
-        "otacon_sprite_coat_02.png",
-        "otacon_sprite_coat_03.png"
+        "otacon_sprite.png_0036_Layer-1.png",
+        "otacon_sprite.png_0045_Layer-10.png"
       ],
       "frameMs": 300,
       "tags": [
         "cold"
+      ],
+      "cells": [
+        [
+          0,
+          3
+        ],
+        [
+          9,
+          3
+        ]
+      ]
+    },
+    {
+      "name": "speaking",
+      "indices": [],
+      "tags": [
+        "speaking"
+      ],
+      "frameMs": 200,
+      "sprites": [
+        "otacon_sprite.png_0020_Sprite-9a.png",
+        "otacon_sprite.png_0037_Layer-2.png",
+        "otacon_sprite.png_0021_Sprite-10a.png",
+        "otacon_sprite.png_0037_Layer-2.png"
+      ],
+      "cells": [
+        [
+          8,
+          1
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          9,
+          1
+        ],
+        [
+          1,
+          3
+        ]
+      ]
+    },
+    {
+      "name": "blush",
+      "indices": [],
+      "tags": [
+        "blush"
+      ],
+      "frameMs": 200,
+      "sprites": [
+        "otacon_sprite.png_0000_Sprite-1.png",
+        "otacon_sprite.png_0043_Layer-8.png",
+        "otacon_sprite.png_0044_Layer-9.png"
+      ],
+      "cells": [
+        [
+          0,
+          0
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          8,
+          3
+        ]
       ]
     }
   ],
@@ -137,658 +276,721 @@
       "col": 0,
       "row": 0,
       "file": "otacon_sprite.png_0000_Sprite-1.png",
-      "desc": "neutral, arms relaxed",
+      "desc": "standing, one hand on hip, other arm down, neutral face — true rest",
       "tags": [
-        "neutral",
-        "idle",
+        "idle_base",
+        "base",
         "calm",
-        "resting",
-        "base"
+        "resting"
       ],
       "mood": "calm",
       "intensity": "low",
-      "context": "idle"
+      "context": "idle",
+      "family": "rest_hip"
     },
     {
       "idx": 1,
       "col": 1,
       "row": 0,
       "file": "otacon_sprite.png_0001_Sprite-2.png",
-      "desc": "emotion: neutral, calm, idle, standby",
+      "desc": "fist forward, neutral — about to make a point",
       "tags": [
-        "neutral",
-        "calm",
-        "idle",
-        "resting"
+        "explaining",
+        "ready",
+        "assertive"
       ],
-      "mood": "think",
+      "mood": "work",
       "intensity": "mid",
-      "context": "work"
+      "context": "work",
+      "family": "point"
     },
     {
       "idx": 2,
       "col": 2,
       "row": 0,
       "file": "otacon_sprite.png_0002_Sprite-3.png",
-      "desc": "head right, arm across body",
+      "desc": "fist forward, frowning — objecting, stern",
       "tags": [
-        "neutral",
-        "thinking",
-        "micro-variant"
+        "explaining",
+        "assertive",
+        "stern",
+        "objecting"
       ],
-      "mood": "think",
+      "mood": "work",
       "intensity": "mid",
-      "context": "work"
+      "context": "work",
+      "family": "point"
     },
     {
       "idx": 3,
       "col": 3,
       "row": 0,
       "file": "otacon_sprite.png_0003_Sprite-4.png",
-      "desc": "emotion: neutral, calm, idle, standby",
+      "desc": "arms folded over belly, head turned aside — calm waiting",
       "tags": [
-        "neutral",
+        "idle_base",
         "calm",
-        "idle",
-        "resting"
+        "resting",
+        "waiting"
       ],
       "mood": "calm",
       "intensity": "low",
-      "context": "idle"
+      "context": "idle",
+      "family": "rest_fold"
     },
     {
       "idx": 4,
       "col": 4,
       "row": 0,
       "file": "otacon_sprite.png_0004_Sprite-5.png",
-      "desc": "hand near chest variant",
+      "desc": "arm across, hand to chin — thinking",
       "tags": [
-        "neutral",
+        "thinking",
+        "contemplative",
         "calm"
       ],
       "mood": "think",
       "intensity": "mid",
-      "context": "work"
+      "context": "work",
+      "family": "chin"
     },
     {
       "idx": 5,
       "col": 5,
       "row": 0,
       "file": "otacon_sprite.png_0005_Sprite-6.png",
-      "desc": "confused, thoughtful",
+      "desc": "hand to chin, eyes narrowed — concentrating (also the blink frame of 4,0)",
       "tags": [
         "thinking",
-        "confused",
-        "contemplative"
+        "contemplative",
+        "focused",
+        "blink"
       ],
       "mood": "think",
       "intensity": "mid",
-      "context": "work"
+      "context": "work",
+      "family": "chin"
     },
     {
       "idx": 6,
       "col": 6,
       "row": 0,
       "file": "otacon_sprite.png_0006_Sprite-7.png",
-      "desc": "left arm out",
+      "desc": "hand to chin, glancing aside — pondering, reading",
       "tags": [
-        "neutral",
-        "explaining"
+        "thinking",
+        "contemplative",
+        "reading",
+        "calm"
       ],
-      "mood": "work",
+      "mood": "think",
       "intensity": "mid",
-      "context": "work"
+      "context": "work",
+      "family": "chin"
     },
     {
       "idx": 7,
       "col": 7,
       "row": 0,
       "file": "otacon_sprite.png_0007_Sprite-8.png",
-      "desc": "emotion: neutral, calm, idle, standby",
+      "desc": "hand to chin, alternate drawing — thinking",
       "tags": [
-        "neutral",
-        "calm",
-        "idle",
-        "resting"
+        "thinking",
+        "contemplative",
+        "calm"
       ],
-      "mood": "work",
+      "mood": "think",
       "intensity": "mid",
-      "context": "work"
+      "context": "work",
+      "family": "chin"
     },
     {
       "idx": 8,
       "col": 8,
       "row": 0,
       "file": "otacon_sprite.png_0008_Sprite-9.png",
-      "desc": "arms crossed",
+      "desc": "hands clasped in front, neutral — polite waiting",
       "tags": [
-        "neutral",
-        "closed",
-        "waiting"
+        "idle_base",
+        "calm",
+        "resting",
+        "waiting",
+        "polite"
       ],
       "mood": "calm",
       "intensity": "low",
-      "context": "idle"
+      "context": "idle",
+      "family": "rest_clasp"
     },
     {
       "idx": 9,
       "col": 9,
       "row": 0,
       "file": "otacon_sprite.png_0009_Sprite-10.png",
-      "desc": "emotion: neutral, calm, idle, standby",
+      "desc": "arms crossed, hand at chin, neutral — weighing it up",
       "tags": [
-        "neutral",
-        "calm",
-        "idle",
-        "resting"
+        "thinking",
+        "contemplative",
+        "calm"
       ],
-      "mood": "fear",
-      "intensity": "high",
-      "context": "react"
+      "mood": "think",
+      "intensity": "mid",
+      "context": "work",
+      "family": "crossed"
     },
     {
       "idx": 10,
       "col": 10,
       "row": 0,
       "file": "otacon_sprite.png_0010_Sprite-11.png",
-      "desc": "emotion: neutral, calm, idle, standby",
+      "desc": "arms crossed, eyes narrowed — skeptical focus (also the blink frame of 9,0)",
       "tags": [
-        "neutral",
-        "calm",
-        "idle",
-        "resting"
+        "thinking",
+        "focused",
+        "blink"
       ],
-      "mood": "fear",
-      "intensity": "high",
-      "context": "react"
+      "mood": "think",
+      "intensity": "mid",
+      "context": "work",
+      "family": "crossed"
     },
     {
       "idx": 11,
       "col": 11,
       "row": 0,
       "file": "otacon_sprite.png_0011_Sprite-12.png",
-      "desc": "contemplative, looking right",
+      "desc": "hand to chin, alternate drawing — thinking",
       "tags": [
+        "thinking",
         "contemplative",
-        "thinking"
+        "calm"
       ],
       "mood": "think",
       "intensity": "mid",
-      "context": "work"
+      "context": "work",
+      "family": "chin"
     },
     {
       "idx": 12,
       "col": 0,
       "row": 1,
       "file": "otacon_sprite.png_0012_Sprite-1a.png",
-      "desc": "thumbs-up left",
+      "desc": "thumbs up, neutral face — approval",
       "tags": [
-        "positive",
         "success",
         "approval",
-        "happy"
+        "positive"
       ],
       "mood": "celebrate",
-      "intensity": "high",
-      "context": "react"
+      "intensity": "mid",
+      "context": "react",
+      "family": "thumbs"
     },
     {
       "idx": 13,
       "col": 1,
       "row": 1,
       "file": "otacon_sprite.png_0013_Sprite-2a.png",
-      "desc": "thumbs-up right",
+      "desc": "thumb raised high — anticipation before the thumbs up",
       "tags": [
-        "positive",
         "success",
         "approval",
-        "happy"
+        "positive"
       ],
       "mood": "celebrate",
-      "intensity": "high",
-      "context": "react"
+      "intensity": "mid",
+      "context": "react",
+      "family": "thumbs"
     },
     {
       "idx": 14,
       "col": 2,
       "row": 1,
       "file": "otacon_sprite.png_0014_Sprite-3a.png",
-      "desc": "both thumbs-up",
+      "desc": "thumbs up with grin and wink — strong success",
       "tags": [
-        "positive",
         "success",
         "approval",
-        "happy",
-        "excited"
+        "wink",
+        "excited",
+        "positive"
       ],
       "mood": "celebrate",
       "intensity": "high",
-      "context": "react"
+      "context": "react",
+      "family": "thumbs"
     },
     {
       "idx": 15,
       "col": 3,
       "row": 1,
       "file": "otacon_sprite.png_0015_Sprite-4a.png",
-      "desc": "emotion: alert, attentive, focused",
+      "desc": "thumbs up follow-through, grin and wink — success settle",
       "tags": [
-        "alert",
-        "attentive",
-        "focused"
+        "success",
+        "approval",
+        "wink",
+        "satisfied",
+        "positive"
       ],
       "mood": "celebrate",
       "intensity": "high",
-      "context": "react"
+      "context": "react",
+      "family": "thumbs"
     },
     {
       "idx": 16,
       "col": 4,
       "row": 1,
       "file": "otacon_sprite.png_0016_Sprite-5a.png",
-      "desc": "arms wide open",
+      "desc": "open-arm shrug, palms up, neutral — unsure",
       "tags": [
-        "processing",
-        "explaining",
-        "big",
+        "confused",
+        "shrug",
+        "unsure",
         "open"
       ],
       "overflow": true,
-      "mood": "think",
+      "mood": "work",
       "intensity": "mid",
-      "context": "work"
+      "context": "work",
+      "family": "shrug"
     },
     {
       "idx": 17,
       "col": 5,
       "row": 1,
       "file": "otacon_sprite.png_0017_Sprite-6a.png",
-      "desc": "hands clasped",
+      "desc": "big shrug, eyebrow up, looking away — \"no idea\"",
       "tags": [
-        "polite",
-        "calm",
-        "waiting"
+        "confused",
+        "shrug",
+        "doubt",
+        "uncertain"
       ],
-      "mood": "concern",
-      "intensity": "mid",
-      "context": "work"
+      "mood": "work",
+      "intensity": "high",
+      "context": "work",
+      "family": "shrug"
     },
     {
       "idx": 18,
       "col": 6,
       "row": 1,
       "file": "otacon_sprite.png_0018_Sprite-7a.png",
-      "desc": "emotion: alert, attentive, focused",
+      "desc": "both hands on hips, small smile — proud, ready",
       "tags": [
-        "alert",
-        "attentive",
-        "focused"
+        "confident",
+        "ready",
+        "satisfied",
+        "positive"
       ],
       "mood": "work",
       "intensity": "mid",
-      "context": "work"
+      "context": "work",
+      "family": "hips"
     },
     {
       "idx": 19,
       "col": 7,
       "row": 1,
       "file": "otacon_sprite.png_0019_Sprite-8a.png",
-      "desc": "left arm raised",
+      "desc": "fist forward with a knowing half-wink — \"got it\"",
       "tags": [
-        "asking",
-        "explaining",
-        "emphasis"
+        "confident",
+        "wink",
+        "knowing",
+        "ready"
       ],
       "mood": "work",
       "intensity": "mid",
-      "context": "work"
+      "context": "work",
+      "family": "point"
     },
     {
       "idx": 20,
       "col": 8,
       "row": 1,
       "file": "otacon_sprite.png_0020_Sprite-9a.png",
-      "desc": "emotion: alert, attentive, focused",
+      "desc": "fist forward, mouth closed with right corner up — making a point (lip-sync rest)",
       "tags": [
-        "alert",
-        "attentive",
-        "focused"
+        "talking",
+        "explaining",
+        "assertive",
+        "ready"
       ],
       "mood": "work",
       "intensity": "mid",
-      "context": "work"
+      "context": "work",
+      "family": "point"
     },
     {
       "idx": 21,
       "col": 9,
       "row": 1,
       "file": "otacon_sprite.png_0021_Sprite-10a.png",
-      "desc": "emotion: alert, attentive, focused",
+      "desc": "fist forward, mouth open — speaking (lip-sync open)",
       "tags": [
-        "alert",
-        "attentive",
-        "focused"
+        "talking",
+        "explaining",
+        "emphasis"
       ],
       "mood": "work",
       "intensity": "mid",
-      "context": "work"
+      "context": "work",
+      "family": "point"
     },
     {
       "idx": 22,
       "col": 10,
       "row": 1,
       "file": "otacon_sprite.png_0022_Sprite-11a.png",
-      "desc": "both hands on hips",
+      "desc": "fist forward, open grin with narrowed eyes — emphatic, amused while talking",
       "tags": [
-        "confident",
-        "assertive",
-        "ready"
+        "talking",
+        "emphasis",
+        "dynamic",
+        "positive"
       ],
       "mood": "work",
-      "intensity": "mid",
-      "context": "work"
+      "intensity": "high",
+      "context": "work",
+      "family": "point"
     },
     {
       "idx": 23,
       "col": 11,
       "row": 1,
       "file": "otacon_sprite.png_0023_Sprite-12a.png",
-      "desc": "emotion: alert, attentive, focused",
+      "desc": "fist forward, eyebrow raised, looking up — skeptical \"hmm?\"",
       "tags": [
-        "alert",
-        "attentive",
-        "focused"
+        "curious",
+        "questioning",
+        "skeptical",
+        "interested"
       ],
-      "mood": "work",
+      "mood": "think",
       "intensity": "mid",
-      "context": "work"
+      "context": "work",
+      "family": "point"
     },
     {
       "idx": 24,
       "col": 0,
       "row": 2,
       "file": "otacon_sprite.png_0024_Sprite-1b.png",
-      "desc": "leaning forward, worried",
+      "desc": "leans back, teeth gritted, glasses flash — startled recoil",
       "tags": [
-        "worried",
-        "concerned",
-        "unpleasant"
+        "surprised",
+        "shocked",
+        "startled",
+        "recoil"
       ],
-      "mood": "pain",
+      "mood": "fear",
       "intensity": "high",
-      "context": "react"
+      "context": "react",
+      "family": "recoil"
     },
     {
       "idx": 25,
       "col": 1,
       "row": 2,
       "file": "otacon_sprite.png_0025_Sprite-2b.png",
-      "desc": "leaning back, puzzled",
+      "desc": "leans back, eyes squeezed, teeth gritted — wince, \"ouch\"",
       "tags": [
-        "puzzled",
-        "confused",
-        "questioning"
+        "error",
+        "distressed",
+        "unpleasant",
+        "wince"
       ],
-      "mood": "think",
-      "intensity": "mid",
-      "context": "work"
+      "mood": "pain",
+      "intensity": "high",
+      "context": "react",
+      "family": "recoil"
     },
     {
       "idx": 26,
       "col": 2,
       "row": 2,
       "file": "otacon_sprite.png_0026_Sprite-3b.png",
-      "desc": "sad, hands clasped",
+      "desc": "slumped, fists down, frown, glasses glare hide the eyes — dejected",
       "tags": [
         "sad",
-        "error",
         "disappointed",
-        "unpleasant"
+        "negative",
+        "error"
       ],
       "mood": "pain",
       "intensity": "high",
-      "context": "react"
+      "context": "react",
+      "family": "slump"
     },
     {
       "idx": 27,
       "col": 3,
       "row": 2,
       "file": "otacon_sprite.png_0027_Sprite-4b.png",
-      "desc": "sad intense",
+      "desc": "slumped, lip quivering — about to cry, hard error",
       "tags": [
         "sad",
-        "error",
         "distressed",
-        "unpleasant"
+        "negative",
+        "error"
       ],
       "mood": "pain",
       "intensity": "high",
-      "context": "react"
+      "context": "react",
+      "family": "slump"
     },
     {
       "idx": 28,
       "col": 4,
       "row": 2,
       "file": "otacon_sprite.png_0028_Sprite-5b.png",
-      "desc": "worried, hand near chin",
+      "desc": "arms crossed, brow furrowed — concerned (subtle)",
       "tags": [
         "worried",
-        "thinking",
-        "unpleasant"
+        "concerned",
+        "strained"
       ],
       "mood": "concern",
-      "intensity": "mid",
-      "context": "react"
+      "intensity": "low",
+      "context": "work",
+      "family": "crossed"
     },
     {
       "idx": 29,
       "col": 5,
       "row": 2,
       "file": "otacon_sprite.png_0029_Sprite-6b.png",
-      "desc": "emotion: tired, subdued, low energy",
+      "desc": "hands held at belly, one brow pixel raised — attentive listening",
       "tags": [
-        "tired",
-        "subdued",
-        "low-energy"
+        "listening",
+        "attentive",
+        "interested",
+        "calm"
       ],
-      "mood": "think",
-      "intensity": "mid",
-      "context": "work"
+      "mood": "calm",
+      "intensity": "low",
+      "context": "work",
+      "family": "rest_belly"
     },
     {
       "idx": 30,
       "col": 6,
       "row": 2,
       "file": "otacon_sprite.png_0030_Sprite-7b.png",
-      "desc": "emotion: tired, subdued, low energy",
+      "desc": "fist forward, winking — playful \"you got it\"",
       "tags": [
-        "tired",
-        "subdued",
-        "low-energy"
+        "wink",
+        "playful",
+        "positive"
       ],
-      "mood": "work",
+      "mood": "social",
       "intensity": "mid",
-      "context": "work"
+      "context": "social",
+      "family": "point"
     },
     {
       "idx": 31,
       "col": 7,
       "row": 2,
       "file": "otacon_sprite.png_0031_Sprite-8b.png",
-      "desc": "waving",
+      "desc": "hand raised by the head — wave / hello",
       "tags": [
+        "greeting",
         "waving",
-        "greeting"
+        "hello"
       ],
       "mood": "social",
       "intensity": "low",
-      "context": "social"
+      "context": "social",
+      "family": "wave"
     },
     {
       "idx": 36,
       "col": 0,
       "row": 3,
       "file": "otacon_sprite.png_0036_Layer-1.png",
-      "desc": "facing left",
+      "desc": "tugging the collar, nervous toothy grin — nervous, sheepish",
       "tags": [
-        "dynamic",
-        "movement"
+        "worried",
+        "anxious",
+        "nervous",
+        "uncomfortable"
       ],
-      "mood": "work",
+      "mood": "concern",
       "intensity": "mid",
-      "context": "work"
+      "context": "react",
+      "family": "collar"
     },
     {
       "idx": 37,
       "col": 1,
       "row": 3,
       "file": "otacon_sprite.png_0037_Layer-2.png",
-      "desc": "emotion: variation, alternate expression",
+      "desc": "fist forward, mouth slightly open — speaking (lip-sync mid)",
       "tags": [
-        "happy",
-        "laughing",
-        "playful"
+        "talking",
+        "explaining",
+        "communication"
       ],
       "mood": "work",
       "intensity": "mid",
-      "context": "work"
+      "context": "work",
+      "family": "point"
     },
     {
       "idx": 38,
       "col": 2,
       "row": 3,
       "file": "otacon_sprite.png_0038_Layer-3.png",
-      "desc": "emotion: variation, alternate expression",
+      "desc": "bent forward holding belly, one eye shut, mouth open — laughing",
       "tags": [
-        "happy",
         "laughing",
-        "playful"
+        "funny",
+        "happy",
+        "positive"
       ],
       "mood": "celebrate",
       "intensity": "high",
-      "context": "react"
+      "context": "react",
+      "family": "laugh"
     },
     {
       "idx": 39,
       "col": 3,
       "row": 3,
       "file": "otacon_sprite.png_0039_Layer-4.png",
-      "desc": "laughing wide",
+      "desc": "laughing harder — bounce low",
       "tags": [
         "laughing",
-        "happy",
         "funny",
-        "excited",
+        "happy",
         "positive"
       ],
       "mood": "celebrate",
       "intensity": "high",
-      "context": "react"
+      "context": "react",
+      "family": "laugh"
     },
     {
       "idx": 40,
       "col": 4,
       "row": 3,
       "file": "otacon_sprite.png_0040_Layer-5.png",
-      "desc": "winking right",
+      "desc": "laughing — bounce up",
       "tags": [
-        "wink",
-        "playful",
-        "happy"
+        "laughing",
+        "funny",
+        "happy",
+        "positive"
       ],
-      "mood": "social",
-      "intensity": "low",
-      "context": "social"
+      "mood": "celebrate",
+      "intensity": "high",
+      "context": "react",
+      "family": "laugh"
     },
     {
       "idx": 41,
       "col": 5,
       "row": 3,
       "file": "otacon_sprite.png_0041_Layer-6.png",
-      "desc": "winking left",
+      "desc": "collar tug + blush — embarrassed",
       "tags": [
-        "wink",
-        "playful",
-        "happy"
+        "blush",
+        "embarrassed",
+        "sheepish"
       ],
       "mood": "social",
-      "intensity": "low",
-      "context": "social"
+      "intensity": "mid",
+      "context": "social",
+      "family": "collar"
     },
     {
       "idx": 42,
       "col": 6,
       "row": 3,
       "file": "otacon_sprite.png_0042_Layer-7.png",
-      "desc": "emotion: variation, alternate expression",
+      "desc": "hands clasped + blush + smile — flattered, thankful",
       "tags": [
-        "neutral",
-        "variant",
-        "alternate"
+        "blush",
+        "pleased",
+        "thankful",
+        "positive"
       ],
-      "mood": "celebrate",
-      "intensity": "high",
-      "context": "react"
+      "mood": "social",
+      "intensity": "low",
+      "context": "social",
+      "family": "rest_clasp"
     },
     {
       "idx": 43,
       "col": 7,
       "row": 3,
       "file": "otacon_sprite.png_0043_Layer-8.png",
-      "desc": "emotion: variation, alternate expression",
+      "desc": "rest pose + blush + smile — pleased, warm",
       "tags": [
-        "neutral",
-        "variant",
-        "alternate"
+        "blush",
+        "pleased",
+        "warm",
+        "positive"
       ],
-      "mood": "celebrate",
-      "intensity": "high",
-      "context": "react"
+      "mood": "social",
+      "intensity": "low",
+      "context": "social",
+      "family": "rest_hip"
     },
     {
       "idx": 44,
       "col": 8,
       "row": 3,
       "file": "otacon_sprite.png_0044_Layer-9.png",
-      "desc": "emotion: variation, alternate expression",
+      "desc": "rest pose + blush + smile, glancing away — shy, flattered",
       "tags": [
-        "neutral",
-        "variant",
-        "alternate"
+        "blush",
+        "shy",
+        "flattered",
+        "positive"
       ],
-      "mood": "work",
-      "intensity": "mid",
-      "context": "work"
+      "mood": "social",
+      "intensity": "low",
+      "context": "social",
+      "family": "rest_hip"
     },
     {
       "idx": 45,
       "col": 9,
       "row": 3,
       "file": "otacon_sprite.png_0045_Layer-10.png",
-      "desc": "emotion: variation, alternate expression",
+      "desc": "collar tug, face drained pale — mortified / chilled",
       "tags": [
-        "neutral",
-        "variant",
-        "alternate"
+        "frightened",
+        "cold",
+        "uncomfortable",
+        "shocked"
       ],
-      "mood": "pain",
+      "mood": "fear",
       "intensity": "high",
-      "context": "react"
+      "context": "react",
+      "family": "collar"
     },
     {
       "idx": 46,
       "col": 10,
       "row": 3,
       "file": "otacon_sprite.png_0046_Layer-11.png",
-      "desc": "scared, holding object",
+      "desc": "a spectral skull appears beside him, teeth gritted — fright",
       "tags": [
-        "scared",
         "frightened",
-        "unpleasant",
-        "alarmed"
+        "scared",
+        "shocked"
       ],
       "mood": "fear",
       "intensity": "high",
-      "context": "react"
+      "context": "react",
+      "family": "ghost"
     }
-  ]
+  ],
+  "note": "v3: descriptions follow src/data/sprite-anatomy.json. Several legacy file names do not match their art (see anatomy.misnamedFiles); sequences reference grid files by cell."
 }

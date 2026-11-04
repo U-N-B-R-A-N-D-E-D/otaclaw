@@ -20,10 +20,11 @@
 
 /**
  * Per-state definition.
- *  sequence    [[col,row], ...] frames from the catalog
+ *  sequence    [[col,row], ...] frames from the catalog; [col,row,ms] overrides
+ *              frameMs for that frame (short blinks/lip-sync, long poses)
  *  mode        'hold'  play once, keep the last frame
  *              'loop'  cycle forever (work states)
- *  frameMs     time per frame
+ *  frameMs     default time per frame
  *  minHoldMs   minimum on-screen time before an equal/lower priority state may replace it
  *  priority    higher interrupts lower immediately
  *  autoReturnMs  (transient states) go back to the work state / idle after this long
@@ -32,30 +33,43 @@
 export const DEFAULT_STATE_SPRITES = {
   // Calm rest is a slow loop over the three true rest frames (not one frozen
   // pose). 6 s holds keep it calm; the blink overlay supplies the life.
-  idle:       { sequence: [[0, 0], [3, 0], [11, 0], [8, 0]], mode: 'loop', frameMs: 6000, minHoldMs: 0, priority: 0 },
-  thinking:   { sequence: [[1, 0], [4, 0], [2, 0], [11, 0], [4, 0]], mode: 'loop', frameMs: 2400, minHoldMs: 800, priority: 3, work: true },
-  processing: { sequence: [[6, 0], [7, 0], [6, 1], [7, 1], [0, 3], [1, 3]], mode: 'loop', frameMs: 1800, minHoldMs: 800, priority: 3, work: true },
-  // Work pose is listening/ready/confident — not the stern "pointing" frame
-  // that reads as worried.
-  tool:       { sequence: [[6, 2], [8, 1], [10, 1]], mode: 'loop', frameMs: 1800, minHoldMs: 1200, priority: 4, work: true },
-  success:    { sequence: [[0, 1], [1, 1], [3, 1], [2, 1]], mode: 'hold', frameMs: 350, minHoldMs: 1800, priority: 7, autoReturnMs: 2600 },
-  error:      { sequence: [[2, 2], [3, 2]], mode: 'hold', frameMs: 600, minHoldMs: 2500, priority: 10, autoReturnMs: 3500 },
-  confused:   { sequence: [[4, 1], [1, 2]], mode: 'hold', frameMs: 700, minHoldMs: 1500, priority: 6, autoReturnMs: 3000 },
-  attention:  { sequence: [[6, 2], [0, 0]], mode: 'loop', frameMs: 1200, minHoldMs: 1500, priority: 8 },
-  laughing:   { sequence: [[2, 3], [3, 3]], mode: 'hold', frameMs: 450, minHoldMs: 1800, priority: 5, autoReturnMs: 3000 },
-  surprised:  { sequence: [[9, 0], [10, 0]], mode: 'hold', frameMs: 400, minHoldMs: 1200, priority: 5, autoReturnMs: 2200 },
-  curious:    { sequence: [[5, 2], [11, 0]], mode: 'hold', frameMs: 1000, minHoldMs: 1200, priority: 4, autoReturnMs: 3000 },
-  excited:    { sequence: [[2, 1], [3, 1], [6, 3], [7, 3]], mode: 'hold', frameMs: 450, minHoldMs: 1500, priority: 5, autoReturnMs: 2800 },
-  presenting: { sequence: [[6, 3], [7, 3], [6, 0], [7, 0]], mode: 'hold', frameMs: 500, minHoldMs: 1200, priority: 5, autoReturnMs: 2200 },
-  worried:    { sequence: [[0, 2], [4, 2]], mode: 'hold', frameMs: 700, minHoldMs: 1500, priority: 6, autoReturnMs: 3500 },
-  sad:        { sequence: [[2, 2], [3, 2]], mode: 'hold', frameMs: 700, minHoldMs: 1500, priority: 5, autoReturnMs: 3500 },
-  scared:     { sequence: [[10, 3], [9, 0]], mode: 'hold', frameMs: 400, minHoldMs: 1500, priority: 6, autoReturnMs: 3000 },
-  greeting:   { sequence: [[7, 2], [0, 0]], mode: 'hold', frameMs: 800, minHoldMs: 1200, priority: 2, autoReturnMs: 2400 },
-  // Previously unused catalog frames: hand-on-hip/ready/smug and the winks.
-  confident:  { sequence: [[8, 1], [9, 1], [10, 1], [11, 1], [8, 3]], mode: 'loop', frameMs: 1600, minHoldMs: 1200, priority: 4, work: true },
-  playful:    { sequence: [[4, 3], [5, 3], [2, 3]], mode: 'hold', frameMs: 500, minHoldMs: 1500, priority: 5, autoReturnMs: 2800 },
-  cold:       { sequence: [[9, 3]], mode: 'hold', frameMs: 700, minHoldMs: 1500, priority: 6, autoReturnMs: 3000 },
+  idle:       { sequence: [[0, 0], [3, 0], [8, 0], [5, 2, 4000]], mode: 'loop', frameMs: 6000, minHoldMs: 0, priority: 0 },
+  // Hand-to-chin family (4,0 / 6,0 glance / 5,0 narrowed), then arms crossed
+  // (9,0 / 10,0 narrowed): inside a family only the eyes move. Short frames
+  // are glances, long ones are the pose.
+  thinking:   { sequence: [[4, 0, 2400], [6, 0, 1400], [4, 0, 1800], [5, 0, 900], [7, 0, 2400], [9, 0, 2000], [10, 0, 700], [11, 0, 2400]], mode: 'loop', frameMs: 2400, minHoldMs: 800, priority: 3, work: true },
+  processing: { sequence: [[1, 0], [8, 1, 1600], [2, 0, 900], [11, 1, 1400], [8, 1, 1200], [6, 1, 2000]], mode: 'loop', frameMs: 1800, minHoldMs: 800, priority: 3, work: true },
+  // Lip-sync: fist-forward family, mouth closed (8,1) / ajar (1,3) / open (9,1).
+  speaking:   { sequence: [[8, 1, 220], [1, 3, 160], [9, 1, 200], [1, 3, 160], [8, 1, 260], [9, 1, 180], [10, 1, 220], [1, 3, 160]], mode: 'loop', frameMs: 200, minHoldMs: 600, priority: 3 },
+  tool:       { sequence: [[6, 1, 2200], [1, 0, 1600], [8, 1, 1600]], mode: 'loop', frameMs: 1800, minHoldMs: 1200, priority: 4, work: true },
+  // Anticipation (thumb raised) -> thumbs up -> grin + wink -> settle.
+  success:    { sequence: [[1, 1, 300], [0, 1, 350], [2, 1, 700], [3, 1, 900]], mode: 'hold', frameMs: 350, minHoldMs: 1800, priority: 7, autoReturnMs: 2600 },
+  error:      { sequence: [[1, 2, 350], [2, 2, 900], [3, 2, 1200]], mode: 'hold', frameMs: 600, minHoldMs: 2500, priority: 10, autoReturnMs: 3500 },
+  confused:   { sequence: [[4, 1, 700], [5, 1, 1400]], mode: 'hold', frameMs: 700, minHoldMs: 1500, priority: 6, autoReturnMs: 3000 },
+  attention:  { sequence: [[5, 2, 2000], [0, 0]], mode: 'loop', frameMs: 1200, minHoldMs: 1500, priority: 8 },
+  laughing:   { sequence: [[2, 3, 200], [3, 3, 240], [4, 3, 200], [3, 3, 240], [2, 3, 200], [4, 3, 260]], mode: 'hold', frameMs: 220, minHoldMs: 1800, priority: 5, autoReturnMs: 3000 },
+  // Startled recoil, then the nervous collar tug as it settles.
+  surprised:  { sequence: [[0, 2, 700], [0, 3, 900]], mode: 'hold', frameMs: 400, minHoldMs: 1200, priority: 5, autoReturnMs: 2200 },
+  curious:    { sequence: [[5, 2, 1000], [11, 1, 1600]], mode: 'hold', frameMs: 1000, minHoldMs: 1200, priority: 4, autoReturnMs: 3000 },
+  excited:    { sequence: [[1, 1, 250], [2, 1, 500], [3, 1, 500], [2, 3, 300], [4, 3, 400]], mode: 'hold', frameMs: 450, minHoldMs: 1500, priority: 5, autoReturnMs: 2800 },
+  presenting: { sequence: [[1, 0, 600], [8, 1, 500], [1, 3, 200], [9, 1, 300], [8, 1, 600], [6, 1, 1200]], mode: 'hold', frameMs: 500, minHoldMs: 1200, priority: 5, autoReturnMs: 3600 },
+  // Arms crossed -> brow furrows (2 px) -> collar tug.
+  worried:    { sequence: [[9, 0, 600], [4, 2, 1200], [0, 3, 1200]], mode: 'hold', frameMs: 700, minHoldMs: 1500, priority: 6, autoReturnMs: 3500 },
+  sad:        { sequence: [[2, 2, 1200], [3, 2, 1400]], mode: 'hold', frameMs: 700, minHoldMs: 1500, priority: 5, autoReturnMs: 3500 },
+  scared:     { sequence: [[0, 2, 400], [10, 3, 1600]], mode: 'hold', frameMs: 400, minHoldMs: 1500, priority: 6, autoReturnMs: 3000 },
+  // Wave, then the warm blush smile on the rest body.
+  greeting:   { sequence: [[7, 2, 1200], [7, 3, 800], [6, 3, 800]], mode: 'hold', frameMs: 800, minHoldMs: 1200, priority: 2, autoReturnMs: 3200 },
+  confident:  { sequence: [[6, 1, 2000], [8, 1, 1600], [7, 1, 900], [8, 1, 1600]], mode: 'loop', frameMs: 1600, minHoldMs: 1200, priority: 4, work: true },
+  playful:    { sequence: [[6, 2, 700], [5, 3, 900], [8, 3, 900], [7, 3, 1000]], mode: 'hold', frameMs: 500, minHoldMs: 1500, priority: 5, autoReturnMs: 4000 },
+  // Collar tug, then the face drains pale.
+  cold:       { sequence: [[0, 3, 600], [9, 3, 1600]], mode: 'hold', frameMs: 700, minHoldMs: 1500, priority: 6, autoReturnMs: 3000 },
 };
+
+/** Time on screen for sequence entry `frame` ([col, row] or [col, row, ms]). */
+export function frameDuration(frame, frameMs) {
+  const ms = Array.isArray(frame) ? Number(frame[2]) : NaN;
+  return Number.isFinite(ms) && ms > 0 ? ms : frameMs;
+}
 
 /**
  * Free-form signals -> state. Keys are plain strings (names or emoji), so any
@@ -78,6 +92,7 @@ export const DEFAULT_SIGNAL_MAP = {
   '😟': 'worried', '😔': 'sad', '😕': 'confused', '❓': 'confused',
   '❌': 'error', '⚠': 'worried',
   '👋': 'greeting', '🙋': 'attention', '🔔': 'attention',
+  speaking: 'speaking', talking: 'speaking', '💬': 'speaking', '🗣': 'speaking',
 };
 
 const VS16 = /[︎️]/g;

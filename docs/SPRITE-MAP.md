@@ -28,49 +28,49 @@ manifest. `Also in` lists other state sequences that use the frame.
 <!-- BEGIN GENERATED:frames -->
 | Cell | ID | Emoji | Primary | Lane | State | Also in | File | Description |
 |---|---|---|---|---|---|---|---|---|
-| `0,0` | `idle` | 🙂 | idle | idle | `idle` | attention, greeting, idle | `otacon_sprite.png_0000_Sprite-1.png` | neutral standing, arms at sides — true rest |
-| `1,0` | `think_left` | 🤔 | thinking | work | `thinking` | thinking | `otacon_sprite.png_0001_Sprite-2.png` | head left, arm across — mild think (work only, not idle) |
-| `2,0` | `think_right` | 🤔 | thinking | work | `thinking` | thinking | `otacon_sprite.png_0002_Sprite-3.png` | head right, arm across — mild think (work only, not idle) |
-| `3,0` | `waiting` | ⏳ | idle | idle | `idle` | idle | `otacon_sprite.png_0003_Sprite-4.png` | hands together at waist — calm waiting rest |
-| `4,0` | `contemplate` | 🧐 | thinking | work | `thinking` | thinking | `otacon_sprite.png_0004_Sprite-5.png` | hand to chin — contemplative think (not idle rest) |
-| `5,0` | `puzzled` | 😕 | confused | work | `confused` | confused | `otacon_sprite.png_0005_Sprite-6.png` | hands near chest, puzzled / unsure |
-| `6,0` | `explain_left` | 🗣️ | explaining | work | `processing` | presenting, processing | `otacon_sprite.png_0006_Sprite-7.png` | left arm out — explaining / presenting point |
-| `7,0` | `explain_right` | 🗣️ | explaining | work | `processing` | presenting, processing | `otacon_sprite.png_0007_Sprite-8.png` | right arm out — explaining (mirror) |
-| `8,0` | `arms_closed` | 🙅 | idle | idle | `idle` | idle | `otacon_sprite.png_0008_Sprite-9.png` | arms crossed / hands in — closed calm waiting |
-| `9,0` | `shocked_left` | 😮 | surprised | react | `surprised` | scared, surprised | `otacon_sprite.png_0009_Sprite-10.png` | hand to face — surprised / shocked (L) |
-| `10,0` | `shocked_right` | 😮 | surprised | react | `surprised` | surprised | `otacon_sprite.png_0010_Sprite-11.png` | hand to face — surprised / shocked (R) |
-| `11,0` | `look_aside` | 👀 | thinking | work | `thinking` | curious, thinking | `otacon_sprite.png_0011_Sprite-12.png` | looking aside, contemplative think |
-| `0,1` | `thumbs_up_left` | 👍 | success | react | `success` | success | `otacon_sprite.png_0012_Sprite-1a.png` | thumbs-up left — success |
-| `1,1` | `thumbs_up_right` | 👍 | success | react | `success` | success | `otacon_sprite.png_0013_Sprite-2a.png` | thumbs-up right — success |
-| `2,1` | `thumbs_up_both` | 🎉 | success | react | `excited` | excited, success | `otacon_sprite.png_0014_Sprite-3a.png` | both thumbs-up — strong success / excited |
-| `3,1` | `thumbs_up_hip` | 💪 | success | react | `success` | excited, success | `otacon_sprite.png_0015_Sprite-4a.png` | thumbs-up + hip — success approval |
-| `4,1` | `shrug` | 🤷 | confused | work | `confused` | confused | `otacon_sprite.png_0016_Sprite-5a.png` | arms open palms up — unsure shrug (NOT idle) |
-| `5,1` | `doubt` | 🤨 | worried | work | `worried` | worried | `otacon_sprite.png_0017_Sprite-6a.png` | shrug open arms + worried face — doubt (NOT idle) |
-| `6,1` | `point_left` | 👉 | explaining | work | `processing` | processing | `otacon_sprite.png_0018_Sprite-7a.png` | arm raised pointing — asking / emphasis |
-| `7,1` | `point_right` | 👉 | explaining | work | `processing` | processing | `otacon_sprite.png_0019_Sprite-8a.png` | arm raised pointing (mirror) |
-| `8,1` | `hand_on_hip` | 🧍 | confident | work | `confident` | confident, tool | `otacon_sprite.png_0020_Sprite-9a.png` | hand on hip — confident |
-| `9,1` | `hand_on_hip_mirror` | 🧍 | confident | work | `confident` | confident | `otacon_sprite.png_0021_Sprite-10a.png` | hand on hip (mirror) — confident |
-| `10,1` | `hands_on_hips` | 🧍 | confident | work | `confident` | confident, tool | `otacon_sprite.png_0022_Sprite-11a.png` | both hands on hips — ready / confident |
-| `11,1` | `dynamic_confident` | 💼 | confident | work | `confident` | confident | `otacon_sprite.png_0023_Sprite-12a.png` | arm out + hip — dynamic confident |
-| `0,2` | `worried` | 😟 | worried | react | `worried` | worried | `otacon_sprite.png_0024_Sprite-1b.png` | lean forward grimace — WORRIED (pain face, never thinking) |
-| `1,2` | `puzzled_back` | 😕 | confused | work | `confused` | confused | `otacon_sprite.png_0025_Sprite-2b.png` | lean back — puzzled / questioning |
-| `2,2` | `sad` | 😔 | sad | react | `sad` | error, sad | `otacon_sprite.png_0026_Sprite-3b.png` | sad, hands clasped — error / disappointment |
-| `3,2` | `sad_intense` | 😭 | sad | react | `error` | error, sad | `otacon_sprite.png_0027_Sprite-4b.png` | sad intense — hard error |
-| `4,2` | `worried_chin` | 😟 | worried | react | `worried` | worried | `otacon_sprite.png_0028_Sprite-5b.png` | hand near chin, strained — WORRIED (not thinking) |
-| `5,2` | `curious` | 🔍 | curious | work | `curious` | curious | `otacon_sprite.png_0029_Sprite-6b.png` | slight lean / interest — curious |
-| `6,2` | `phone` | 📞 | talking | work | `attention` | attention, tool | `otacon_sprite.png_0030_Sprite-7b.png` | phone to ear — talking / listening |
-| `7,2` | `wave` | 👋 | greeting | social | `greeting` | greeting | `otacon_sprite.png_0031_Sprite-8b.png` | waving — greeting only |
-| `0,3` | `talk_left` | 💬 | talking | work | `processing` | processing | `otacon_sprite.png_0036_Layer-1.png` | facing left, arms out — movement filler |
-| `1,3` | `talk_right` | 💬 | talking | work | `processing` | processing | `otacon_sprite.png_0037_Layer-2.png` | facing right, arms out — movement filler |
-| `2,3` | `laugh` | 😂 | laughing | react | `laughing` | laughing, playful | `otacon_sprite.png_0038_Layer-3.png` | laughing |
-| `3,3` | `laugh_wide` | 🤣 | laughing | react | `laughing` | laughing | `otacon_sprite.png_0039_Layer-4.png` | laughing wide |
-| `4,3` | `wink_right` | 😉 | playful | social | `playful` | playful | `otacon_sprite.png_0040_Layer-5.png` | wink right — playful social only |
-| `5,3` | `wink_left` | 😉 | playful | social | `playful` | playful | `otacon_sprite.png_0041_Layer-6.png` | wink left — playful social only |
-| `6,3` | `tada` | 🎉 | presenting | react | `presenting` | excited, presenting | `otacon_sprite.png_0042_Layer-7.png` | ta-da present — success flourish |
-| `7,3` | `tada_left` | 🎉 | presenting | react | `presenting` | excited, presenting | `otacon_sprite.png_0043_Layer-8.png` | ta-da left — success flourish |
-| `8,3` | `smug` | 😏 | confident | work | `confident` | confident | `otacon_sprite.png_0044_Layer-9.png` | arms crossed smug — confident satisfied |
-| `9,3` | `shiver` | 🥶 | worried | react | `cold` | cold | `otacon_sprite.png_0045_Layer-10.png` | shivering cold — uncomfortable |
-| `10,3` | `scared` | 😱 | scared | react | `scared` | scared | `otacon_sprite.png_0046_Layer-11.png` | scared + skull prop — fright / panic |
+| `0,0` | `idle` | 🙂 | idle | idle | `idle` | idle | `otacon_sprite.png_0000_Sprite-1.png` | standing, one hand on hip, other arm down, neutral face — true rest |
+| `1,0` | `point_ready` | 👉 | explaining | work | `processing` | processing | `otacon_sprite.png_0001_Sprite-2.png` | fist forward, neutral — about to make a point |
+| `2,0` | `point_stern` | 😤 | explaining | work | `processing` | processing | `otacon_sprite.png_0002_Sprite-3.png` | fist forward, frowning — objecting, stern |
+| `3,0` | `waiting` | ⏳ | idle | idle | `idle` | idle | `otacon_sprite.png_0003_Sprite-4.png` | arms folded over belly, head turned aside — calm waiting |
+| `4,0` | `contemplate` | 🧐 | thinking | work | `thinking` | thinking | `otacon_sprite.png_0004_Sprite-5.png` | arm across, hand to chin — thinking |
+| `5,0` | `think_squint` | 🤔 | thinking | work | `thinking` | thinking | `otacon_sprite.png_0005_Sprite-6.png` | hand to chin, eyes narrowed — concentrating (also the blink frame of 4,0) |
+| `6,0` | `think_glance` | 👀 | thinking | work | `thinking` | thinking | `otacon_sprite.png_0006_Sprite-7.png` | hand to chin, glancing aside — pondering, reading |
+| `7,0` | `contemplate_alt` | 🧐 | thinking | work | `thinking` | thinking | `otacon_sprite.png_0007_Sprite-8.png` | hand to chin, alternate drawing — thinking |
+| `8,0` | `hands_clasped` | 🙂 | idle | idle | `idle` | idle | `otacon_sprite.png_0008_Sprite-9.png` | hands clasped in front, neutral — polite waiting |
+| `9,0` | `arms_crossed` | 🤔 | thinking | work | `thinking` | thinking | `otacon_sprite.png_0009_Sprite-10.png` | arms crossed, hand at chin, neutral — weighing it up |
+| `10,0` | `arms_crossed_squint` | 😑 | thinking | work | `thinking` | thinking | `otacon_sprite.png_0010_Sprite-11.png` | arms crossed, eyes narrowed — skeptical focus (also the blink frame of 9,0) |
+| `11,0` | `chin_rest` | 🤔 | thinking | work | `thinking` | thinking | `otacon_sprite.png_0011_Sprite-12.png` | hand to chin, alternate drawing — thinking |
+| `0,1` | `thumbs_up` | 👍 | success | react | `success` | success | `otacon_sprite.png_0012_Sprite-1a.png` | thumbs up, neutral face — approval |
+| `1,1` | `thumbs_up_raise` | 👍 | success | react | `success` | success | `otacon_sprite.png_0013_Sprite-2a.png` | thumb raised high — anticipation before the thumbs up |
+| `2,1` | `thumbs_up_wink` | 🎉 | success | react | `excited` | excited | `otacon_sprite.png_0014_Sprite-3a.png` | thumbs up with grin and wink — strong success |
+| `3,1` | `thumbs_up_grin` | 💪 | success | react | `success` | success | `otacon_sprite.png_0015_Sprite-4a.png` | thumbs up follow-through, grin and wink — success settle |
+| `4,1` | `shrug` | 🤷 | confused | work | `confused` | confused | `otacon_sprite.png_0016_Sprite-5a.png` | open-arm shrug, palms up, neutral — unsure |
+| `5,1` | `shrug_big` | 🤷 | confused | work | `confused` | confused | `otacon_sprite.png_0017_Sprite-6a.png` | big shrug, eyebrow up, looking away — "no idea" |
+| `6,1` | `hands_on_hips` | 😊 | confident | work | `confident` | confident | `otacon_sprite.png_0018_Sprite-7a.png` | both hands on hips, small smile — proud, ready |
+| `7,1` | `point_wink` | 😏 | confident | work | `confident` | confident | `otacon_sprite.png_0019_Sprite-8a.png` | fist forward with a knowing half-wink — "got it" |
+| `8,1` | `talk_closed` | 💬 | talking | work | `processing` | processing | `otacon_sprite.png_0020_Sprite-9a.png` | fist forward, mouth closed with right corner up — making a point (lip-sync rest) |
+| `9,1` | `talk_open` | 🗣️ | talking | work | `processing` | processing | `otacon_sprite.png_0021_Sprite-10a.png` | fist forward, mouth open — speaking (lip-sync open) |
+| `10,1` | `talk_grin` | 😁 | explaining | work | `presenting` | presenting | `otacon_sprite.png_0022_Sprite-11a.png` | fist forward, open grin with narrowed eyes — emphatic, amused while talking |
+| `11,1` | `skeptical` | 🤨 | curious | work | `curious` | curious | `otacon_sprite.png_0023_Sprite-12a.png` | fist forward, eyebrow raised, looking up — skeptical "hmm?" |
+| `0,2` | `startled` | 😬 | surprised | react | `surprised` | surprised | `otacon_sprite.png_0024_Sprite-1b.png` | leans back, teeth gritted, glasses flash — startled recoil |
+| `1,2` | `wince` | 😣 | worried | react | `error` | error | `otacon_sprite.png_0025_Sprite-2b.png` | leans back, eyes squeezed, teeth gritted — wince, "ouch" |
+| `2,2` | `sad` | 😔 | sad | react | `sad` | sad | `otacon_sprite.png_0026_Sprite-3b.png` | slumped, fists down, frown, glasses glare hide the eyes — dejected |
+| `3,2` | `sad_intense` | 😢 | sad | react | `error` | error | `otacon_sprite.png_0027_Sprite-4b.png` | slumped, lip quivering — about to cry, hard error |
+| `4,2` | `worried` | 😟 | worried | work | `worried` | worried | `otacon_sprite.png_0028_Sprite-5b.png` | arms crossed, brow furrowed — concerned (subtle) |
+| `5,2` | `attentive` | 👂 | curious | work | `attention` | attention | `otacon_sprite.png_0029_Sprite-6b.png` | hands held at belly, one brow pixel raised — attentive listening |
+| `6,2` | `point_wink_alt` | 😉 | playful | social | `playful` | playful | `otacon_sprite.png_0030_Sprite-7b.png` | fist forward, winking — playful "you got it" |
+| `7,2` | `wave` | 👋 | greeting | social | `greeting` | greeting | `otacon_sprite.png_0031_Sprite-8b.png` | hand raised by the head — wave / hello |
+| `0,3` | `collar_tug` | 😅 | worried | react | `worried` | worried | `otacon_sprite.png_0036_Layer-1.png` | tugging the collar, nervous toothy grin — nervous, sheepish |
+| `1,3` | `talk_ajar` | 💬 | talking | work | `processing` | processing | `otacon_sprite.png_0037_Layer-2.png` | fist forward, mouth slightly open — speaking (lip-sync mid) |
+| `2,3` | `laugh` | 😂 | laughing | react | `laughing` | laughing | `otacon_sprite.png_0038_Layer-3.png` | bent forward holding belly, one eye shut, mouth open — laughing |
+| `3,3` | `laugh_wide` | 🤣 | laughing | react | `laughing` | laughing | `otacon_sprite.png_0039_Layer-4.png` | laughing harder — bounce low |
+| `4,3` | `laugh_tilt` | 😆 | laughing | react | `laughing` | laughing | `otacon_sprite.png_0040_Layer-5.png` | laughing — bounce up |
+| `5,3` | `embarrassed` | 😳 | playful | social | `playful` | playful | `otacon_sprite.png_0041_Layer-6.png` | collar tug + blush — embarrassed |
+| `6,3` | `blush_clasped` | ☺️ | playful | social | `playful` | playful | `otacon_sprite.png_0042_Layer-7.png` | hands clasped + blush + smile — flattered, thankful |
+| `7,3` | `blush_smile` | 😊 | playful | social | `playful` | playful | `otacon_sprite.png_0043_Layer-8.png` | rest pose + blush + smile — pleased, warm |
+| `8,3` | `blush_shy` | ☺️ | playful | social | `playful` | playful | `otacon_sprite.png_0044_Layer-9.png` | rest pose + blush + smile, glancing away — shy, flattered |
+| `9,3` | `blanched` | 🥶 | scared | react | `cold` | cold | `otacon_sprite.png_0045_Layer-10.png` | collar tug, face drained pale — mortified / chilled |
+| `10,3` | `scared` | 😱 | scared | react | `scared` | scared | `otacon_sprite.png_0046_Layer-11.png` | a spectral skull appears beside him, teeth gritted — fright |
 <!-- END GENERATED:frames -->
 
 ## 3. Tools (`agent.sprite` tool selector)

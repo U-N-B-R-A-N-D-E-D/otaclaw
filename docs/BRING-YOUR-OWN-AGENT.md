@@ -74,7 +74,7 @@ first sentence. Full policy: [SPEECH.md](SPEECH.md).
 | `agent.tool.call` | tool / surprised | `{ "tool": "search", "content": "Searching…" }` |
 | `gateway.idle` | idle | `{}` |
 | `agent.signal` | any state | `{ "signal": "🤔" }` (emoji or state name) |
-| `agent.sprite` | that exact asset / tool | `{ "sprite": "wink_right" }`, `{ "sprite": "4,3" }`, `{ "sprite": "search" }` |
+| `agent.sprite` | that exact asset / tool | `{ "sprite": "point_wink_alt" }`, `{ "sprite": "6,2" }`, `{ "sprite": "search" }` |
 
 `agent.sprite` is the 1:1 asset selector (Vibeconferencing-style): every Hal frame
 has a stable id/emoji in `src/data/sprite-functions.json`; tools map to a state

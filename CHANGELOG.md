@@ -2,6 +2,22 @@
 
 All notable changes to OtaClaw.
 
+## [Unreleased]
+
+### Changed
+
+- **Visual pass over every sprite** (`docs/SPRITE-ANATOMY.md`, `src/data/sprite-anatomy.json`): frames were compared pixel by pixel after aligning their canvases and grouped into 16 families that share one body drawing; variants differ by a few face pixels (half-blink, glance, mouth shape, brow, blush). Descriptions, primaries and tags in `frame-catalog.json`, `sprite-catalog.json` and `sprite-functions.json` now say what the pixels show (for example `9,0`/`10,0` are arms crossed and its half-blink, not "surprised"; `6,2` is a wink, not a phone; `4,3` is a laugh frame, not a wink).
+- Sprite function ids describe their art (`startled`, `talk_open`, `collar_tug`, ...); every pre-v3 id still resolves to the same cell via `aliases`. `hands_on_hips` now names the frame that shows it (`6,1`).
+- State sequences stay inside one family while they loop, and terminal states read anticipation -> action -> settle. All 43 cells are used.
+- Codec portraits: listening states only blink, talking states move the mouth; `g2..g4` are assigned by their real expression.
+
+### Added
+
+- Per-frame timing: a sequence entry may be `[col, row, ms]` (state table, catalog sequences and the director); codec entries take `file@ms`.
+- `speaking` state: lip-sync on the fist-forward family (`8,1 -> 1,3 -> 9,1`).
+- `tools/sprite-anatomy.html`: families with the changed pixels outlined, sequences before/after with real timing, codec preview.
+- `tools/sprite-labels-seed.json`: suggested labels from the visual pass.
+
 ## [0.0.8] - 2026-11-02
 
 ### Added

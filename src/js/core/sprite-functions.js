@@ -2,7 +2,7 @@
  * 1:1 sprite functions (see `src/data/sprite-functions.json`).
  *
  * Each Hal asset has a stable id + emoji. `agent.sprite` can request:
- *   - a function id       ("wink_right")
+ *   - a function id       ("laugh_tilt"), or a pre-v3 alias ("wink_right")
  *   - an emoji            ("😉", first match)
  *   - a raw cell          ("4,3")
  *   - a tool function     ("search", "terminal", ...)
@@ -18,7 +18,12 @@ export function findSpriteFunction(manifest, key) {
     return { id: `cell:${raw}`, frame: [Number(cell[1]), Number(cell[2])], state: null };
   }
   const funcs = manifest?.functions || [];
-  return funcs.find((f) => f.id === raw || f.emoji === raw) || null;
+  return (
+    funcs.find((f) => f.id === raw) ||
+    funcs.find((f) => Array.isArray(f.aliases) && f.aliases.includes(raw)) ||
+    funcs.find((f) => f.emoji === raw) ||
+    null
+  );
 }
 
 export function findToolFunction(manifest, key) {
@@ -34,6 +39,7 @@ export function spriteSignalMap(manifest) {
     if (!f.state) continue;
     if (f.emoji && !(f.emoji in map)) map[f.emoji] = f.state;
     map[f.id] = f.state;
+    for (const alias of f.aliases || []) if (!(alias in map)) map[alias] = f.state;
   }
   for (const [id, tool] of Object.entries(manifest?.tools || {})) {
     if (tool?.state) map[id] = tool.state;

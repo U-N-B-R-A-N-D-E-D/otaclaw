@@ -46,7 +46,7 @@ describe('avatar-director', () => {
 
   it('modes select the listening face like Vibeconf MODE_EMOJIS', () => {
     expect(resolveAvatar({ mode: 'active', hearing: true }).id).toBe('idle');
-    expect(resolveAvatar({ mode: 'passive', hearing: true }).id).toBe('arms_closed');
+    expect(resolveAvatar({ mode: 'passive', hearing: true }).id).toBe('hands_clasped');
     expect(resolveAvatar({ mode: 'silent', hearing: true }).id).toBe('waiting');
   });
 
@@ -61,7 +61,7 @@ describe('avatar-director', () => {
 
   it('idle cycle is only the 3 true-rest frames (no work/social bleed)', () => {
     expect(new Set(IDLE_CYCLE)).toEqual(
-      new Set(['idle', 'waiting', 'arms_closed'])
+      new Set(['idle', 'waiting', 'hands_clasped'])
     );
     expect(idleSprite(0)).toBe('idle');
     expect(idleSprite(3)).toBe('idle');
