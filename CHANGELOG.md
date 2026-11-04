@@ -2,7 +2,7 @@
 
 All notable changes to OtaClaw.
 
-## [Unreleased]
+## [0.0.9] - 2026-11-04
 
 ### Changed
 
@@ -13,6 +13,7 @@ All notable changes to OtaClaw.
 
 ### Added
 
+- `npm run demo:kiosk`: one command starts the reference gateway and opens only the kiosk (native float on macOS, windowless kiosk on Linux/Windows). No browser tab or landing page.
 - Per-frame timing: a sequence entry may be `[col, row, ms]` (state table, catalog sequences and the director); codec entries take `file@ms`.
 - `speaking` state: lip-sync on the fist-forward family (`8,1 -> 1,3 -> 9,1`).
 - `tools/sprite-anatomy.html`: families with the changed pixels outlined, sequences before/after with real timing, codec preview.

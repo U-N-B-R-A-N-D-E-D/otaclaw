@@ -1,6 +1,6 @@
 {
   "name": "otaclaw-openclaw",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Animated Otacon avatar for any WebSocket event gateway (OpenClaw, Discord, custom) — give your AI a face that reacts to every interaction",
   "main": "src/index.html",
   "type": "module",
